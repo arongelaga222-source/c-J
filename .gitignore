@@ -34,6 +34,9 @@
 # Allow committing example environment template
 !.env.example
 
+# Scratch & Temporary Test Files
+scratch/
+
 # Supabase Local Cache & Secrets
 .supabase/local
 supabase/.temp
