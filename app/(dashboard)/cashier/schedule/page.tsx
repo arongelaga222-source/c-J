@@ -2,6 +2,15 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
 import ScheduleClient from "./schedule-client";
 
+interface RawBooking {
+  id: string;
+  start_time: string;
+  end_time: string;
+  status: string;
+  profiles: { full_name: string } | { full_name: string }[] | null;
+  courts: { id: string; name: string } | { id: string; name: string }[] | null;
+}
+
 export default async function CashierSchedulePage() {
   const supabase = await createClient();
 
@@ -32,14 +41,16 @@ export default async function CashierSchedulePage() {
     .lt('start_time', tomorrow.toISOString())
     .order('start_time', { ascending: true });
 
-  const formattedBookings = rawBookings?.map((booking: any) => ({
+  const typedRaw = (rawBookings as unknown as RawBooking[]) || [];
+
+  const formattedBookings = typedRaw.map((booking) => ({
     id: booking.id,
     start_time: booking.start_time,
     end_time: booking.end_time,
     status: booking.status,
-    profiles: Array.isArray(booking.profiles) ? booking.profiles[0] : booking.profiles,
-    courts: Array.isArray(booking.courts) ? booking.courts[0] : booking.courts,
-  })) || [];
+    profiles: Array.isArray(booking.profiles) ? booking.profiles[0] : (booking.profiles || { full_name: "Walk-in Guest" }),
+    courts: Array.isArray(booking.courts) ? booking.courts[0] : (booking.courts || { id: "", name: "Standard Court" }),
+  }));
 
   return (
     <ScheduleClient 

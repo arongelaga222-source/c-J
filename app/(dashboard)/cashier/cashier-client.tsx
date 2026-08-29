@@ -3,13 +3,29 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Separator } from "@/components/ui/separator";
-import { Badge } from "@/components/ui/badge";
-import { ShoppingCart, Plus, Minus, Banknote, CreditCard, Smartphone } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { 
+  ShoppingCart, 
+  Plus, 
+  Minus, 
+  Trash2, 
+  Banknote, 
+  CreditCard, 
+  QrCode, 
+  Search, 
+  Package, 
+  CheckCircle2
+} from "lucide-react";
 import { processPosTransaction } from "@/app/actions";
 
-type Product = { id: string; name: string; price: number; category: string };
+type Product = { 
+  id: string; 
+  name: string; 
+  price: number; 
+  category: string; 
+  stock_level?: number;
+};
+
 type CartItem = Product & { quantity: number };
 
 export default function CashierClient({ 
@@ -18,38 +34,62 @@ export default function CashierClient({
   initialProducts: Product[]; 
 }) {
   const [cart, setCart] = useState<CartItem[]>([]);
-  const [paymentMethod, setPaymentMethod] = useState<string>("Cash");
+  const [paymentMethod, setPaymentMethod] = useState<string>("GCash / QR Ph");
+  const [selectedCategory, setSelectedCategory] = useState<string>("All");
+  const [searchQuery, setSearchQuery] = useState<string>("");
   const [isProcessing, setIsProcessing] = useState(false);
+  const [lastSuccessReceipt, setLastSuccessReceipt] = useState<{ amount: number; method: string } | null>(null);
+
+  const categories = ["All", ...Array.from(new Set(initialProducts.map((p) => p.category)))];
+
+  const filteredProducts = initialProducts.filter((product) => {
+    const matchesCategory = selectedCategory === "All" || product.category === selectedCategory;
+    const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                          product.category.toLowerCase().includes(searchQuery.toLowerCase());
+    return matchesCategory && matchesSearch;
+  });
 
   const addToCart = (product: Product) => {
     setCart((prev) => {
       const existing = prev.find((item) => item.id === product.id);
       if (existing) {
-        return prev.map((item) => item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item);
+        return prev.map((item) => 
+          item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item
+        );
       }
       return [...prev, { ...product, quantity: 1 }];
     });
   };
 
-  const removeFromCart = (id: string) => {
+  const updateQuantity = (id: string, delta: number) => {
     setCart((prev) => {
-      const existing = prev.find((item) => item.id === id);
-      if (existing && existing.quantity > 1) {
-        return prev.map((item) => item.id === id ? { ...item, quantity: item.quantity - 1 } : item);
-      }
-      return prev.filter((item) => item.id !== id);
+      return prev.map((item) => {
+        if (item.id === id) {
+          const newQty = item.quantity + delta;
+          return newQty > 0 ? { ...item, quantity: newQty } : null;
+        }
+        return item;
+      }).filter(Boolean) as CartItem[];
     });
   };
 
-  const cartTotal = cart.reduce((total, item) => total + item.price * item.quantity, 0);
+  const removeItem = (id: string) => {
+    setCart((prev) => prev.filter((item) => item.id !== id));
+  };
+
+  const clearCart = () => setCart([]);
+
+  const totalItemsCount = cart.reduce((sum, item) => sum + item.quantity, 0);
+  const cartTotal = cart.reduce((sum, item) => sum + Number(item.price) * item.quantity, 0);
 
   const handleCheckout = async () => {
+    if (cart.length === 0) return;
     setIsProcessing(true);
     try {
       await processPosTransaction(cart, cartTotal, paymentMethod);
-      alert(`Payment of ₱${cartTotal.toFixed(2)} via ${paymentMethod} successful!`);
+      setLastSuccessReceipt({ amount: cartTotal, method: paymentMethod });
       setCart([]);
-    } catch (error) {
+    } catch {
       alert("Checkout failed. Please try again.");
     } finally {
       setIsProcessing(false);
@@ -57,115 +97,251 @@ export default function CashierClient({
   };
 
   return (
-    <div className="p-6 h-[calc(100vh-2rem)] flex flex-col bg-slate-50">
+    <div className="p-6 h-[calc(100vh)] flex flex-col bg-slate-950 text-slate-100 font-sans">
       
-      {/* Header */}
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold text-slate-900">Point of Sale</h1>
-        <p className="text-slate-500">Manage walk-in court fees, gear rentals, and retail items.</p>
+      {/* Header & Search */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+        <div>
+          <div className="flex items-center gap-2">
+            <span className="w-2.5 h-2.5 rounded-full bg-red-500 animate-ping" />
+            <h1 className="text-2xl sm:text-3xl font-black text-white">C&amp;J&apos;s POS Terminal</h1>
+          </div>
+          <p className="text-xs text-slate-400 mt-0.5">Pro shop equipment, paddle rentals, cold beverages, and walk-in court fees.</p>
+        </div>
+
+        {/* Search Bar */}
+        <div className="relative w-full sm:w-72">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+          <Input 
+            placeholder="Search items or gear..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-9 bg-slate-900 border-slate-800 text-slate-100 placeholder:text-slate-500 rounded-xl focus-visible:ring-red-500"
+          />
+        </div>
       </div>
 
-      {/* Main POS Layout */}
-      <div className="flex-1 flex gap-6 min-h-0">
+      {/* Main Terminal Workspace */}
+      <div className="flex-1 flex flex-col lg:flex-row gap-6 min-h-0">
         
-        {/* Left Side: Product Grid */}
-        <div className="flex-1 bg-white border rounded-xl p-6 overflow-auto shadow-sm">
-          <h2 className="font-semibold text-lg mb-4 text-slate-800">Quick Add Items</h2>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {initialProducts.map((product) => (
-              <Card 
-                key={product.id} 
-                className="cursor-pointer hover:border-emerald-400 hover:bg-emerald-50 transition-colors shadow-sm"
-                onClick={() => addToCart(product)}
+        {/* Left Column: Product Catalog */}
+        <div className="flex-1 flex flex-col bg-slate-900/70 border border-slate-800 rounded-3xl p-5 overflow-hidden backdrop-blur-md">
+          
+          {/* Category Filter Chips */}
+          <div className="flex items-center gap-2 overflow-x-auto pb-3 mb-4 scrollbar-none">
+            {categories.map((cat) => (
+              <button
+                key={cat}
+                type="button"
+                onClick={() => setSelectedCategory(cat)}
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-black whitespace-nowrap transition-all border ${
+                  selectedCategory === cat
+                    ? "bg-gradient-to-r from-red-600 to-amber-500 text-white border-amber-400 shadow-md shadow-red-500/20"
+                    : "bg-slate-900 text-slate-400 border-slate-800 hover:text-white hover:border-slate-700"
+                }`}
               >
-                <CardContent className="p-4 flex flex-col items-center text-center justify-center h-32">
-                  <span className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">
-                    {product.category}
-                  </span>
-                  <span className="font-bold text-slate-800 leading-tight mb-2">
-                    {product.name}
-                  </span>
-                  <span className="text-emerald-600 font-bold">
-                    ₱{product.price.toFixed(2)}
-                  </span>
-                </CardContent>
-              </Card>
+                {cat}
+              </button>
             ))}
           </div>
+
+          {/* Product Cards Grid */}
+          <div className="flex-1 overflow-y-auto pr-1">
+            <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3.5">
+              {filteredProducts.map((product) => {
+                const inCart = cart.find((item) => item.id === product.id);
+                return (
+                  <Card
+                    key={product.id}
+                    onClick={() => addToCart(product)}
+                    className={`cursor-pointer transition-all duration-200 border rounded-2xl relative group overflow-hidden ${
+                      inCart
+                        ? "border-red-500 bg-red-950/40 shadow-lg shadow-red-500/10"
+                        : "border-slate-800 bg-slate-900/90 hover:border-amber-400/60 hover:bg-slate-800/80"
+                    }`}
+                  >
+                    <CardContent className="p-4 flex flex-col justify-between h-36">
+                      <div className="space-y-1">
+                        <span className="text-[10px] font-black uppercase tracking-wider text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20 inline-block">
+                          {product.category}
+                        </span>
+                        <h3 className="font-bold text-sm text-white line-clamp-2 pt-1 leading-snug">
+                          {product.name}
+                        </h3>
+                      </div>
+
+                      <div className="flex items-center justify-between pt-2 border-t border-slate-800/80">
+                        <span className="text-base font-black text-amber-400">
+                          ₱{Number(product.price).toFixed(2)}
+                        </span>
+                        {inCart ? (
+                          <span className="w-6 h-6 rounded-full bg-red-500 text-white text-xs font-black flex items-center justify-center shadow-md">
+                            {inCart.quantity}
+                          </span>
+                        ) : (
+                          <div className="w-6 h-6 rounded-full bg-slate-800 text-slate-400 flex items-center justify-center group-hover:bg-amber-400 group-hover:text-slate-950 transition-colors">
+                            <Plus className="w-3.5 h-3.5" />
+                          </div>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          </div>
         </div>
 
-        {/* Right Side: Current Cart */}
-        <div className="w-[400px] flex flex-col bg-white border rounded-xl overflow-hidden shadow-sm">
-          <div className="p-4 bg-slate-900 text-white flex items-center justify-between">
-            <h2 className="font-semibold flex items-center gap-2">
-              <ShoppingCart className="h-5 w-5" /> Current Order
-            </h2>
-            <Badge variant="secondary" className="bg-slate-700 text-white border-none">
-              {cart.reduce((acc, item) => acc + item.quantity, 0)} Items
-            </Badge>
-          </div>
+        {/* Right Column: Checkout Cart Panel */}
+        <div className="w-full lg:w-[420px] flex flex-col bg-slate-900 border border-slate-800 rounded-3xl overflow-hidden shadow-2xl">
           
-          <ScrollArea className="flex-1 p-4">
+          {/* Cart Header */}
+          <div className="p-4 bg-slate-950 border-b border-slate-800 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <ShoppingCart className="w-5 h-5 text-amber-400" />
+              <h2 className="font-black text-white text-base">Current Register</h2>
+              <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/30">
+                {totalItemsCount} items
+              </span>
+            </div>
+            {cart.length > 0 && (
+              <button
+                type="button"
+                onClick={clearCart}
+                className="text-xs text-slate-400 hover:text-red-400 font-bold transition-colors"
+              >
+                Clear Cart
+              </button>
+            )}
+          </div>
+
+          {/* Cart Items List */}
+          <div className="flex-1 overflow-y-auto p-4 space-y-2.5 min-h-[220px]">
             {cart.length === 0 ? (
-              <div className="h-full flex items-center justify-center text-slate-400 text-sm">
-                Cart is empty. Select items to add.
+              <div className="h-full flex flex-col items-center justify-center text-center text-slate-500 space-y-2 py-10">
+                <Package className="w-10 h-10 stroke-1 text-slate-600" />
+                <p className="text-sm font-bold text-slate-400">Cart is empty</p>
+                <p className="text-xs text-slate-600">Select items on the catalog to begin sale</p>
               </div>
             ) : (
-              <div className="space-y-4">
-                {cart.map((item) => (
-                  <div key={item.id} className="flex items-center justify-between">
-                    <div className="flex-1">
-                      <p className="font-medium text-sm text-slate-900">{item.name}</p>
-                      <p className="text-xs text-slate-500">₱{item.price.toFixed(2)}</p>
-                    </div>
-                    <div className="flex items-center gap-2 bg-slate-100 rounded-md p-1">
-                      <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => removeFromCart(item.id)}>
-                        <Minus className="h-3 w-3" />
-                      </Button>
-                      <span className="text-sm font-semibold w-4 text-center">{item.quantity}</span>
-                      <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => addToCart(item)}>
-                        <Plus className="h-3 w-3" />
-                      </Button>
-                    </div>
+              cart.map((item) => (
+                <div 
+                  key={item.id}
+                  className="flex items-center justify-between p-3 rounded-xl border border-slate-800 bg-slate-950/70"
+                >
+                  <div className="space-y-0.5 max-w-[170px]">
+                    <p className="font-bold text-xs text-white truncate">{item.name}</p>
+                    <p className="text-[11px] text-amber-400 font-bold">
+                      ₱{Number(item.price).toFixed(2)} × {item.quantity}
+                    </p>
                   </div>
-                ))}
+
+                  <div className="flex items-center gap-2">
+                    <div className="flex items-center rounded-lg border border-slate-800 bg-slate-900 p-0.5">
+                      <button
+                        type="button"
+                        onClick={() => updateQuantity(item.id, -1)}
+                        className="w-6 h-6 flex items-center justify-center text-slate-400 hover:text-white rounded hover:bg-slate-800"
+                      >
+                        <Minus className="w-3 h-3" />
+                      </button>
+                      <span className="w-6 text-center text-xs font-black text-white">{item.quantity}</span>
+                      <button
+                        type="button"
+                        onClick={() => updateQuantity(item.id, 1)}
+                        className="w-6 h-6 flex items-center justify-center text-slate-400 hover:text-white rounded hover:bg-slate-800"
+                      >
+                        <Plus className="w-3 h-3" />
+                      </button>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => removeItem(item.id)}
+                      className="p-1.5 text-slate-500 hover:text-red-400 transition-colors"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+
+          {/* Payment Method Selector & Checkout */}
+          <div className="p-4 bg-slate-950 border-t border-slate-800 space-y-4">
+            
+            {/* Payment Method Options */}
+            <div className="space-y-1.5">
+              <span className="text-[11px] font-black uppercase tracking-wider text-slate-400 block">
+                Select Tender Type
+              </span>
+              <div className="grid grid-cols-3 gap-2">
+                {[
+                  { name: "GCash / QR Ph", icon: QrCode },
+                  { name: "Cash", icon: Banknote },
+                  { name: "Card", icon: CreditCard },
+                ].map((m) => {
+                  const Icon = m.icon;
+                  const isSelected = paymentMethod === m.name;
+                  return (
+                    <button
+                      key={m.name}
+                      type="button"
+                      onClick={() => setPaymentMethod(m.name)}
+                      className={`p-2.5 rounded-xl text-xs font-bold flex flex-col items-center justify-center gap-1 transition-all border ${
+                        isSelected
+                          ? "bg-gradient-to-r from-red-600 to-amber-500 text-white border-amber-400 shadow-md shadow-red-500/20"
+                          : "bg-slate-900 text-slate-300 border-slate-800 hover:border-slate-700"
+                      }`}
+                    >
+                      <Icon className="w-4 h-4" />
+                      <span>{m.name}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Total Amount & Charge Button */}
+            <div className="space-y-3 pt-2">
+              <div className="flex items-baseline justify-between border-t border-slate-800 pt-3">
+                <span className="text-sm font-bold text-slate-400">Total Due</span>
+                <span className="text-2xl font-black text-amber-400">₱{cartTotal.toFixed(2)}</span>
+              </div>
+
+              <Button
+                size="lg"
+                disabled={cart.length === 0 || isProcessing}
+                onClick={handleCheckout}
+                className="w-full h-12 font-black bg-gradient-to-r from-red-600 via-red-500 to-amber-500 hover:from-red-700 hover:to-amber-600 text-white shadow-lg shadow-red-500/30 rounded-xl disabled:opacity-50"
+              >
+                {isProcessing ? "Processing Sale..." : `Charge ₱${cartTotal.toFixed(2)}`}
+              </Button>
+            </div>
+
+            {/* Success Receipt Toast */}
+            {lastSuccessReceipt && (
+              <div className="p-3 rounded-xl border border-amber-500/40 bg-amber-950/40 flex items-center justify-between text-xs text-amber-300">
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-amber-400" />
+                  <span>Paid ₱{lastSuccessReceipt.amount.toFixed(2)} via {lastSuccessReceipt.method}</span>
+                </div>
+                <button 
+                  onClick={() => setLastSuccessReceipt(null)}
+                  className="text-slate-400 hover:text-white"
+                >
+                  ✕
+                </button>
               </div>
             )}
-          </ScrollArea>
 
-          <div className="p-5 bg-slate-50 border-t space-y-5">
-            {/* Payment Method Selector */}
-            <div className="space-y-2">
-              <p className="text-xs font-semibold text-slate-500 uppercase">Payment Method</p>
-              <div className="grid grid-cols-3 gap-2">
-                <Button variant={paymentMethod === "Cash" ? "default" : "outline"} size="sm" onClick={() => setPaymentMethod("Cash")} className={paymentMethod === "Cash" ? "bg-slate-800 text-white" : ""}>
-                  <Banknote className="h-4 w-4 mr-1" /> Cash
-                </Button>
-                <Button variant={paymentMethod === "Card" ? "default" : "outline"} size="sm" onClick={() => setPaymentMethod("Card")} className={paymentMethod === "Card" ? "bg-slate-800 text-white" : ""}>
-                  <CreditCard className="h-4 w-4 mr-1" /> Card
-                </Button>
-                <Button variant={paymentMethod === "E-Wallet" ? "default" : "outline"} size="sm" onClick={() => setPaymentMethod("E-Wallet")} className={paymentMethod === "E-Wallet" ? "bg-slate-800 text-white" : ""}>
-                  <Smartphone className="h-4 w-4 mr-1" /> E-Wallet
-                </Button>
-              </div>
-            </div>
-
-            <Separator />
-            
-            <div className="flex justify-between text-lg font-bold">
-              <span>Total</span>
-              <span className="text-emerald-600">₱{cartTotal.toFixed(2)}</span>
-            </div>
-            <Button 
-              className="w-full bg-emerald-600 hover:bg-emerald-700 text-white h-14 text-lg"
-              disabled={cart.length === 0 || isProcessing}
-              onClick={handleCheckout}
-            >
-              {isProcessing ? "Processing..." : `Charge ₱${cartTotal.toFixed(2)}`}
-            </Button>
           </div>
+
         </div>
+
       </div>
+
     </div>
   );
 }

@@ -1,9 +1,10 @@
 import Link from "next/link";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, Lock, Mail, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { BrandLogo } from "@/components/brand-logo";
 import { login } from "@/app/actions";
 
 export default async function LoginPage({
@@ -11,51 +12,80 @@ export default async function LoginPage({
 }: {
   searchParams: Promise<{ message?: string }>;
 }) {
-  // Await the searchParams to safely read the URL queries
   const { message } = await searchParams;
 
   return (
-    <div className="flex-1 flex items-center justify-center px-4 py-12 sm:px-6 lg:px-8">
-      <Card className="w-full max-w-md">
+    <div className="flex-1 flex items-center justify-center px-4 py-16 sm:px-6 lg:px-8 relative overflow-hidden font-sans">
+      {/* Background Red & Gold glow */}
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[550px] h-[320px] bg-red-600/15 blur-[120px] rounded-full pointer-events-none" />
+      <div className="absolute top-1/3 left-1/3 w-[300px] h-[300px] bg-amber-500/10 blur-[100px] rounded-full pointer-events-none" />
+
+      <Card className="w-full max-w-md border-slate-800 bg-slate-900/90 backdrop-blur-2xl shadow-2xl relative z-10 rounded-3xl">
         <form action={login}>
-          <CardHeader className="space-y-1 text-center">
-            <CardTitle className="text-2xl font-bold tracking-tight">Welcome back</CardTitle>
-            <CardDescription>
-              Enter your email and password to access your account.
+          <CardHeader className="space-y-2 text-center pb-6">
+            <div className="flex justify-center pb-2">
+              <BrandLogo size="md" />
+            </div>
+            <CardTitle className="text-2xl font-black text-white">Player &amp; Staff Login</CardTitle>
+            <CardDescription className="text-xs text-slate-400">
+              Sign in to manage bookings, view schedules, or launch POS.
             </CardDescription>
           </CardHeader>
+
           <CardContent className="space-y-4">
-            
             {/* Error Message Alert */}
             {message && (
-              <div className="bg-red-50 text-red-600 border border-red-200 text-sm p-3 rounded-md flex items-center gap-2">
-                <AlertCircle className="h-4 w-4 flex-shrink-0" />
+              <div className="bg-red-500/15 text-red-400 border border-red-500/30 text-xs p-3 rounded-xl flex items-center gap-2">
+                <AlertCircle className="h-4 w-4 shrink-0" />
                 <p>{message}</p>
               </div>
             )}
 
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input id="email" name="email" type="email" placeholder="m.patacsil@example.com" required />
+            <div className="space-y-1.5">
+              <Label htmlFor="email" className="text-xs font-bold text-slate-300 flex items-center gap-1.5">
+                <Mail className="w-3.5 h-3.5 text-amber-400" /> Email Address
+              </Label>
+              <Input 
+                id="email" 
+                name="email" 
+                type="email" 
+                placeholder="player@example.com" 
+                required 
+                className="bg-slate-950 border-slate-800 text-slate-100 placeholder:text-slate-500 rounded-xl focus-visible:ring-red-500"
+              />
             </div>
-            <div className="space-y-2">
+
+            <div className="space-y-1.5">
               <div className="flex items-center justify-between">
-                <Label htmlFor="password">Password</Label>
-                <Link href="#" className="text-sm font-medium text-emerald-600 hover:underline">
-                  Forgot password?
+                <Label htmlFor="password" className="text-xs font-bold text-slate-300 flex items-center gap-1.5">
+                  <Lock className="w-3.5 h-3.5 text-amber-400" /> Password
+                </Label>
+                <Link href="#" className="text-xs text-amber-400 hover:text-amber-300 font-semibold">
+                  Forgot?
                 </Link>
               </div>
-              <Input id="password" name="password" type="password" required />
+              <Input 
+                id="password" 
+                name="password" 
+                type="password" 
+                required 
+                className="bg-slate-950 border-slate-800 text-slate-100 rounded-xl focus-visible:ring-red-500"
+              />
             </div>
           </CardContent>
-          <CardFooter className="flex flex-col space-y-4">
-            <Button type="submit" className="w-full bg-emerald-600 hover:bg-emerald-700 text-white">
-              Sign in
+
+          <CardFooter className="flex flex-col space-y-4 pt-2">
+            <Button 
+              type="submit" 
+              className="w-full h-12 font-black bg-gradient-to-r from-red-600 via-red-500 to-amber-500 hover:from-red-700 hover:to-amber-600 text-white shadow-lg shadow-red-500/30 rounded-xl"
+            >
+              Sign In to C&amp;J&apos;s Courts <ArrowRight className="w-4 h-4 ml-1.5" />
             </Button>
-            <div className="text-sm text-center text-slate-500">
-              Don't have an account?{" "}
-              <Link href="/signup" className="font-semibold text-emerald-600 hover:underline">
-                Sign up
+            
+            <div className="text-xs text-center text-slate-400">
+              Don&apos;t have an account?{" "}
+              <Link href="/signup" className="font-black text-amber-400 hover:underline">
+                Create free account
               </Link>
             </div>
           </CardFooter>

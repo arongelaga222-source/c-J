@@ -38,11 +38,11 @@ export async function updateSession(request: NextRequest) {
   const pathname = request.nextUrl.pathname
 
   // 1. Basic Auth Check for all private routes
-  const isProtectedRoute = 
-    pathname.startsWith('/cashier') || 
-    pathname.startsWith('/admin') || 
+  const isProtectedRoute =
+    pathname.startsWith('/cashier') ||
+    pathname.startsWith('/admin') ||
     pathname.startsWith('/dashboard')
-  
+
   if (isProtectedRoute && !user) {
     const url = request.nextUrl.clone()
     url.pathname = '/login'
@@ -77,7 +77,7 @@ export async function updateSession(request: NextRequest) {
 
   // 3. Redirect logged-in users away from auth pages
   const isAuthRoute = pathname === '/login' || pathname === '/signup'
-  
+
   if (isAuthRoute && user) {
     const url = request.nextUrl.clone()
     url.pathname = '/dashboard'

@@ -124,7 +124,11 @@ export async function createCheckoutSession(formData: FormData) {
   redirect('/dashboard?payment=success');
 }
 
-export async function processPosTransaction(cart: any[], total: number, paymentMethod: string) {
+export async function processPosTransaction(
+  cart: { id: string; price: number; quantity: number }[],
+  total: number,
+  paymentMethod: string
+) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
