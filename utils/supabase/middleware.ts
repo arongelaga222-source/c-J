@@ -1,4 +1,4 @@
-import { createServerClient, type CookieOptions } from '@supabase/ssr'
+import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 export async function updateSession(request: NextRequest) {
@@ -8,82 +8,88 @@ export async function updateSession(request: NextRequest) {
     },
   })
 
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+  // Guard against missing environment variables in deployment
+  if (!supabaseUrl || !supabaseAnonKey) {
+    console.warn(
+      '[Middleware Warning] NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY is missing from environment variables.'
+    )
+    return supabaseResponse
+  }
+
+  try {
+    const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
       cookies: {
-        get(name: string) {
-          return request.cookies.get(name)?.value
+        getAll() {
+          return request.cookies.getAll()
         },
-        set(name: string, value: string, options: CookieOptions) {
-          request.cookies.set({ name, value, ...options })
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
           supabaseResponse = NextResponse.next({
-            request: { headers: request.headers },
+            request,
           })
-          supabaseResponse.cookies.set({ name, value, ...options })
-        },
-        remove(name: string, options: CookieOptions) {
-          request.cookies.set({ name, value: '', ...options })
-          supabaseResponse = NextResponse.next({
-            request: { headers: request.headers },
-          })
-          supabaseResponse.cookies.set({ name, value: '', ...options })
+          cookiesToSet.forEach(({ name, value, options }) =>
+            supabaseResponse.cookies.set(name, value, options)
+          )
         },
       },
+    })
+
+    // Refresh auth session
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+
+    const pathname = request.nextUrl.pathname
+
+    // 1. Basic Auth Check for private routes
+    const isProtectedRoute =
+      pathname.startsWith('/cashier') ||
+      pathname.startsWith('/admin') ||
+      pathname.startsWith('/dashboard')
+
+    if (isProtectedRoute && !user) {
+      const url = request.nextUrl.clone()
+      url.pathname = '/login'
+      return NextResponse.redirect(url)
     }
-  )
 
-  const { data: { user } } = await supabase.auth.getUser()
-  const pathname = request.nextUrl.pathname
+    // 2. Role-Based Access Control (RBAC)
+    if (user && (pathname.startsWith('/cashier') || pathname.startsWith('/admin'))) {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .maybeSingle()
 
-  // 1. Basic Auth Check for all private routes
-  const isProtectedRoute =
-    pathname.startsWith('/cashier') ||
-    pathname.startsWith('/admin') ||
-    pathname.startsWith('/dashboard')
+      const userRole = profile?.role || 'client'
+      const isOwnerOrAdmin = userRole === 'owner' || userRole === 'admin'
+      const isStaff = isOwnerOrAdmin || userRole === 'cashier'
 
-  if (isProtectedRoute && !user) {
-    const url = request.nextUrl.clone()
-    url.pathname = '/login'
-    return NextResponse.redirect(url)
-  }
+      if (pathname.startsWith('/admin') && !isOwnerOrAdmin) {
+        const url = request.nextUrl.clone()
+        url.pathname = '/dashboard'
+        return NextResponse.redirect(url)
+      }
 
-  // 2. Role-Based Access Control (RBAC)
-  if (user && (pathname.startsWith('/cashier') || pathname.startsWith('/admin'))) {
-    // Fetch the user's role from the public.profiles table
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single()
+      if (pathname.startsWith('/cashier') && !isStaff) {
+        const url = request.nextUrl.clone()
+        url.pathname = '/dashboard'
+        return NextResponse.redirect(url)
+      }
+    }
 
-    const userRole = profile?.role || 'client'
-    const isOwnerOrAdmin = userRole === 'owner' || userRole === 'admin'
-    const isStaff = isOwnerOrAdmin || userRole === 'cashier'
-
-    // Admin/Owner Route Protection: Only Admins and Owners allowed
-    if (pathname.startsWith('/admin') && !isOwnerOrAdmin) {
+    // 3. Redirect logged-in users away from auth pages
+    const isAuthRoute = pathname === '/login' || pathname === '/signup'
+    if (isAuthRoute && user) {
       const url = request.nextUrl.clone()
       url.pathname = '/dashboard'
       return NextResponse.redirect(url)
     }
-
-    // Cashier Route Protection: Admins, Owners and Cashiers allowed
-    if (pathname.startsWith('/cashier') && !isStaff) {
-      const url = request.nextUrl.clone()
-      url.pathname = '/dashboard'
-      return NextResponse.redirect(url)
-    }
-  }
-
-  // 3. Redirect logged-in users away from auth pages
-  const isAuthRoute = pathname === '/login' || pathname === '/signup'
-
-  if (isAuthRoute && user) {
-    const url = request.nextUrl.clone()
-    url.pathname = '/dashboard'
-    return NextResponse.redirect(url)
+  } catch (error) {
+    console.error('[Middleware Error] Failed to process session:', error)
   }
 
   return supabaseResponse
