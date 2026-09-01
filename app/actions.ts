@@ -1,62 +1,99 @@
-'use server'
+'use server';
 
-import { revalidatePath } from 'next/cache'
-import { redirect } from 'next/navigation'
-import { createClient } from '@/utils/supabase/server'
+import { revalidatePath } from 'next/cache';
+import { redirect } from 'next/navigation';
+import { createClient } from '@/utils/supabase/server';
 import { createClient as createServiceClient } from '@supabase/supabase-js';
 
-// Helper function to handle role-based redirection
-async function redirectBasedOnRole(userId: string) {
-  const supabase = await createClient()
-  
+/**
+ * ============================================================================
+ * C&J COURT - SERVER ACTIONS
+ * ============================================================================
+ * Table of Contents:
+ * 1. AUTHENTICATION & ACCESS CONTROL
+ *    - redirectBasedOnRole(userId)
+ *    - login(formData)
+ *    - signup(formData)
+ *    - logout()
+ *
+ * 2. COURT BOOKING & PLAYER LIFECYCLE
+ *    - cancelBooking(bookingId) [Strict 24-Hour Rule]
+ *    - checkInBooking(bookingId)
+ *
+ * 3. CASHIER & POS OPERATIONS
+ *    - createWalkInBooking(formData)
+ *    - processPosTransaction(cart, total, paymentMethod)
+ *
+ * 4. OWNER & ADMIN FACILITY CONTROLS
+ *    - createCashierAccount(formData)
+ *    - voidTransaction(transactionId)
+ *    - createCourt(formData)
+ *    - toggleCourtStatus(courtId, currentStatus)
+ * ============================================================================
+ */
+
+// ============================================================================
+// 1. AUTHENTICATION & ACCESS CONTROL
+// ============================================================================
+
+/**
+ * Internal helper to redirect users to their appropriate dashboard based on role.
+ */
+async function redirectBasedOnRole(userId: string): Promise<void> {
+  const supabase = await createClient();
+
   const { data: profile } = await supabase
     .from('profiles')
     .select('role')
     .eq('id', userId)
-    .single()
+    .single();
 
-  const role = profile?.role || 'customer'
+  const role = profile?.role || 'client';
 
-  revalidatePath('/', 'layout')
+  revalidatePath('/', 'layout');
 
-  if (role === 'admin') {
-    redirect('/admin')
+  if (role === 'owner' || role === 'admin') {
+    redirect('/admin');
   } else if (role === 'cashier') {
-    redirect('/cashier/schedule')
+    redirect('/cashier/schedule');
   } else {
-    redirect('/dashboard')
+    redirect('/dashboard');
   }
 }
 
+/**
+ * Sign in existing user with Email & Password.
+ */
 export async function login(formData: FormData) {
-  const supabase = await createClient()
-  const email = formData.get('email') as string
-  const password = formData.get('password') as string
+  const supabase = await createClient();
+  const email = formData.get('email') as string;
+  const password = formData.get('password') as string;
 
   const { data, error } = await supabase.auth.signInWithPassword({
     email,
     password,
-  })
+  });
 
   if (error) {
-    const errorMessage = (error as Error).message;
-    console.error('Login error:', errorMessage);
-    return redirect(`/login?message=${encodeURIComponent(errorMessage)}`);
+    console.error('[Auth Error - Login]:', error.message);
+    return redirect(`/login?message=${encodeURIComponent(error.message)}`);
   }
 
-  // Check user role and route accordingly
   if (data?.user) {
-    await redirectBasedOnRole(data.user.id)
+    await redirectBasedOnRole(data.user.id);
   }
 
-  redirect('/dashboard')
+  redirect('/dashboard');
 }
 
+/**
+ * Register new user with full name and client role.
+ */
 export async function signup(formData: FormData) {
-  const supabase = await createClient()
-  const email = formData.get('email') as string
-  const password = formData.get('password') as string
-  const fullName = formData.get('fullName') as string
+  const supabase = await createClient();
+  const email = formData.get('email') as string;
+  const password = formData.get('password') as string;
+  const fullName = formData.get('fullName') as string;
 
   const { data, error } = await supabase.auth.signUp({
     email,
@@ -64,225 +101,436 @@ export async function signup(formData: FormData) {
     options: {
       data: {
         full_name: fullName,
+        role: 'client',
       },
     },
-  })
+  });
 
   if (error) {
-    const errorMessage = (error as Error).message;
-    console.error('Signup error:', errorMessage);
-    return redirect(`/signup?message=${encodeURIComponent(errorMessage)}`);
+    console.error('[Auth Error - Signup]:', error.message);
+    return redirect(`/signup?message=${encodeURIComponent(error.message)}`);
   }
 
-  // New signups default to 'customer', but we check dynamically just in case
   if (data?.user) {
-    await redirectBasedOnRole(data.user.id)
+    await redirectBasedOnRole(data.user.id);
   }
 
-  redirect('/dashboard')
+  redirect('/dashboard');
 }
 
-export async function createCheckoutSession(formData: FormData) {
-  const supabase = await createClient()
-  
-  // 1. Check if user is logged in
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return redirect('/login?returnTo=/book')
+/**
+ * Sign out user and clear active session.
+ */
+export async function logout() {
+  const supabase = await createClient();
+  await supabase.auth.signOut();
 
-  const date = formData.get('date') as string
-  const slot = formData.get('slot') as string
-  const amount = 800 // ₱800.00
-  
-  // 2. Fetch the first available court to use for the mock booking
-  const { data: court } = await supabase
-    .from('courts')
-    .select('id')
-    .limit(1)
+  revalidatePath('/', 'layout');
+  redirect('/login');
+}
+
+// ============================================================================
+// 2. COURT BOOKING & PLAYER LIFECYCLE
+// ============================================================================
+
+/**
+ * Strict 24-Hour Cancellation Action:
+ * - Allows cancellation only if (start_time - NOW() >= 24 hours).
+ * - Online (PayMongo) bookings transition to 'cancelled_refund_pending'.
+ * - Cash/Counter bookings transition to 'cancelled'.
+ */
+export async function cancelBooking(bookingId: string): Promise<{
+  success?: boolean;
+  status?: string;
+  message?: string;
+  error?: string;
+}> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { error: 'You must be logged in to cancel a booking.' };
+  }
+
+  // 1. Fetch target booking
+  const { data: booking, error: fetchError } = await supabase
+    .from('bookings')
+    .select('id, user_id, start_time, status, total_price, payment_method')
+    .eq('id', bookingId)
     .single();
 
-  if (court) {
-    const timeMatch = slot.match(/(\d+):(\d+)\s(AM|PM)/);
-    if (timeMatch) {
-      let hours = parseInt(timeMatch[1]);
-      if (timeMatch[3] === 'PM' && hours !== 12) hours += 12;
-      if (timeMatch[3] === 'AM' && hours === 12) hours = 0;
-      
-      const startTime = new Date(`${date}T${hours.toString().padStart(2, '0')}:00:00+08:00`);
-      const endTime = new Date(startTime.getTime() + 60 * 60 * 1000);
-
-      await supabase.from('bookings').insert({
-        customer_id: user.id,
-        court_id: court.id,
-        start_time: startTime.toISOString(),
-        end_time: endTime.toISOString(),
-        status: 'paid',
-        total_amount: amount
-      });
-    }
+  if (fetchError || !booking) {
+    return { error: 'Booking reservation not found.' };
   }
 
-  redirect('/dashboard?payment=success');
+  // 2. Check permissions
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .single();
+
+  const isStaff = profile?.role && ['owner', 'admin', 'cashier'].includes(profile.role);
+
+  if (!isStaff && booking.user_id !== user.id) {
+    return { error: 'You are not authorized to cancel this booking.' };
+  }
+
+  if (['cancelled', 'cancelled_refund_pending', 'expired'].includes(booking.status)) {
+    return { error: `Booking is already marked as ${booking.status}.` };
+  }
+
+  // 3. Evaluate 24-hour rule
+  const startTime = new Date(booking.start_time).getTime();
+  const now = Date.now();
+  const differenceHours = (startTime - now) / (1000 * 60 * 60);
+
+  if (!isStaff && differenceHours < 24) {
+    return {
+      error: `Strict 24-hour cancellation rule: This court reservation begins in ${differenceHours.toFixed(
+        1
+      )} hours. Cancellations are only permitted at least 24 hours in advance.`,
+    };
+  }
+
+  // 4. Update status in database
+  const newStatus = booking.payment_method === 'cash' ? 'cancelled' : 'cancelled_refund_pending';
+
+  const { error: updateError } = await supabase
+    .from('bookings')
+    .update({
+      status: newStatus,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', booking.id);
+
+  if (updateError) {
+    console.error('[Cancel Booking Error]:', updateError);
+    return { error: 'Failed to update booking cancellation status.' };
+  }
+
+  revalidatePath('/dashboard');
+  revalidatePath('/cashier/schedule');
+  revalidatePath('/admin');
+
+  return {
+    success: true,
+    status: newStatus,
+    message:
+      newStatus === 'cancelled_refund_pending'
+        ? 'Booking cancelled. Refund request has been queued for processing.'
+        : 'Booking cancelled successfully.',
+  };
 }
 
+/**
+ * Check In Player at Reception Desk.
+ */
+export async function checkInBooking(bookingId: string): Promise<{ success: boolean }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) throw new Error('Unauthorized. Staff login required.');
+
+  const { error } = await supabase
+    .from('bookings')
+    .update({
+      status: 'checked_in',
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', bookingId);
+
+  if (error) {
+    console.error('[Check-in Error]:', error);
+    throw new Error('Failed to update check-in status.');
+  }
+
+  revalidatePath('/cashier/schedule');
+  revalidatePath('/admin');
+  return { success: true };
+}
+
+// ============================================================================
+// 3. CASHIER & POS OPERATIONS
+// ============================================================================
+
+/**
+ * Create Walk-in Cash or Counter QR Booking from Cashier POS.
+ */
+export async function createWalkInBooking(formData: FormData): Promise<void> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) throw new Error('Unauthorized. Staff login required.');
+
+  const courtId = formData.get('courtId') as string;
+  const dateStr = formData.get('date') as string;
+  const hour = parseInt(formData.get('hour') as string, 10);
+  const duration = parseInt((formData.get('duration') as string) || '1', 10);
+  const guestName = (formData.get('guestName') as string) || 'Walk-in Guest';
+  const guestPhone = formData.get('guestPhone') as string;
+  const paymentMethod = (formData.get('paymentMethod') as string) || 'cash';
+
+  const startTime = new Date(`${dateStr}T${hour.toString().padStart(2, '0')}:00:00.000+08:00`);
+  const endTime = new Date(startTime.getTime() + duration * 60 * 60 * 1000);
+
+  // Fetch court rate
+  const { data: court } = await supabase
+    .from('courts')
+    .select('hourly_rate')
+    .eq('id', courtId)
+    .single();
+
+  const rate = court?.hourly_rate !== undefined && court?.hourly_rate !== null ? Number(court.hourly_rate) : 1;
+  const totalPrice = rate * duration;
+
+  const { error } = await supabase.from('bookings').insert({
+    court_id: courtId,
+    user_id: user.id,
+    guest_name: guestName,
+    guest_phone: guestPhone || null,
+    start_time: startTime.toISOString(),
+    end_time: endTime.toISOString(),
+    duration_hours: duration,
+    total_price: totalPrice,
+    currency: 'PHP',
+    status: 'walk_in',
+    payment_method: paymentMethod === 'counter_qr' ? 'counter_qr' : 'cash',
+  });
+
+  if (error) {
+    console.error('[POS Walk-in Error]:', error);
+    throw new Error('Failed to record walk-in booking.');
+  }
+
+  revalidatePath('/cashier/schedule');
+  revalidatePath('/admin');
+}
+
+/**
+ * Process POS Item Sale (Equipment, Pro Paddles, Beverages).
+ */
 export async function processPosTransaction(
   cart: { id: string; price: number; quantity: number }[],
   total: number,
   paymentMethod: string
-) {
+): Promise<{ success: boolean; transactionId: string }> {
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
-  if (!user) throw new Error("Unauthorized");
+  if (!user) throw new Error('Unauthorized');
 
-  // 1. Insert the main transaction record
+  // 1. Insert master transaction
   const { data: transaction, error: txError } = await supabase
     .from('pos_transactions')
     .insert({
       cashier_id: user.id,
       total_amount: total,
-      payment_method: paymentMethod
+      payment_method: paymentMethod,
     })
     .select()
     .single();
 
-  if (txError || !transaction) throw new Error("Failed to process transaction");
+  if (txError || !transaction) {
+    console.error('[POS Transaction Error]:', txError);
+    throw new Error('Failed to process POS transaction.');
+  }
 
-  // 2. Prepare and insert the line items
+  // 2. Insert item details
   const lineItems = cart.map((item) => ({
     transaction_id: transaction.id,
     product_id: item.id,
     quantity: item.quantity,
-    price_at_time: item.price
+    price_at_time: item.price,
   }));
 
-  const { error: itemsError } = await supabase
-    .from('pos_transaction_items')
-    .insert(lineItems);
+  const { error: itemsError } = await supabase.from('pos_transaction_items').insert(lineItems);
 
-  if (itemsError) throw new Error("Failed to record items");
+  if (itemsError) {
+    console.error('[POS Line Items Error]:', itemsError);
+    throw new Error('Failed to record transaction items.');
+  }
 
   revalidatePath('/cashier');
+  revalidatePath('/admin');
   return { success: true, transactionId: transaction.id };
 }
 
-export async function checkInBooking(bookingId: string) {
-  const supabase = await createClient();
-  await supabase
-    .from('bookings')
-    .update({ status: 'checked_in' })
-    .eq('id', bookingId);
-    
-  revalidatePath('/cashier/schedule');
-}
+// ============================================================================
+// 4. OWNER & ADMIN FACILITY CONTROLS
+// ============================================================================
 
-export async function createCashierAccount(formData: FormData) {
+/**
+ * Provision new Staff Account (Cashier or Owner).
+ */
+export async function createCashierAccount(formData: FormData): Promise<void> {
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
   if (!user) return redirect('/login');
 
-  // Verify Admin Role
-  const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single();
-  if (profile?.role !== 'admin') throw new Error("Unauthorized: Admin access required.");
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .single();
+
+  if (!profile || !['owner', 'admin'].includes(profile.role)) {
+    throw new Error('Unauthorized: Owner or Admin access required.');
+  }
 
   const email = formData.get('email') as string;
   const password = formData.get('password') as string;
   const fullName = formData.get('fullName') as string;
+  const role = (formData.get('role') as string) || 'cashier';
 
   const adminSupabase = createServiceClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
+    process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   );
 
   const { data: newUser, error: createError } = await adminSupabase.auth.admin.createUser({
     email,
     password,
     email_confirm: true,
-    user_metadata: { full_name: fullName }
+    user_metadata: { full_name: fullName, role },
   });
 
   if (createError) {
-    console.error("Create User Error:", createError.message);
+    console.error('[Create Staff Error]:', createError.message);
     throw new Error(createError.message);
   }
 
   if (newUser.user) {
     await adminSupabase
       .from('profiles')
-      .update({ role: 'cashier', full_name: fullName })
+      .update({ role, full_name: fullName })
       .eq('id', newUser.user.id);
   }
 
   revalidatePath('/admin');
-  // Remove the return object statement to satisfy React form action types
 }
 
-// 2. Admin Action to Void a POS Transaction
-export async function voidTransaction(transactionId: string) {
+/**
+ * Void a POS transaction.
+ */
+export async function voidTransaction(transactionId: string): Promise<void> {
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
   if (!user) return redirect('/login');
 
-  // Verify Admin Role
-  const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single();
-  if (profile?.role !== 'admin') throw new Error("Unauthorized");
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .single();
 
-  // Mark transaction as voided
+  if (!profile || !['owner', 'admin'].includes(profile.role)) {
+    throw new Error('Unauthorized: Owner or Admin access required.');
+  }
+
   const { error } = await supabase
     .from('pos_transactions')
     .update({ status: 'voided' })
     .eq('id', transactionId);
 
-  if (error) throw new Error("Failed to void transaction");
+  if (error) {
+    console.error('[Void Transaction Error]:', error);
+    throw new Error('Failed to void transaction.');
+  }
 
   revalidatePath('/admin');
 }
 
-// --- Add this to the bottom of app/actions.ts ---
-
-export async function createCourt(formData: FormData) {
+/**
+ * Create a new Court in the facility.
+ */
+export async function createCourt(formData: FormData): Promise<void> {
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
   if (!user) return redirect('/login');
 
-  // Verify Admin Role
-  const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single();
-  if (profile?.role !== 'admin') throw new Error("Unauthorized");
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .single();
+
+  if (!profile || !['owner', 'admin'].includes(profile.role)) {
+    throw new Error('Unauthorized: Owner or Admin access required.');
+  }
 
   const name = formData.get('name') as string;
+  const rate = parseFloat((formData.get('rate') as string) || '300');
 
-  const { error } = await supabase
-    .from('courts')
-    .insert({ name, status: 'active' });
+  const { error } = await supabase.from('courts').insert({
+    name,
+    type: 'indoor',
+    hourly_rate: rate,
+    is_active: true,
+  });
 
-  if (error) throw new Error("Failed to create court");
+  if (error) {
+    console.error('[Create Court Error]:', error);
+    throw new Error('Failed to create court.');
+  }
 
   revalidatePath('/admin/courts');
+  revalidatePath('/book');
 }
 
-export async function toggleCourtStatus(courtId: string, currentStatus: string) {
+/**
+ * Toggle Court Active / Maintenance Status.
+ */
+export async function toggleCourtStatus(
+  courtId: string,
+  currentStatus: boolean | string
+): Promise<void> {
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
   if (!user) return redirect('/login');
 
-  const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single();
-  if (profile?.role !== 'admin') throw new Error("Unauthorized");
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .single();
 
-  const newStatus = currentStatus === 'active' ? 'maintenance' : 'active';
+  if (!profile || !['owner', 'admin'].includes(profile.role)) {
+    throw new Error('Unauthorized: Owner or Admin access required.');
+  }
+
+  const newActive = typeof currentStatus === 'boolean' ? !currentStatus : currentStatus !== 'active';
 
   const { error } = await supabase
     .from('courts')
-    .update({ status: newStatus })
+    .update({ is_active: newActive, updated_at: new Date().toISOString() })
     .eq('id', courtId);
 
-  if (error) throw new Error("Failed to update court status");
+  if (error) {
+    console.error('[Toggle Court Error]:', error);
+    throw new Error('Failed to update court status.');
+  }
 
   revalidatePath('/admin/courts');
-}
-
-export async function logout() {
-  const supabase = await createClient()
-  await supabase.auth.signOut()
-  
-  revalidatePath('/', 'layout')
-  redirect('/login')
+  revalidatePath('/book');
 }

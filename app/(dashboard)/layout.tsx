@@ -27,8 +27,8 @@ export default async function DashboardLayout({ children }: { children: React.Re
     .eq("id", user.id)
     .single();
 
-  const userRole = profile?.role || "customer";
-  const isAdmin = userRole === "admin";
+  const userRole = profile?.role || "client";
+  const isOwnerOrAdmin = userRole === "owner" || userRole === "admin";
 
   return (
     <div className="min-h-screen flex bg-[#14161b] text-slate-100 font-sans">
@@ -77,7 +77,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
               Daily Court Schedule
             </Link>
 
-            {isAdmin && (
+            {isOwnerOrAdmin && (
               <>
                 <div className="text-[11px] font-black text-red-400/80 uppercase tracking-widest px-3 mb-2 mt-6">
                   Executive Admin

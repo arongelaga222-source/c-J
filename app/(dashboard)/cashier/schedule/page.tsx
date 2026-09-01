@@ -1,61 +1,132 @@
-import { redirect } from "next/navigation";
-import { createClient } from "@/utils/supabase/server";
-import ScheduleClient from "./schedule-client";
+import { redirect } from 'next/navigation';
+import { createClient } from '@/utils/supabase/server';
+import ScheduleClient from './schedule-client';
+import type { ScheduleBooking } from './schedule-client';
 
-interface RawBooking {
+export const dynamic = 'force-dynamic';
+
+interface RawScheduleBooking {
   id: string;
+  court_id: string;
   start_time: string;
   end_time: string;
+  duration_hours: number;
+  total_price: number;
   status: string;
-  profiles: { full_name: string } | { full_name: string }[] | null;
+  payment_method: string;
+  guest_name: string | null;
+  guest_phone: string | null;
+  profiles: { full_name: string | null } | { full_name: string | null }[] | null;
   courts: { id: string; name: string } | { id: string; name: string }[] | null;
 }
 
-export default async function CashierSchedulePage() {
+interface PageProps {
+  searchParams?: Promise<{ date?: string }>;
+}
+
+export default async function CashierSchedulePage({ searchParams }: PageProps) {
   const supabase = await createClient();
 
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
+  if (!user) redirect('/login');
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .single();
+
+  if (!profile || !['owner', 'admin', 'cashier'].includes(profile.role)) {
+    redirect('/dashboard');
+  }
+
+  // Fetch active courts
   const { data: courts } = await supabase
     .from('courts')
     .select('*')
+    .eq('is_active', true)
     .order('name', { ascending: true });
 
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const tomorrow = new Date(today);
-  tomorrow.setDate(tomorrow.getDate() + 1);
+  const resolvedParams = searchParams ? await searchParams : {};
+  const requestedDate = resolvedParams?.date;
 
-  const { data: rawBookings } = await supabase
+  const today = new Date();
+  const yyyy = today.getFullYear();
+  const mm = String(today.getMonth() + 1).padStart(2, '0');
+  const dd = String(today.getDate()).padStart(2, '0');
+  const todayStr = `${yyyy}-${mm}-${dd}`;
+
+  const targetDateStr =
+    requestedDate && /^\d{4}-\d{2}-\d{2}$/.test(requestedDate) ? requestedDate : todayStr;
+
+  const startOfDay = new Date(`${targetDateStr}T00:00:00.000+08:00`).toISOString();
+  const endOfDay = new Date(`${targetDateStr}T23:59:59.999+08:00`).toISOString();
+  const nowIso = new Date().toISOString();
+
+  const { data: rawData } = await supabase
     .from('bookings')
     .select(`
       id,
+      court_id,
       start_time,
       end_time,
+      duration_hours,
+      total_price,
       status,
+      payment_method,
+      guest_name,
+      guest_phone,
+      guest_email,
+      notes,
+      expires_at,
       profiles ( full_name ),
       courts ( id, name )
     `)
-    .gte('start_time', today.toISOString())
-    .lt('start_time', tomorrow.toISOString())
+    .gte('end_time', startOfDay)
+    .lte('start_time', endOfDay)
+    .in('status', ['paid', 'checked_in', 'walk_in', 'pending_payment'])
     .order('start_time', { ascending: true });
 
-  const typedRaw = (rawBookings as unknown as RawBooking[]) || [];
+  const rawBookings = (rawData as unknown as (RawScheduleBooking & { guest_email?: string; notes?: string; expires_at?: string })[]) || [];
 
-  const formattedBookings = typedRaw.map((booking) => ({
-    id: booking.id,
-    start_time: booking.start_time,
-    end_time: booking.end_time,
-    status: booking.status,
-    profiles: Array.isArray(booking.profiles) ? booking.profiles[0] : (booking.profiles || { full_name: "Walk-in Guest" }),
-    courts: Array.isArray(booking.courts) ? booking.courts[0] : (booking.courts || { id: "", name: "Standard Court" }),
-  }));
+  // Filter out expired pending payments
+  const validBookings = rawBookings.filter((b) => {
+    if (b.status === 'pending_payment') {
+      return b.expires_at ? b.expires_at > nowIso : false;
+    }
+    return ['paid', 'checked_in', 'walk_in'].includes(b.status);
+  });
+
+  const formattedBookings: ScheduleBooking[] = validBookings.map((b) => {
+    const singleProfile = Array.isArray(b.profiles) ? b.profiles[0] : b.profiles;
+    const singleCourt = Array.isArray(b.courts) ? b.courts[0] : b.courts;
+
+    return {
+      id: b.id,
+      court_id: b.court_id,
+      start_time: b.start_time,
+      end_time: b.end_time,
+      duration_hours: b.duration_hours,
+      total_price: b.total_price,
+      status: b.status,
+      payment_method: b.payment_method,
+      guest_name: b.guest_name || singleProfile?.full_name || 'Walk-in Guest',
+      guest_phone: b.guest_phone,
+      guest_email: b.guest_email,
+      notes: b.notes,
+      profiles: singleProfile || null,
+      courts: singleCourt || null,
+    };
+  });
 
   return (
-    <ScheduleClient 
-      todaysBookings={formattedBookings} 
+    <ScheduleClient
+      initialBookings={formattedBookings}
       courts={courts || []}
+      initialDateStr={targetDateStr}
     />
   );
 }

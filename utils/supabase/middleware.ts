@@ -58,17 +58,19 @@ export async function updateSession(request: NextRequest) {
       .eq('id', user.id)
       .single()
 
-    const userRole = profile?.role || 'customer'
+    const userRole = profile?.role || 'client'
+    const isOwnerOrAdmin = userRole === 'owner' || userRole === 'admin'
+    const isStaff = isOwnerOrAdmin || userRole === 'cashier'
 
-    // Admin Route Protection: Only Admins allowed
-    if (pathname.startsWith('/admin') && userRole !== 'admin') {
+    // Admin/Owner Route Protection: Only Admins and Owners allowed
+    if (pathname.startsWith('/admin') && !isOwnerOrAdmin) {
       const url = request.nextUrl.clone()
       url.pathname = '/dashboard'
       return NextResponse.redirect(url)
     }
 
-    // Cashier Route Protection: Admins and Cashiers allowed
-    if (pathname.startsWith('/cashier') && userRole !== 'admin' && userRole !== 'cashier') {
+    // Cashier Route Protection: Admins, Owners and Cashiers allowed
+    if (pathname.startsWith('/cashier') && !isStaff) {
       const url = request.nextUrl.clone()
       url.pathname = '/dashboard'
       return NextResponse.redirect(url)

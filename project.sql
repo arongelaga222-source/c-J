@@ -1,58 +1,102 @@
--- WARNING: This schema is for context only and is not meant to be run.
--- Table order and constraints may not be valid for execution.
+-- =========================================================
+-- C&J COURT - POSTGRESQL DATABASE SCHEMA
+-- =========================================================
 
-CREATE TABLE public.profiles (
-  id uuid NOT NULL,
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+CREATE EXTENSION IF NOT EXISTS "btree_gist";
+
+-- Profiles Table
+CREATE TABLE IF NOT EXISTS public.profiles (
+  id uuid NOT NULL PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  role text NOT NULL DEFAULT 'client' CHECK (role IN ('owner', 'admin', 'cashier', 'client')),
   full_name text,
-  role USER-DEFINED NOT NULL DEFAULT 'customer'::user_role,
+  phone text,
   created_at timestamp with time zone NOT NULL DEFAULT timezone('utc'::text, now()),
-  CONSTRAINT profiles_pkey PRIMARY KEY (id),
-  CONSTRAINT profiles_id_fkey FOREIGN KEY (id) REFERENCES auth.users(id)
+  updated_at timestamp with time zone NOT NULL DEFAULT timezone('utc'::text, now())
 );
-CREATE TABLE public.courts (
-  id uuid NOT NULL DEFAULT gen_random_uuid(),
-  name text NOT NULL,
-  status text DEFAULT 'active'::text,
-  CONSTRAINT courts_pkey PRIMARY KEY (id)
+
+-- Courts Table
+CREATE TABLE IF NOT EXISTS public.courts (
+  id uuid NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
+  name text NOT NULL UNIQUE,
+  type text NOT NULL DEFAULT 'indoor' CHECK (type IN ('indoor', 'outdoor')),
+  hourly_rate numeric(10, 2) NOT NULL DEFAULT 300.00,
+  is_active boolean NOT NULL DEFAULT true,
+  created_at timestamp with time zone NOT NULL DEFAULT timezone('utc'::text, now()),
+  updated_at timestamp with time zone NOT NULL DEFAULT timezone('utc'::text, now())
 );
-CREATE TABLE public.bookings (
-  id uuid NOT NULL DEFAULT gen_random_uuid(),
-  customer_id uuid NOT NULL,
-  court_id uuid NOT NULL,
+
+-- Bookings Table
+CREATE TABLE IF NOT EXISTS public.bookings (
+  id uuid NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
+  court_id uuid NOT NULL REFERENCES public.courts(id) ON DELETE RESTRICT,
+  user_id uuid REFERENCES public.profiles(id) ON DELETE SET NULL,
+  guest_name text,
+  guest_email text,
+  guest_phone text,
   start_time timestamp with time zone NOT NULL,
   end_time timestamp with time zone NOT NULL,
-  status text DEFAULT 'pending'::text,
-  total_amount numeric NOT NULL,
+  duration_hours integer NOT NULL CHECK (duration_hours >= 1),
+  total_price numeric(10, 2) NOT NULL,
+  currency text NOT NULL DEFAULT 'PHP',
+  status text NOT NULL DEFAULT 'pending_payment' CHECK (
+    status IN (
+      'pending_payment',
+      'paid',
+      'checked_in',
+      'walk_in',
+      'cancelled',
+      'cancelled_refund_pending',
+      'expired'
+    )
+  ),
+  payment_method text NOT NULL DEFAULT 'paymongo' CHECK (
+    payment_method IN ('paymongo', 'cash', 'counter_qr', 'other')
+  ),
+  paymongo_checkout_session_id text,
+  expires_at timestamp with time zone,
+  notes text,
   created_at timestamp with time zone NOT NULL DEFAULT timezone('utc'::text, now()),
-  CONSTRAINT bookings_pkey PRIMARY KEY (id),
-  CONSTRAINT bookings_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES public.profiles(id),
-  CONSTRAINT bookings_court_id_fkey FOREIGN KEY (court_id) REFERENCES public.courts(id)
+  updated_at timestamp with time zone NOT NULL DEFAULT timezone('utc'::text, now()),
+  CONSTRAINT valid_booking_time CHECK (end_time > start_time)
 );
-CREATE TABLE public.pos_products (
-  id uuid NOT NULL DEFAULT gen_random_uuid(),
+
+-- Overlapping bookings exclusion constraint
+ALTER TABLE public.bookings DROP CONSTRAINT IF EXISTS no_overlapping_court_bookings;
+ALTER TABLE public.bookings ADD CONSTRAINT no_overlapping_court_bookings
+EXCLUDE USING gist (
+  court_id WITH =,
+  tstzrange(start_time, end_time) WITH &&
+) WHERE (
+  status IN ('paid', 'checked_in', 'walk_in') 
+  OR (status = 'pending_payment' AND expires_at > timezone('utc'::text, now()))
+);
+
+-- POS Products Table
+CREATE TABLE IF NOT EXISTS public.pos_products (
+  id uuid NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   name text NOT NULL,
-  price numeric NOT NULL,
+  price numeric(10, 2) NOT NULL,
   category text NOT NULL,
-  stock_level integer DEFAULT 100,
-  CONSTRAINT pos_products_pkey PRIMARY KEY (id)
+  stock_level integer NOT NULL DEFAULT 100,
+  created_at timestamp with time zone NOT NULL DEFAULT timezone('utc'::text, now())
 );
-CREATE TABLE public.pos_transactions (
-  id uuid NOT NULL DEFAULT gen_random_uuid(),
-  cashier_id uuid,
-  total_amount numeric NOT NULL,
+
+-- POS Transactions Table
+CREATE TABLE IF NOT EXISTS public.pos_transactions (
+  id uuid NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
+  cashier_id uuid REFERENCES public.profiles(id) ON DELETE SET NULL,
+  total_amount numeric(10, 2) NOT NULL,
   payment_method text NOT NULL,
-  created_at timestamp with time zone NOT NULL DEFAULT timezone('utc'::text, now()),
-  status text DEFAULT 'completed'::text,
-  CONSTRAINT pos_transactions_pkey PRIMARY KEY (id),
-  CONSTRAINT pos_transactions_cashier_id_fkey FOREIGN KEY (cashier_id) REFERENCES public.profiles(id)
+  status text NOT NULL DEFAULT 'completed' CHECK (status IN ('completed', 'voided', 'refunded')),
+  created_at timestamp with time zone NOT NULL DEFAULT timezone('utc'::text, now())
 );
-CREATE TABLE public.pos_transaction_items (
-  id uuid NOT NULL DEFAULT gen_random_uuid(),
-  transaction_id uuid,
-  product_id uuid,
-  quantity integer NOT NULL,
-  price_at_time numeric NOT NULL,
-  CONSTRAINT pos_transaction_items_pkey PRIMARY KEY (id),
-  CONSTRAINT pos_transaction_items_transaction_id_fkey FOREIGN KEY (transaction_id) REFERENCES public.pos_transactions(id),
-  CONSTRAINT pos_transaction_items_product_id_fkey FOREIGN KEY (product_id) REFERENCES public.pos_products(id)
+
+-- POS Transaction Items Table
+CREATE TABLE IF NOT EXISTS public.pos_transaction_items (
+  id uuid NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
+  transaction_id uuid NOT NULL REFERENCES public.pos_transactions(id) ON DELETE CASCADE,
+  product_id uuid REFERENCES public.pos_products(id) ON DELETE RESTRICT,
+  quantity integer NOT NULL CHECK (quantity > 0),
+  price_at_time numeric(10, 2) NOT NULL
 );
