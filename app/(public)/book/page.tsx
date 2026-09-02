@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Calendar } from '@/components/ui/calendar';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -24,8 +24,8 @@ import {
   Sun,
   Sunset,
   Moon,
-  ArrowDown,
-  CalendarCheck2
+  CalendarCheck2,
+  ChevronDown
 } from 'lucide-react';
 
 interface DaySummary {
@@ -55,12 +55,24 @@ const DEFAULT_COURTS: Court[] = [
   },
 ];
 
-const DURATION_OPTIONS = [
-  { hours: 1, label: '1 Hour', sub: 'Single game / warmup' },
-  { hours: 2, label: '2 Hours', sub: 'Most Popular • Doubles match' },
-  { hours: 3, label: '3 Hours', sub: 'Mini tournament / squad play' },
-  { hours: 4, label: '4 Hours', sub: 'Team training & league block' },
-];
+// Dropdown options up to 12 Hours
+const DURATION_OPTIONS = Array.from({ length: 12 }, (_, i) => {
+  const h = i + 1;
+  return {
+    hours: h,
+    label: `${h} Hour${h > 1 ? 's' : ''}`,
+    description:
+      h === 1
+        ? 'Single match / warm-up'
+        : h === 2
+        ? 'Doubles standard match'
+        : h <= 4
+        ? 'Squad tournament block'
+        : h <= 8
+        ? 'Half-day private tournament'
+        : 'Full-day arena block',
+  };
+});
 
 export default function BookPage() {
   const [courts, setCourts] = useState<Court[]>(DEFAULT_COURTS);
@@ -93,11 +105,7 @@ export default function BookPage() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [timeFilter, setTimeFilter] = useState<'all' | 'morning' | 'afternoon' | 'night'>('all');
 
-  // DOM Refs for seamless auto-scrolling
-  const slotSectionRef = useRef<HTMLDivElement>(null);
-  const checkoutSectionRef = useRef<HTMLDivElement>(null);
-
-  // Fetch active courts and current user profile on mount
+  // Fetch initial profile & courts
   useEffect(() => {
     async function loadInitialData() {
       const supabase = createClient();
@@ -146,7 +154,6 @@ export default function BookPage() {
     loadInitialData();
   }, []);
 
-  // Format date helper: YYYY-MM-DD
   const formatDateToYMD = (d?: Date) => {
     if (!d) return '';
     const year = d.getFullYear();
@@ -222,7 +229,7 @@ export default function BookPage() {
     [selectedCourt?.id]
   );
 
-  // Modifiers for instant calendar density markers
+  // Calendar density markers
   const calendarModifiers = useMemo(() => {
     const almostFullDates: Date[] = [];
     const fullyBookedDates: Date[] = [];
@@ -268,38 +275,25 @@ export default function BookPage() {
   const paddlePrice = paddleRental ? 150 : 0;
   const totalAmount = courtBasePrice + paddlePrice;
 
-  // Handle Date Selection with smooth transition to Step 2
+  // Handle Date Selection
   const handleDateSelect = (newDate?: Date) => {
     if (newDate) {
       const cleanDate = new Date(newDate);
       cleanDate.setHours(0, 0, 0, 0);
       setSelectedDate(cleanDate);
       setSelectedSlot(null);
-
-      setTimeout(() => {
-        slotSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }, 150);
     }
   };
 
-  // Handle Slot Selection with smooth transition to Step 3
-  const handleSlotSelect = (slot: AvailabilitySlot) => {
-    setSelectedSlot(slot);
-    setTimeout(() => {
-      checkoutSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }, 150);
-  };
-
-  // Handle Checkout submission (PayMongo Hosted Checkout)
+  // Handle Checkout submission
   const handleInitiateCheckout = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedSlot) {
-      setErrorMessage('Please select an available starting time slot from Step 2.');
-      slotSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      setErrorMessage('Please pick an available time slot from the schedule below.');
       return;
     }
     if (!guestName.trim() || !guestEmail.trim()) {
-      setErrorMessage('Please enter your full name and email for your booking pass & receipt.');
+      setErrorMessage('Please enter your full name and email for your booking receipt.');
       return;
     }
 
@@ -343,7 +337,7 @@ export default function BookPage() {
 
   const formattedDisplayDate = selectedDate
     ? selectedDate.toLocaleDateString('en-US', {
-        weekday: 'long',
+        weekday: 'short',
         month: 'short',
         day: 'numeric',
         year: 'numeric',
@@ -367,617 +361,374 @@ export default function BookPage() {
     setSelectedSlot(null);
   };
 
-  const currentStep = selectedSlot ? 3 : selectedDate ? 2 : 1;
-
   return (
-    <div className="max-w-7xl mx-auto w-full px-4 py-8 md:py-12 space-y-10 font-sans bg-[#0f1218] text-slate-100 selection:bg-red-600 selection:text-white">
+    <div className="max-w-7xl mx-auto w-full px-3 sm:px-6 py-4 md:py-8 space-y-6 font-sans bg-[#0f1218] text-slate-100 selection:bg-red-600 selection:text-white">
       
-      {/* Top Banner & Header */}
-      <div className="space-y-4 text-center md:text-left">
-        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#d4ff00]/10 text-[#d4ff00] text-xs font-black border border-[#d4ff00]/30 shadow-sm">
-          <Flame className="w-4 h-4 text-red-500 animate-pulse" />
-          <span>C&amp;J Pickleball Arena • Fixed ₱300.00 / hr Flat Rate • Instant PayMongo Lock</span>
-        </div>
-        
-        <h1 className="text-3xl sm:text-5xl md:text-6xl font-black text-white tracking-tight leading-tight">
-          Reserve Your Court in <span className="text-transparent bg-clip-text bg-gradient-to-r from-red-500 via-amber-400 to-[#d4ff00]">3 Easy Steps</span>
-        </h1>
-        <p className="text-slate-300 text-sm md:text-base max-w-3xl leading-relaxed">
-          Follow our 3-step booking flow below: click a date on the calendar, choose your court &amp; open slot, and confirm your reservation with instant PayMongo checkout.
-        </p>
-      </div>
-
-      {/* Interactive Step-by-Step Procedure Navigation Bar */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 p-2 rounded-3xl bg-[#171b24]/90 border border-white/10 backdrop-blur-xl shadow-2xl">
-        
-        {/* Step 1 Pill */}
-        <div
-          onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-          className={`p-3.5 rounded-2xl flex items-center gap-3 transition-all cursor-pointer border ${
-            currentStep === 1
-              ? 'bg-gradient-to-r from-red-600/30 via-red-500/20 to-transparent border-red-500 text-white shadow-lg'
-              : 'border-white/5 bg-[#0f1218]/60 text-slate-300 hover:border-white/20'
-          }`}
-        >
-          <div className={`w-8 h-8 rounded-xl flex items-center justify-center font-black text-sm ${
-            selectedDate ? 'bg-[#d4ff00] text-slate-950 shadow-md' : 'bg-red-600 text-white'
-          }`}>
-            {selectedDate ? <Check className="w-5 h-5 stroke-[3]" /> : '1'}
+      {/* Compact Top Bar */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-2xl bg-[#171b24]/90 border border-white/10 backdrop-blur-xl shadow-lg">
+        <div className="flex items-center gap-3">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#d4ff00]/15 text-[#d4ff00] text-xs font-black border border-[#d4ff00]/30">
+            <Flame className="w-3.5 h-3.5 text-red-500 animate-pulse" />
+            <span>₱300 / hr Flat Rate</span>
           </div>
-          <div className="flex-1 min-w-0">
-            <span className="text-[10px] uppercase font-black tracking-widest text-[#d4ff00] block">Step 1</span>
-            <span className="text-xs font-bold text-white block truncate">Select Date &amp; Court</span>
-          </div>
+          <h1 className="text-base sm:text-lg font-black text-white tracking-tight">
+            C&amp;J Court Reservation &amp; Instant Checkout
+          </h1>
         </div>
 
-        {/* Step 2 Pill */}
-        <div
-          onClick={() => slotSectionRef.current?.scrollIntoView({ behavior: 'smooth' })}
-          className={`p-3.5 rounded-2xl flex items-center gap-3 transition-all cursor-pointer border ${
-            currentStep === 2
-              ? 'bg-gradient-to-r from-amber-500/30 via-amber-500/20 to-transparent border-amber-400 text-white shadow-lg ring-1 ring-amber-400/40'
-              : selectedSlot
-              ? 'border-emerald-500/40 bg-emerald-950/20 text-emerald-300'
-              : 'border-white/5 bg-[#0f1218]/60 text-slate-400 hover:border-white/20'
-          }`}
-        >
-          <div className={`w-8 h-8 rounded-xl flex items-center justify-center font-black text-sm ${
-            selectedSlot ? 'bg-emerald-400 text-slate-950 shadow-md' : currentStep === 2 ? 'bg-amber-400 text-slate-950' : 'bg-slate-800 text-slate-400'
-          }`}>
-            {selectedSlot ? <Check className="w-5 h-5 stroke-[3]" /> : '2'}
-          </div>
-          <div className="flex-1 min-w-0">
-            <span className="text-[10px] uppercase font-black tracking-widest text-amber-300 block">Step 2</span>
-            <span className="text-xs font-bold text-white block truncate">
-              {selectedSlot ? `Slot: ${selectedSlot.time}` : 'Choose Available Slot'}
-            </span>
-          </div>
-        </div>
-
-        {/* Step 3 Pill */}
-        <div
-          onClick={() => checkoutSectionRef.current?.scrollIntoView({ behavior: 'smooth' })}
-          className={`p-3.5 rounded-2xl flex items-center gap-3 transition-all cursor-pointer border ${
-            currentStep === 3
-              ? 'bg-gradient-to-r from-emerald-500/30 via-emerald-500/20 to-transparent border-emerald-400 text-white shadow-lg ring-1 ring-emerald-400/40'
-              : 'border-white/5 bg-[#0f1218]/60 text-slate-400 hover:border-white/20'
-          }`}
-        >
-          <div className={`w-8 h-8 rounded-xl flex items-center justify-center font-black text-sm ${
-            currentStep === 3 ? 'bg-emerald-400 text-slate-950 shadow-md' : 'bg-slate-800 text-slate-400'
-          }`}>
-            3
-          </div>
-          <div className="flex-1 min-w-0">
-            <span className="text-[10px] uppercase font-black tracking-widest text-emerald-400 block">Step 3</span>
-            <span className="text-xs font-bold text-white block truncate">Player Info &amp; PayMongo</span>
-          </div>
+        {/* 3 Steps Progress In-Line Badge */}
+        <div className="flex items-center gap-2 text-xs font-bold text-slate-300">
+          <span className={`px-2.5 py-1 rounded-lg border ${selectedDate ? 'bg-[#d4ff00]/20 text-[#d4ff00] border-[#d4ff00]/40' : 'bg-slate-900 border-white/10'}`}>
+            1. Date &amp; Court
+          </span>
+          <span className="text-slate-600">→</span>
+          <span className={`px-2.5 py-1 rounded-lg border ${selectedSlot ? 'bg-amber-500/20 text-amber-300 border-amber-500/40' : 'bg-slate-900 border-white/10'}`}>
+            2. Time Slot
+          </span>
+          <span className="text-slate-600">→</span>
+          <span className={`px-2.5 py-1 rounded-lg border ${selectedSlot ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40' : 'bg-slate-900 border-white/10'}`}>
+            3. PayMongo Lock
+          </span>
         </div>
       </div>
 
-      {/* Error Notification Alert */}
+      {/* Error Alert */}
       {errorMessage && (
-        <div className="p-4 rounded-3xl border border-red-500/50 bg-red-950/60 flex items-start gap-3 text-sm text-red-200 shadow-2xl animate-in fade-in">
-          <AlertCircle className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />
-          <div className="flex-1">
-            <strong className="font-bold block text-red-100">Attention Required</strong>
-            <p className="text-xs text-red-300">{errorMessage}</p>
+        <div className="p-3.5 rounded-2xl border border-red-500/50 bg-red-950/60 flex items-center justify-between text-xs text-red-200 shadow-xl">
+          <div className="flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 text-red-400 shrink-0" />
+            <span>{errorMessage}</span>
           </div>
-          <button
-            onClick={() => setErrorMessage(null)}
-            className="text-red-400 hover:text-white text-xs font-bold px-2 py-1"
-          >
+          <button onClick={() => setErrorMessage(null)} className="text-red-400 hover:text-white font-bold px-2">
             ✕
           </button>
         </div>
       )}
 
       {/* ========================================================================= */}
-      {/* STEP 1: BIG CALENDAR & COURT SELECTOR */}
+      {/* UNIFIED ZERO-SCROLL BOOKING WORKSPACE (SPLIT VIEW) */}
       {/* ========================================================================= */}
-      <div className="space-y-6">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         
-        {/* Step 1 Title Header */}
-        <div className="flex items-center justify-between flex-wrap gap-4 border-b border-white/10 pb-4">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-red-600 to-amber-500 flex items-center justify-center text-white font-black text-lg shadow-lg shadow-red-500/30">
-              1
-            </div>
-            <div>
-              <h2 className="text-xl md:text-2xl font-black text-white flex items-center gap-2">
-                Select Your Date &amp; Court
-              </h2>
-              <p className="text-xs text-slate-400">
-                Click any day on the big calendar below to see live court availability.
-              </p>
-            </div>
-          </div>
+        {/* LEFT COLUMN (7 Cols): Big Calendar + Court Selector + Time Slots */}
+        <div className="lg:col-span-7 space-y-5">
+          
+          {/* Top Control Bar: Court Tabs & Duration Dropdown (Up to 12 Hours) */}
+          <Card className="border-white/10 bg-[#171b24]/90 backdrop-blur-md rounded-2xl p-3.5 shadow-md">
+            <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-center">
+              
+              {/* Court Switcher (7 Cols) */}
+              <div className="sm:col-span-7 space-y-1.5">
+                <Label className="text-[11px] font-black uppercase text-slate-400 tracking-wider flex items-center gap-1">
+                  <Trophy className="w-3.5 h-3.5 text-[#d4ff00]" /> 1. Select Court
+                </Label>
+                <div className="grid grid-cols-2 gap-2">
+                  {courts.map((court) => {
+                    const isSelected = selectedCourt.id === court.id;
+                    return (
+                      <button
+                        key={court.id}
+                        type="button"
+                        onClick={() => {
+                          setSelectedCourt(court);
+                          setSelectedSlot(null);
+                        }}
+                        className={`p-2 rounded-xl text-left border transition-all cursor-pointer ${
+                          isSelected
+                            ? 'bg-gradient-to-r from-red-600/30 to-amber-500/20 border-red-500 text-white shadow-md ring-1 ring-red-500/50'
+                            : 'bg-[#0f1218] border-white/10 text-slate-300 hover:border-white/20'
+                        }`}
+                      >
+                        <span className="font-bold text-xs block truncate text-white">{court.name.split(' - ')[0]}</span>
+                        <span className="text-[10px] text-[#d4ff00] font-black">₱{hourlyRate}/hr • Indoor</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
 
-          {/* Quick Date Jump Actions */}
-          <div className="flex items-center gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={jumpToToday}
-              className="h-9 px-4 text-xs font-extrabold border-white/20 text-[#d4ff00] hover:bg-[#d4ff00]/15 hover:text-white rounded-xl backdrop-blur-md"
-            >
-              📅 Today
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={jumpToTomorrow}
-              className="h-9 px-4 text-xs font-extrabold border-white/20 text-amber-300 hover:bg-amber-500/15 hover:text-white rounded-xl backdrop-blur-md"
-            >
-              ⚡ Tomorrow
-            </Button>
-          </div>
+              {/* Duration Dropdown: 1 to 12 Hours (5 Cols) */}
+              <div className="sm:col-span-5 space-y-1.5">
+                <Label htmlFor="durationSelect" className="text-[11px] font-black uppercase text-slate-400 tracking-wider flex items-center gap-1">
+                  <Clock className="w-3.5 h-3.5 text-[#d4ff00]" /> Rent Duration
+                </Label>
+                <div className="relative">
+                  <select
+                    id="durationSelect"
+                    value={durationHours}
+                    onChange={(e) => {
+                      setDurationHours(Number(e.target.value));
+                      setSelectedSlot(null);
+                    }}
+                    className="w-full h-10 px-3 pr-8 rounded-xl bg-[#0f1218] border border-white/15 text-white font-black text-xs appearance-none focus:outline-none focus:ring-2 focus:ring-[#d4ff00] cursor-pointer shadow-inner"
+                  >
+                    {DURATION_OPTIONS.map((opt) => (
+                      <option key={opt.hours} value={opt.hours} className="bg-[#0f1218] text-white">
+                        {opt.label} — ₱{(hourlyRate * opt.hours).toLocaleString()} ({opt.description})
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown className="w-4 h-4 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                </div>
+              </div>
+
+            </div>
+          </Card>
+
+          {/* Big Interactive Calendar Card */}
+          <Card className="border-white/15 bg-[#171b24]/95 backdrop-blur-2xl rounded-3xl shadow-xl overflow-hidden ring-1 ring-white/10">
+            <CardHeader className="py-2.5 px-4 border-b border-white/5 bg-[#141822]/80 flex flex-row items-center justify-between">
+              <div className="flex items-center gap-2">
+                <CalendarDays className="w-4 h-4 text-[#d4ff00]" />
+                <CardTitle className="text-sm font-black text-white">Interactive Date Selector</CardTitle>
+              </div>
+
+              {/* Quick Jump Buttons & Heatmap Legend */}
+              <div className="flex items-center gap-2">
+                <div className="hidden sm:flex items-center gap-2 text-[10px] font-bold mr-2">
+                  <span className="flex items-center gap-1 text-emerald-300">
+                    <span className="w-2 h-2 rounded-full bg-emerald-400" /> Open
+                  </span>
+                  <span className="flex items-center gap-1 text-amber-300">
+                    <span className="w-2 h-2 rounded-full bg-amber-400" /> Fast 🔥
+                  </span>
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={jumpToToday}
+                  className="h-7 px-2.5 text-[11px] font-extrabold border-white/20 text-[#d4ff00] hover:bg-[#d4ff00]/15 rounded-lg"
+                >
+                  Today
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={jumpToTomorrow}
+                  className="h-7 px-2.5 text-[11px] font-extrabold border-white/20 text-amber-300 hover:bg-amber-500/15 rounded-lg"
+                >
+                  Tomorrow
+                </Button>
+              </div>
+            </CardHeader>
+
+            <CardContent className="p-3 sm:p-4">
+              <div className="p-2 sm:p-3 rounded-2xl bg-[#0f1218]/95 border border-white/10 shadow-inner">
+                <Calendar
+                  mode="single"
+                  month={visibleMonth}
+                  onMonthChange={handleMonthChange}
+                  selected={selectedDate}
+                  modifiers={calendarModifiers}
+                  onSelect={handleDateSelect}
+                  className="rounded-xl w-full text-slate-100"
+                  disabled={(d) => {
+                    const today = new Date();
+                    today.setHours(0, 0, 0, 0);
+                    return d < today;
+                  }}
+                />
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Time Slot Availability Grid */}
+          <Card className="border-white/15 bg-[#171b24]/95 backdrop-blur-2xl rounded-3xl shadow-xl overflow-hidden ring-1 ring-white/10">
+            <CardHeader className="py-2.5 px-4 border-b border-white/5 bg-[#141822]/80 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-[#d4ff00]" />
+                <CardTitle className="text-sm font-black text-white">
+                  2. Choose Starting Slot ({formattedDisplayDate})
+                </CardTitle>
+              </div>
+
+              {/* Filter Pills */}
+              <div className="flex items-center gap-1 bg-[#0f1218] p-1 rounded-xl border border-white/10 text-[11px]">
+                <button
+                  type="button"
+                  onClick={() => setTimeFilter('all')}
+                  className={`px-2 py-0.5 rounded-lg font-bold transition-all ${
+                    timeFilter === 'all' ? 'bg-[#d4ff00] text-slate-950 shadow-sm' : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  All
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setTimeFilter('morning')}
+                  className={`px-2 py-0.5 rounded-lg font-bold flex items-center gap-1 transition-all ${
+                    timeFilter === 'morning' ? 'bg-amber-500 text-slate-950 shadow-sm' : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <Sun className="w-3 h-3" /> AM
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setTimeFilter('afternoon')}
+                  className={`px-2 py-0.5 rounded-lg font-bold flex items-center gap-1 transition-all ${
+                    timeFilter === 'afternoon' ? 'bg-orange-500 text-white shadow-sm' : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <Sunset className="w-3 h-3" /> PM
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setTimeFilter('night')}
+                  className={`px-2 py-0.5 rounded-lg font-bold flex items-center gap-1 transition-all ${
+                    timeFilter === 'night' ? 'bg-red-500 text-white shadow-sm' : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <Moon className="w-3 h-3" /> Night
+                </button>
+              </div>
+            </CardHeader>
+
+            <CardContent className="p-4">
+              {isLoadingSlots ? (
+                <div className="py-8 flex flex-col items-center justify-center text-slate-400 gap-2">
+                  <Loader2 className="w-6 h-6 animate-spin text-red-500" />
+                  <span className="text-xs font-bold">Checking availability...</span>
+                </div>
+              ) : filteredSlots.length === 0 ? (
+                <div className="py-8 text-center text-slate-400 text-xs font-bold">
+                  No slots match filter. Switch session filter or date.
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  {filteredSlots.map((slot) => {
+                    const isSelected = selectedSlot?.hour24 === slot.hour24;
+                    const isAvailable = slot.available;
+
+                    return (
+                      <button
+                        key={slot.hour24}
+                        type="button"
+                        disabled={!isAvailable}
+                        onClick={() => setSelectedSlot(slot)}
+                        className={`p-2.5 rounded-xl text-xs font-black transition-all border flex flex-col items-center justify-center gap-0.5 cursor-pointer ${
+                          isSelected
+                            ? 'bg-gradient-to-r from-red-600 via-red-500 to-amber-500 text-white border-[#d4ff00] shadow-md shadow-red-500/30 scale-[1.03] ring-1 ring-[#d4ff00] z-10'
+                            : isAvailable
+                            ? 'bg-[#0f1218] text-slate-100 border-white/10 hover:border-[#d4ff00] hover:bg-slate-900'
+                            : 'bg-slate-950/70 text-slate-600 border-white/5 cursor-not-allowed opacity-35'
+                        }`}
+                      >
+                        <span className="font-black text-sm">{slot.time}</span>
+                        <span
+                          className={`text-[9px] font-black uppercase px-1.5 py-0.2 rounded-full ${
+                            isSelected
+                              ? 'bg-white text-slate-950'
+                              : isAvailable
+                              ? 'bg-emerald-500/20 text-emerald-400'
+                              : 'text-slate-600'
+                          }`}
+                        >
+                          {isSelected ? '✓ Picked' : isAvailable ? 'Open' : 'Full'}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
         </div>
 
-        {/* Big Calendar & Court Choice Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        {/* RIGHT COLUMN (5 Cols): STICKY LIVE SUMMARY & INSTANT CHECKOUT */}
+        <div className="lg:col-span-5 space-y-5 lg:sticky lg:top-20">
           
-          {/* Big Featured Calendar Component (7 Columns) */}
-          <div className="lg:col-span-7">
-            <Card className="border-white/15 bg-[#171b24]/95 backdrop-blur-2xl rounded-3xl shadow-2xl overflow-hidden ring-1 ring-white/10">
-              <CardHeader className="pb-4 border-b border-white/5 bg-[#141822]/80">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                  <div>
-                    <CardTitle className="text-lg font-black text-white flex items-center gap-2">
-                      <CalendarDays className="w-5 h-5 text-[#d4ff00]" />
-                      Interactive Booking Calendar
-                    </CardTitle>
-                    <CardDescription className="text-slate-300 text-xs mt-0.5">
-                      Live status indicators show real-time slot density
-                    </CardDescription>
-                  </div>
+          <Card className="border-red-500/40 bg-gradient-to-br from-[#171b24] via-[#171b24] to-red-950/40 shadow-2xl rounded-3xl overflow-hidden ring-1 ring-white/10">
+            <CardHeader className="py-3 px-5 border-b border-white/5 bg-[#141822]/80 flex flex-row items-center justify-between">
+              <div className="flex items-center gap-2">
+                <ShieldCheck className="w-4 h-4 text-red-400" />
+                <CardTitle className="text-sm font-black text-white">3. Summary &amp; Instant Pay</CardTitle>
+              </div>
+              {isAuthenticated && (
+                <span className="text-[10px] font-bold text-[#d4ff00] flex items-center gap-1">
+                  <UserCheck className="w-3 h-3" /> Auto-filled
+                </span>
+              )}
+            </CardHeader>
 
-                  {/* Calendar Heatmap Legend */}
-                  <div className="flex items-center gap-3 p-2 rounded-xl bg-black/50 border border-white/10 text-[11px] font-bold self-start sm:self-auto">
-                    <div className="flex items-center gap-1.5 text-emerald-300">
-                      <span className="h-2.5 w-2.5 rounded-full bg-emerald-400 shadow-[0_0_8px_#10b981]" />
-                      <span>Open Slots</span>
-                    </div>
-                    <div className="flex items-center gap-1.5 text-amber-300">
-                      <span className="h-2.5 w-2.5 rounded-full bg-amber-400 shadow-[0_0_8px_#f59e0b] animate-pulse" />
-                      <span>Filling Fast 🔥</span>
-                    </div>
-                    <div className="flex items-center gap-1.5 text-red-300">
-                      <span className="h-2.5 w-2.5 rounded-full bg-red-500 shadow-[0_0_8px_#ef4444]" />
-                      <span>Sold Out</span>
-                    </div>
+            <CardContent className="p-5 space-y-4">
+              
+              {/* Real-time Reservation Summary Ticket */}
+              <div className="p-3.5 rounded-2xl bg-black/60 border border-white/10 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-black text-white">{selectedCourt.name}</span>
+                  <span className="text-xs font-black text-[#d4ff00] bg-[#d4ff00]/10 px-2 py-0.5 rounded-md">
+                    {durationHours} Hour{durationHours > 1 ? 's' : ''}
+                  </span>
+                </div>
+                
+                <div className="flex items-center justify-between text-xs text-slate-300">
+                  <span>Date:</span>
+                  <strong className="text-white">{formattedDisplayDate}</strong>
+                </div>
+
+                <div className="flex items-center justify-between text-xs text-slate-300">
+                  <span>Time Slot:</span>
+                  <strong className={selectedSlot ? 'text-emerald-400 font-black' : 'text-amber-400 font-bold'}>
+                    {selectedSlot ? (
+                      <>
+                        {selectedSlot.time} –{' '}
+                        {selectedSlot.hour24 + durationHours % 12 === 0
+                          ? 12
+                          : (selectedSlot.hour24 + durationHours) % 12}
+                        :00 {selectedSlot.hour24 + durationHours >= 12 ? 'PM' : 'AM'}
+                      </>
+                    ) : (
+                      '👈 Select time on left'
+                    )}
+                  </strong>
+                </div>
+
+                <div className="border-t border-white/10 pt-2 flex items-center justify-between text-sm">
+                  <span className="text-xs text-slate-400">Total Price:</span>
+                  <div className="text-right">
+                    <span className="font-black text-xl text-white">₱{totalAmount.toFixed(2)}</span>
+                    <span className="text-[10px] text-slate-400 block font-bold">(₱{courtBasePrice} court{paddleRental ? ' + ₱150 gear' : ''})</span>
                   </div>
                 </div>
-              </CardHeader>
+              </div>
 
-              <CardContent className="p-4 sm:p-6 space-y-5">
-                
-                {/* Standout Big Calendar */}
-                <div className="p-3 sm:p-5 rounded-3xl bg-[#0f1218]/95 border border-white/10 shadow-2xl">
-                  <Calendar
-                    mode="single"
-                    month={visibleMonth}
-                    onMonthChange={handleMonthChange}
-                    selected={selectedDate}
-                    modifiers={calendarModifiers}
-                    onSelect={handleDateSelect}
-                    className="rounded-2xl w-full text-slate-100"
-                    disabled={(d) => {
-                      const today = new Date();
-                      today.setHours(0, 0, 0, 0);
-                      return d < today;
-                    }}
+              {/* Guest Form */}
+              <form onSubmit={handleInitiateCheckout} className="space-y-3.5">
+                <div className="space-y-1">
+                  <Label htmlFor="guestName" className="text-xs font-bold text-slate-200">
+                    Full Name <span className="text-red-400">*</span>
+                  </Label>
+                  <Input
+                    id="guestName"
+                    placeholder="e.g. Alex Santos"
+                    value={guestName}
+                    onChange={(e) => setGuestName(e.target.value)}
+                    required
+                    className="h-9 bg-slate-950 border-white/15 text-white rounded-xl text-xs focus-visible:ring-red-500"
                   />
                 </div>
 
-                {/* Selected Date Summary Banner */}
-                <div className="p-4 rounded-2xl bg-gradient-to-r from-slate-900 to-[#171b24] border border-[#d4ff00]/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-lg">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-2xl bg-[#d4ff00]/15 border border-[#d4ff00]/30 flex items-center justify-center text-[#d4ff00]">
-                      <CalendarCheck2 className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <span className="text-[10px] uppercase font-black tracking-widest text-[#d4ff00]">Active Selection</span>
-                      <h4 className="text-sm sm:text-base font-black text-white">{formattedDisplayDate}</h4>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    {selectedDaySummary ? (
-                      <span className="text-xs font-black px-3 py-1 rounded-xl bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
-                        {selectedDaySummary.availableSlots} of 16 Slots Open
-                      </span>
-                    ) : (
-                      <span className="text-xs font-bold text-slate-400">Ready to select slot</span>
-                    )}
-                    <Button
-                      type="button"
-                      size="sm"
-                      onClick={() => slotSectionRef.current?.scrollIntoView({ behavior: 'smooth' })}
-                      className="bg-[#d4ff00] hover:bg-[#bce600] text-slate-950 font-black text-xs rounded-xl shadow-md flex items-center gap-1 cursor-pointer"
-                    >
-                      <span>View Slots</span>
-                      <ArrowDown className="w-3.5 h-3.5" />
-                    </Button>
-                  </div>
+                <div className="space-y-1">
+                  <Label htmlFor="guestEmail" className="text-xs font-bold text-slate-200">
+                    Email Address (Ticket / QR Pass) <span className="text-red-400">*</span>
+                  </Label>
+                  <Input
+                    id="guestEmail"
+                    type="email"
+                    placeholder="e.g. alex@example.com"
+                    value={guestEmail}
+                    onChange={(e) => setGuestEmail(e.target.value)}
+                    required
+                    className="h-9 bg-slate-950 border-white/15 text-white rounded-xl text-xs focus-visible:ring-red-500"
+                  />
                 </div>
 
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Court Choice & Duration Settings (5 Columns) */}
-          <div className="lg:col-span-5 space-y-6">
-            
-            {/* Court Selection Card */}
-            <Card className="border-white/10 bg-[#171b24]/90 backdrop-blur-xl rounded-3xl shadow-xl">
-              <CardHeader className="pb-3 border-b border-white/5">
-                <CardTitle className="text-base font-black text-white flex items-center justify-between">
-                  <span className="flex items-center gap-2">
-                    <Trophy className="w-4 h-4 text-[#d4ff00]" /> Choose Indoor Court
-                  </span>
-                  <span className="text-xs font-black text-[#d4ff00] bg-[#d4ff00]/10 px-2.5 py-0.5 rounded-full border border-[#d4ff00]/30">
-                    ₱{hourlyRate.toFixed(2)}/hr
-                  </span>
-                </CardTitle>
-                <CardDescription className="text-slate-400 text-xs">
-                  Select which court you want to play on in Quezon City.
-                </CardDescription>
-              </CardHeader>
-
-              <CardContent className="p-4 space-y-3">
-                {courts.map((court) => {
-                  const isSelected = selectedCourt.id === court.id;
-                  return (
-                    <div
-                      key={court.id}
-                      onClick={() => {
-                        setSelectedCourt(court);
-                        setSelectedSlot(null);
-                      }}
-                      className={`p-4 rounded-2xl border cursor-pointer transition-all duration-200 flex items-center justify-between ${
-                        isSelected
-                          ? 'border-red-500 bg-gradient-to-r from-red-950/70 via-slate-900 to-slate-900 shadow-xl shadow-red-500/20 ring-1 ring-red-500/50 scale-[1.01]'
-                          : 'border-white/10 bg-[#0f1218] hover:border-white/20 hover:bg-slate-900/60'
-                      }`}
-                    >
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2">
-                          <span className="font-bold text-white text-sm">{court.name}</span>
-                          <span className="text-[10px] font-black px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 uppercase">
-                            {court.type}
-                          </span>
-                        </div>
-                        <p className="text-xs text-slate-400">
-                          8mm Poly Cushion • High-Lux 850 LED • Air Conditioned
-                        </p>
-                      </div>
-                      <div className="text-right shrink-0">
-                        <span className="font-black text-[#d4ff00] text-lg">
-                          ₱{Number(court.hourly_rate ?? 300).toFixed(2)}
-                        </span>
-                        <span className="text-[11px] text-slate-500 block">/ hour</span>
-                      </div>
-                    </div>
-                  );
-                })}
-              </CardContent>
-            </Card>
-
-            {/* Duration Selector Card */}
-            <Card className="border-white/10 bg-[#171b24]/90 backdrop-blur-xl rounded-3xl shadow-xl">
-              <CardHeader className="pb-3 border-b border-white/5">
-                <CardTitle className="text-base font-black text-white flex items-center gap-2">
-                  <Clock className="w-4 h-4 text-[#d4ff00]" /> Select Play Duration
-                </CardTitle>
-                <CardDescription className="text-slate-400 text-xs">
-                  Reserves contiguous uninterrupted hours on your selected court.
-                </CardDescription>
-              </CardHeader>
-
-              <CardContent className="p-4 grid grid-cols-2 gap-2.5">
-                {DURATION_OPTIONS.map((opt) => {
-                  const isSelected = durationHours === opt.hours;
-                  return (
-                    <button
-                      key={opt.hours}
-                      type="button"
-                      onClick={() => {
-                        setDurationHours(opt.hours);
-                        setSelectedSlot(null);
-                      }}
-                      className={`p-3.5 rounded-2xl border text-left transition-all cursor-pointer ${
-                        isSelected
-                          ? 'border-[#d4ff00] bg-[#d4ff00]/15 text-white shadow-lg shadow-[#d4ff00]/20 ring-1 ring-[#d4ff00]/40'
-                          : 'border-white/10 bg-[#0f1218] text-slate-300 hover:border-white/20 hover:bg-slate-900'
-                      }`}
-                    >
-                      <div className="flex items-center justify-between">
-                        <span className="font-black text-sm text-white">{opt.label}</span>
-                        <span className="text-xs font-black text-[#d4ff00]">
-                          ₱{Number(hourlyRate * opt.hours).toFixed(2)}
-                        </span>
-                      </div>
-                      <p className="text-[11px] text-slate-400 mt-0.5 line-clamp-1">{opt.sub}</p>
-                    </button>
-                  );
-                })}
-              </CardContent>
-            </Card>
-
-            {/* Quick Summary Preview Box */}
-            <div className="p-4 rounded-3xl bg-gradient-to-r from-red-950/40 to-slate-900 border border-white/10 space-y-2">
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-slate-400 font-bold">Selected Court:</span>
-                <span className="text-white font-black">{selectedCourt.name}</span>
-              </div>
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-slate-400 font-bold">Date:</span>
-                <span className="text-[#d4ff00] font-black">{formattedDisplayDate}</span>
-              </div>
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-slate-400 font-bold">Session Length:</span>
-                <span className="text-white font-black">{durationHours} Hour{durationHours > 1 ? 's' : ''} (₱{courtBasePrice})</span>
-              </div>
-            </div>
-
-          </div>
-        </div>
-      </div>
-
-      {/* ========================================================================= */}
-      {/* STEP 2: AVAILABLE TIME SLOTS GRID */}
-      {/* ========================================================================= */}
-      <div ref={slotSectionRef} className="space-y-6 pt-6 scroll-mt-24">
-        
-        {/* Step 2 Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/10 pb-4">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center text-slate-950 font-black text-lg shadow-lg shadow-amber-500/30">
-              2
-            </div>
-            <div>
-              <h2 className="text-xl md:text-2xl font-black text-white flex items-center gap-2">
-                Available Time Slots
-              </h2>
-              <p className="text-xs text-slate-400">
-                Operating Daily 6:00 AM – 10:00 PM • Showing availability for {selectedCourt.name}
-              </p>
-            </div>
-          </div>
-
-          {/* Session Filter Tabs */}
-          <div className="flex items-center gap-1.5 bg-[#171b24] p-1.5 rounded-2xl border border-white/10 self-start sm:self-auto text-xs">
-            <button
-              type="button"
-              onClick={() => setTimeFilter('all')}
-              className={`px-3 py-1.5 rounded-xl font-black transition-all cursor-pointer ${
-                timeFilter === 'all'
-                  ? 'bg-[#d4ff00] text-slate-950 shadow-md'
-                  : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              All (16 hrs)
-            </button>
-            <button
-              type="button"
-              onClick={() => setTimeFilter('morning')}
-              className={`px-3 py-1.5 rounded-xl font-black flex items-center gap-1.5 transition-all cursor-pointer ${
-                timeFilter === 'morning'
-                  ? 'bg-amber-500 text-slate-950 shadow-md'
-                  : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              <Sun className="w-3.5 h-3.5" /> Morning (6AM-12PM)
-            </button>
-            <button
-              type="button"
-              onClick={() => setTimeFilter('afternoon')}
-              className={`px-3 py-1.5 rounded-xl font-black flex items-center gap-1.5 transition-all cursor-pointer ${
-                timeFilter === 'afternoon'
-                  ? 'bg-orange-500 text-white shadow-md'
-                  : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              <Sunset className="w-3.5 h-3.5" /> Afternoon (12PM-5PM)
-            </button>
-            <button
-              type="button"
-              onClick={() => setTimeFilter('night')}
-              className={`px-3 py-1.5 rounded-xl font-black flex items-center gap-1.5 transition-all cursor-pointer ${
-                timeFilter === 'night'
-                  ? 'bg-red-500 text-white shadow-md'
-                  : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              <Moon className="w-3.5 h-3.5" /> Prime Night (5PM-10PM)
-            </button>
-          </div>
-        </div>
-
-        {/* Slot Grid Container */}
-        <Card className="border-white/15 bg-[#171b24]/95 backdrop-blur-2xl rounded-3xl shadow-2xl overflow-hidden ring-1 ring-white/10">
-          <CardHeader className="pb-3 border-b border-white/5 bg-[#141822]/60">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-              <div className="flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-[#d4ff00]" />
-                <span className="font-bold text-sm text-white">
-                  {formattedDisplayDate} • {selectedCourt.name}
-                </span>
-              </div>
-              <span className="text-xs font-bold text-slate-400">
-                Reserving <strong className="text-white">{durationHours} contiguous hour{durationHours > 1 ? 's' : ''}</strong>
-              </span>
-            </div>
-          </CardHeader>
-
-          <CardContent className="p-6 space-y-6">
-            {isLoadingSlots ? (
-              <div className="py-16 flex flex-col items-center justify-center text-slate-400 gap-3">
-                <Loader2 className="w-9 h-9 animate-spin text-red-500" />
-                <span className="text-sm font-bold tracking-wide">Loading real-time court availability...</span>
-              </div>
-            ) : filteredSlots.length === 0 ? (
-              <div className="py-16 text-center text-slate-400 text-sm font-bold">
-                No slots match this filter. Try selecting &quot;All&quot; or picking another date.
-              </div>
-            ) : (
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 gap-3.5">
-                {filteredSlots.map((slot) => {
-                  const isSelected = selectedSlot?.hour24 === slot.hour24;
-                  const isAvailable = slot.available;
-
-                  return (
-                    <button
-                      key={slot.hour24}
-                      type="button"
-                      disabled={!isAvailable}
-                      onClick={() => handleSlotSelect(slot)}
-                      className={`p-4 rounded-2xl text-xs font-black transition-all border flex flex-col items-center justify-center gap-1.5 cursor-pointer ${
-                        isSelected
-                          ? 'bg-gradient-to-r from-red-600 via-red-500 to-amber-500 text-white border-[#d4ff00] shadow-xl shadow-red-500/40 scale-[1.04] ring-2 ring-[#d4ff00] z-10'
-                          : isAvailable
-                          ? 'bg-[#0f1218] text-slate-100 border-white/10 hover:border-[#d4ff00] hover:bg-slate-900/90 hover:scale-[1.02] shadow-sm'
-                          : 'bg-slate-950/70 text-slate-600 border-white/5 cursor-not-allowed opacity-40'
-                      }`}
-                    >
-                      <span className="font-black text-base md:text-lg">{slot.time}</span>
-                      
-                      <span
-                        className={`text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full ${
-                          isSelected
-                            ? 'bg-white text-slate-950'
-                            : isAvailable
-                            ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-                            : 'bg-slate-900 text-slate-600 border border-white/5'
-                        }`}
-                      >
-                        {isSelected ? '✓ Selected' : isAvailable ? 'Open Slot' : 'Occupied'}
-                      </span>
-
-                      {isAvailable && (
-                        <span className="text-[10px] text-slate-400 font-semibold">
-                          ₱{courtBasePrice} ({durationHours} hr{durationHours > 1 ? 's' : ''})
-                        </span>
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-
-            {/* Selected Slot Highlight Bar */}
-            {selectedSlot && (
-              <div className="p-4 rounded-2xl bg-gradient-to-r from-emerald-950/60 via-slate-900 to-slate-900 border border-emerald-500/40 text-emerald-300 text-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-xl">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-xl bg-emerald-400 text-slate-950 flex items-center justify-center font-black">
-                    <Check className="w-5 h-5 stroke-[3]" />
-                  </div>
-                  <div>
-                    <strong className="block font-black text-white text-sm">
-                      Starting at {selectedSlot.time} on {formattedDisplayDate}
-                    </strong>
-                    <span className="text-slate-300">
-                      Court locked from {selectedSlot.time} to{' '}
-                      {selectedSlot.hour24 + durationHours % 12 === 0
-                        ? 12
-                        : (selectedSlot.hour24 + durationHours) % 12}
-                      :00 {selectedSlot.hour24 + durationHours >= 12 ? 'PM' : 'AM'} ({durationHours} Hour{durationHours > 1 ? 's' : ''})
-                    </span>
-                  </div>
-                </div>
-
-                <Button
-                  type="button"
-                  size="sm"
-                  onClick={() => checkoutSectionRef.current?.scrollIntoView({ behavior: 'smooth' })}
-                  className="bg-emerald-400 hover:bg-emerald-500 text-slate-950 font-black text-xs rounded-xl shadow-md flex items-center gap-1 cursor-pointer"
-                >
-                  <span>Proceed to Step 3</span>
-                  <ArrowDown className="w-3.5 h-3.5" />
-                </Button>
-              </div>
-            )}
-
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* ========================================================================= */}
-      {/* STEP 3: PLAYER DETAILS & PAYMONGO PAYMENT */}
-      {/* ========================================================================= */}
-      <div ref={checkoutSectionRef} className="space-y-6 pt-6 scroll-mt-24">
-        
-        {/* Step 3 Header */}
-        <div className="flex items-center justify-between flex-wrap gap-4 border-b border-white/10 pb-4">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center text-slate-950 font-black text-lg shadow-lg shadow-emerald-500/30">
-              3
-            </div>
-            <div>
-              <h2 className="text-xl md:text-2xl font-black text-white flex items-center gap-2">
-                Player Details &amp; Payment
-              </h2>
-              <p className="text-xs text-slate-400">
-                Instant digital reservation ticket &amp; QR check-in pass issued immediately after payment.
-              </p>
-            </div>
-          </div>
-
-          {isAuthenticated && (
-            <span className="text-xs font-bold text-[#d4ff00] bg-[#d4ff00]/10 px-3 py-1 rounded-full border border-[#d4ff00]/30 flex items-center gap-1.5">
-              <UserCheck className="w-4 h-4" /> Auto-filled from Profile
-            </span>
-          )}
-        </div>
-
-        {/* Form and Summary Container */}
-        <Card className="border-red-500/40 bg-gradient-to-br from-[#171b24] via-[#171b24] to-red-950/40 shadow-2xl rounded-3xl overflow-hidden ring-1 ring-white/10">
-          <CardContent className="p-6 md:p-8 space-y-8">
-            <form onSubmit={handleInitiateCheckout} className="space-y-6">
-              
-              {/* Contact Information Fields */}
-              <div className="space-y-4">
-                <h3 className="text-sm font-black uppercase tracking-wider text-slate-300">
-                  Guest Contact Details
-                </h3>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="guestName" className="text-xs font-bold text-slate-200">
-                      Full Name <span className="text-red-400">*</span>
-                    </Label>
-                    <Input
-                      id="guestName"
-                      placeholder="e.g. Alex Santos"
-                      value={guestName}
-                      onChange={(e) => setGuestName(e.target.value)}
-                      required
-                      className="h-11 bg-slate-950 border-white/15 text-white rounded-xl focus-visible:ring-red-500 text-sm"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="guestEmail" className="text-xs font-bold text-slate-200">
-                      Email Address (for QR Pass &amp; Receipt) <span className="text-red-400">*</span>
-                    </Label>
-                    <Input
-                      id="guestEmail"
-                      type="email"
-                      placeholder="e.g. alex@example.com"
-                      value={guestEmail}
-                      onChange={(e) => setGuestEmail(e.target.value)}
-                      required
-                      className="h-11 bg-slate-950 border-white/15 text-white rounded-xl focus-visible:ring-red-500 text-sm"
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
+                <div className="space-y-1">
                   <Label htmlFor="guestPhone" className="text-xs font-bold text-slate-200">
-                    Contact Phone Number (Optional)
+                    Phone Number (Optional)
                   </Label>
                   <Input
                     id="guestPhone"
@@ -985,120 +736,72 @@ export default function BookPage() {
                     placeholder="e.g. 0917 123 4567"
                     value={guestPhone}
                     onChange={(e) => setGuestPhone(e.target.value)}
-                    className="h-11 bg-slate-950 border-white/15 text-white rounded-xl focus-visible:ring-red-500 text-sm"
+                    className="h-9 bg-slate-950 border-white/15 text-white rounded-xl text-xs focus-visible:ring-red-500"
                   />
                 </div>
-              </div>
 
-              {/* Add-on: Pro Paddle Rental */}
-              <div className="flex items-center justify-between p-4 sm:p-5 rounded-2xl border border-white/10 bg-[#0f1218] gap-4">
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <span className="font-bold text-sm sm:text-base text-white">Add C&amp;J Pro Paddle Rental</span>
-                    <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">
-                      +₱150.00
-                    </span>
+                {/* Pro Paddle Rental Toggle */}
+                <div className="flex items-center justify-between p-3 rounded-xl border border-white/10 bg-[#0f1218] gap-2">
+                  <div className="space-y-0.5">
+                    <span className="font-bold text-xs text-white block">Add Pro Paddle Rental (+₱150)</span>
+                    <span className="text-[10px] text-slate-400 block">2 Carbon fiber paddles + 3 balls</span>
                   </div>
-                  <p className="text-xs text-slate-400">
-                    Includes 2 × 16mm Raw Carbon Fiber Paddles + 3 × 40-hole tournament balls for your session.
-                  </p>
-                </div>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant={paddleRental ? 'default' : 'outline'}
-                  className={
-                    paddleRental
-                      ? 'bg-gradient-to-r from-red-500 to-amber-500 text-white font-black rounded-xl shrink-0'
-                      : 'border-white/20 text-slate-300 rounded-xl shrink-0 hover:bg-white/10'
-                  }
-                  onClick={() => setPaddleRental(!paddleRental)}
-                >
-                  {paddleRental ? '✓ Added (+₱150)' : '+ Add ₱150'}
-                </Button>
-              </div>
-
-              {/* PayMongo Payment Badge */}
-              <div className="p-4 sm:p-5 rounded-2xl border border-[#d4ff00]/30 bg-[#d4ff00]/10 space-y-3">
-                <div className="flex items-center justify-between flex-wrap gap-2">
-                  <div className="flex items-center gap-2">
-                    <CreditCard className="w-5 h-5 text-[#d4ff00] shrink-0" />
-                    <span className="text-xs sm:text-sm font-black uppercase tracking-wider text-[#d4ff00]">
-                      PayMongo Secure Gateway • Instant Confirmation
-                    </span>
-                  </div>
-                  <span className="text-[11px] font-bold text-slate-300">Zero Hidden Booking Fees</span>
-                </div>
-                
-                <p className="text-xs text-slate-300 leading-relaxed">
-                  To prevent slot blocking and guarantee court time, reservations are locked automatically via PayMongo.
-                </p>
-
-                <div className="flex flex-wrap gap-2 pt-1 text-xs font-bold text-slate-200">
-                  <span className="px-3 py-1.5 rounded-xl bg-slate-900 border border-white/10 text-blue-400 flex items-center gap-1.5">
-                    <span className="w-2 h-2 rounded-full bg-blue-400" /> GCash
-                  </span>
-                  <span className="px-3 py-1.5 rounded-xl bg-slate-900 border border-white/10 text-emerald-400 flex items-center gap-1.5">
-                    <span className="w-2 h-2 rounded-full bg-emerald-400" /> Maya
-                  </span>
-                  <span className="px-3 py-1.5 rounded-xl bg-slate-900 border border-white/10 text-cyan-400 flex items-center gap-1.5">
-                    <span className="w-2 h-2 rounded-full bg-cyan-400" /> QR Ph
-                  </span>
-                  <span className="px-3 py-1.5 rounded-xl bg-slate-900 border border-white/10 text-amber-300 flex items-center gap-1.5">
-                    <span className="w-2 h-2 rounded-full bg-amber-400" /> Visa / Mastercard / Debit
-                  </span>
-                </div>
-              </div>
-
-              {/* Final Summary & Checkout CTA */}
-              <div className="border-t border-white/10 pt-6 space-y-5">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 rounded-2xl bg-black/60 border border-white/10">
-                  <div className="space-y-1">
-                    <span className="text-[10px] font-black uppercase tracking-widest text-[#d4ff00]">Final Reservation Summary</span>
-                    <h4 className="text-base sm:text-lg font-black text-white">
-                      {selectedCourt.name}
-                    </h4>
-                    <p className="text-xs text-slate-300">
-                      {formattedDisplayDate} • {selectedSlot ? selectedSlot.time : 'No slot chosen'} ({durationHours} Hour{durationHours > 1 ? 's' : ''})
-                    </p>
-                  </div>
-
-                  <div className="text-left sm:text-right">
-                    <div className="text-3xl font-black text-white">
-                      ₱{totalAmount.toFixed(2)}
-                    </div>
-                    <span className="text-xs text-slate-400 font-semibold">Total PHP Amount</span>
-                  </div>
-                </div>
-
-                <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-                  <div className="flex items-center gap-2 text-xs text-slate-400">
-                    <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
-                    <span>256-Bit SSL Encrypted • Instant QR Check-in Pass</span>
-                  </div>
-
                   <Button
-                    type="submit"
-                    size="lg"
-                    disabled={!selectedSlot || isSubmitting}
-                    className="w-full sm:w-auto h-13 px-9 text-base font-black text-white shadow-2xl rounded-2xl flex items-center justify-center gap-2 transition-all bg-gradient-to-r from-red-600 via-red-500 to-amber-500 hover:from-red-700 hover:to-amber-600 shadow-red-500/40 cursor-pointer"
+                    type="button"
+                    size="sm"
+                    variant={paddleRental ? 'default' : 'outline'}
+                    className={
+                      paddleRental
+                        ? 'h-7 px-2.5 text-xs bg-gradient-to-r from-red-500 to-amber-500 text-white font-black rounded-lg'
+                        : 'h-7 px-2.5 text-xs border-white/20 text-slate-300 rounded-lg'
+                    }
+                    onClick={() => setPaddleRental(!paddleRental)}
                   >
-                    {isSubmitting ? (
-                      <>
-                        <Loader2 className="w-5 h-5 animate-spin" /> Securing Your Court...
-                      </>
-                    ) : (
-                      <>
-                        <QrCode className="w-5 h-5" /> Pay with PayMongo (₱{totalAmount.toFixed(2)})
-                      </>
-                    )}
+                    {paddleRental ? '✓ Added' : '+ Add'}
                   </Button>
                 </div>
-              </div>
 
-            </form>
-          </CardContent>
-        </Card>
+                {/* PayMongo Badge */}
+                <div className="p-2.5 rounded-xl border border-[#d4ff00]/30 bg-[#d4ff00]/10 space-y-1 text-xs">
+                  <div className="flex items-center gap-1.5 font-black text-[#d4ff00] text-[11px] uppercase tracking-wider">
+                    <CreditCard className="w-3.5 h-3.5" /> PayMongo Secure Gateway
+                  </div>
+                  <div className="flex flex-wrap gap-1.5 pt-0.5 text-[10px] font-black text-slate-300">
+                    <span className="px-2 py-0.5 rounded bg-slate-900 border border-white/10 text-blue-400">GCash</span>
+                    <span className="px-2 py-0.5 rounded bg-slate-900 border border-white/10 text-emerald-400">Maya</span>
+                    <span className="px-2 py-0.5 rounded bg-slate-900 border border-white/10 text-cyan-400">QR Ph</span>
+                    <span className="px-2 py-0.5 rounded bg-slate-900 border border-white/10 text-amber-300">Cards</span>
+                  </div>
+                </div>
+
+                {/* Pay Button */}
+                <Button
+                  type="submit"
+                  size="lg"
+                  disabled={!selectedSlot || isSubmitting}
+                  className="w-full h-12 text-sm font-black text-white shadow-xl rounded-xl flex items-center justify-center gap-2 transition-all bg-gradient-to-r from-red-600 via-red-500 to-amber-500 hover:from-red-700 hover:to-amber-600 shadow-red-500/40 cursor-pointer"
+                >
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" /> Securing Court...
+                    </>
+                  ) : (
+                    <>
+                      <QrCode className="w-4 h-4" /> Pay with PayMongo (₱{totalAmount.toFixed(2)})
+                    </>
+                  )}
+                </Button>
+
+                <p className="text-[10px] text-slate-500 text-center">
+                  🔒 Instant slot lock. Digital QR check-in pass sent to your email immediately.
+                </p>
+              </form>
+
+            </CardContent>
+          </Card>
+
+        </div>
+
       </div>
 
     </div>
