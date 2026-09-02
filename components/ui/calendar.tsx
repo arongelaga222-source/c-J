@@ -46,41 +46,41 @@ function Calendar({
       classNames={{
         root: cn("w-full", defaultClassNames.root),
         months: cn(
-          "relative flex flex-col gap-4 w-full",
+          "relative flex flex-col gap-5 w-full",
           defaultClassNames.months
         ),
         month: cn("flex w-full flex-col gap-4", defaultClassNames.month),
         nav: cn(
-          "absolute inset-x-0 top-0 flex w-full items-center justify-between gap-1 z-20 px-1",
+          "absolute inset-x-0 top-0 flex w-full items-center justify-between gap-1 z-20 px-2",
           defaultClassNames.nav
         ),
         button_previous: cn(
           buttonVariants({ variant: buttonVariant }),
-          "h-8 w-8 p-0 text-slate-300 hover:text-white hover:bg-white/10 rounded-xl transition-all border border-white/10 shadow-sm",
+          "h-9 w-9 p-0 text-slate-200 hover:text-white hover:bg-white/10 rounded-2xl transition-all border border-white/15 shadow-md bg-slate-900/80",
           defaultClassNames.button_previous
         ),
         button_next: cn(
           buttonVariants({ variant: buttonVariant }),
-          "h-8 w-8 p-0 text-slate-300 hover:text-white hover:bg-white/10 rounded-xl transition-all border border-white/10 shadow-sm",
+          "h-9 w-9 p-0 text-slate-200 hover:text-white hover:bg-white/10 rounded-2xl transition-all border border-white/15 shadow-md bg-slate-900/80",
           defaultClassNames.button_next
         ),
         month_caption: cn(
-          "flex h-8 w-full items-center justify-center font-black text-sm text-white tracking-wide uppercase px-8",
+          "flex h-9 w-full items-center justify-center font-black text-base md:text-lg text-white tracking-wide uppercase px-12",
           defaultClassNames.month_caption
         ),
         caption_label: cn(
-          "font-black text-sm tracking-wide text-amber-400 select-none",
+          "font-black text-base md:text-lg tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-[#d4ff00] select-none",
           defaultClassNames.caption_label
         ),
-        month_grid: cn("w-full border-collapse mt-2", defaultClassNames.month_grid),
-        weekdays: cn("grid grid-cols-7 mb-1 text-center", defaultClassNames.weekdays),
+        month_grid: cn("w-full border-collapse mt-3", defaultClassNames.month_grid),
+        weekdays: cn("grid grid-cols-7 mb-2 text-center border-b border-white/5 pb-2", defaultClassNames.weekdays),
         weekday: cn(
-          "text-[11px] font-black uppercase text-slate-400 select-none py-1",
+          "text-xs md:text-sm font-black uppercase text-slate-400 select-none py-1.5 tracking-wider",
           defaultClassNames.weekday
         ),
-        week: cn("grid grid-cols-7 gap-1.5 my-0.5 w-full", defaultClassNames.week),
+        week: cn("grid grid-cols-7 gap-2 md:gap-2.5 my-1 w-full", defaultClassNames.week),
         day: cn(
-          "group/day relative aspect-square h-auto w-full p-0 text-center select-none",
+          "group/day relative aspect-square h-auto w-full p-0 text-center select-none min-h-[48px] md:min-h-[56px]",
           defaultClassNames.day
         ),
         today: cn(
@@ -88,11 +88,11 @@ function Calendar({
           defaultClassNames.today
         ),
         outside: cn(
-          "text-slate-600 opacity-40 aria-selected:text-slate-500",
+          "text-slate-600 opacity-30 aria-selected:text-slate-500",
           defaultClassNames.outside
         ),
         disabled: cn(
-          "text-slate-600 opacity-30 cursor-not-allowed",
+          "text-slate-600 opacity-25 cursor-not-allowed",
           defaultClassNames.disabled
         ),
         hidden: cn("invisible", defaultClassNames.hidden),
@@ -164,30 +164,30 @@ function CalendarDayButton({
       data-day={day.date.toLocaleDateString(locale?.code)}
       data-selected-single={isSelected}
       className={cn(
-        "relative isolate z-10 flex aspect-square h-auto w-full min-w-0 flex-col items-center justify-center gap-0.5 border leading-none font-bold text-xs transition-all duration-200 rounded-xl",
-        "hover:scale-[1.06] active:scale-95",
+        "relative isolate z-10 flex aspect-square h-full w-full min-w-0 flex-col items-center justify-center gap-1 border leading-none font-bold text-sm md:text-base transition-all duration-200 rounded-2xl p-1",
+        "hover:scale-[1.08] active:scale-95 cursor-pointer",
         // Default unselected state
-        !isSelected && !isDisabled && !isOutside && "border-white/5 bg-[#14161b]/80 hover:bg-slate-800 text-slate-200 hover:border-white/20",
+        !isSelected && !isDisabled && !isOutside && "border-white/10 bg-[#14161b]/90 hover:bg-slate-800 text-slate-100 hover:border-[#d4ff00]/40 shadow-sm",
         // Almost Full (Filling Fast) Highlight
-        isAlmostFull && !isSelected && !isDisabled && !isOutside && "bg-gradient-to-b from-amber-500/15 to-amber-950/20 border-amber-500/40 text-amber-200 hover:border-amber-400 hover:bg-amber-500/25 shadow-sm shadow-amber-500/10",
+        isAlmostFull && !isSelected && !isDisabled && !isOutside && "bg-gradient-to-b from-amber-500/20 to-amber-950/40 border-amber-500/50 text-amber-200 hover:border-amber-400 hover:bg-amber-500/30 shadow-md shadow-amber-500/10",
         // Fully Booked Highlight
-        isFullyBooked && !isSelected && !isDisabled && !isOutside && "bg-red-950/30 border-red-500/30 text-red-300 hover:border-red-400 opacity-80",
+        isFullyBooked && !isSelected && !isDisabled && !isOutside && "bg-red-950/40 border-red-500/40 text-red-300 hover:border-red-400 opacity-70",
         // Today ring
-        isToday && !isSelected && "ring-1 ring-amber-400/70",
+        isToday && !isSelected && "ring-2 ring-amber-400/80 shadow-[0_0_10px_rgba(251,191,36,0.3)]",
         // Selected Date
-        isSelected && "bg-gradient-to-br from-red-600 via-red-500 to-amber-500 text-white font-black shadow-lg shadow-red-500/30 border-amber-400 scale-[1.06] z-20",
+        isSelected && "bg-gradient-to-br from-red-600 via-red-500 to-amber-500 text-white font-black shadow-xl shadow-red-500/40 border-amber-300 scale-[1.08] z-20 ring-2 ring-amber-400/50",
         // Disabled / Outside Date
-        isDisabled && "opacity-25 cursor-not-allowed hover:scale-100 hover:bg-transparent text-slate-600 border-transparent",
+        isDisabled && "opacity-20 cursor-not-allowed hover:scale-100 hover:bg-transparent text-slate-600 border-transparent",
         isOutside && "opacity-15 pointer-events-none text-slate-700 border-transparent",
         className
       )}
       {...props}
     >
-      <span className={cn("text-xs font-black", isSelected ? "text-white font-black" : isAlmostFull ? "text-amber-300" : isFullyBooked ? "text-red-300" : "text-slate-200")}>
+      <span className={cn("text-xs sm:text-sm md:text-base font-black tracking-tight", isSelected ? "text-white font-black" : isAlmostFull ? "text-amber-300" : isFullyBooked ? "text-red-300" : "text-slate-100")}>
         {day.date.getDate()}
       </span>
       {!isDisabled && !isOutside && (
-        <span className="flex items-center justify-center h-1.5 w-full">
+        <span className="flex items-center justify-center h-2 w-full gap-0.5">
           {isAlmostFull && (
             <span className="h-1.5 w-1.5 rounded-full bg-amber-400 shadow-[0_0_8px_#f59e0b] animate-pulse" />
           )}
@@ -195,7 +195,7 @@ function CalendarDayButton({
             <span className="h-1.5 w-1.5 rounded-full bg-red-500 shadow-[0_0_8px_#ef4444]" />
           )}
           {isAvailable && (
-            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400/80 shadow-[0_0_5px_#10b981]" />
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_6px_#10b981]" />
           )}
         </span>
       )}
