@@ -16,6 +16,9 @@ interface RawScheduleBooking {
   payment_method: string;
   guest_name: string | null;
   guest_phone: string | null;
+  guest_email: string | null;
+  notes: string | null;
+  expires_at?: string | null;
   profiles: { full_name: string | null } | { full_name: string | null }[] | null;
   courts: { id: string; name: string } | { id: string; name: string }[] | null;
 }
@@ -64,8 +67,8 @@ export default async function CashierSchedulePage({ searchParams }: PageProps) {
 
   const startOfDay = new Date(`${targetDateStr}T00:00:00.000+08:00`).toISOString();
   const endOfDay = new Date(`${targetDateStr}T23:59:59.999+08:00`).toISOString();
-  const nowIso = new Date().toISOString();
 
+  // Query bookings with disambiguated relationship alias
   const { data: rawData } = await supabase
     .from('bookings')
     .select(`
@@ -82,25 +85,17 @@ export default async function CashierSchedulePage({ searchParams }: PageProps) {
       guest_email,
       notes,
       expires_at,
-      profiles ( full_name ),
+      profiles:profiles!bookings_user_id_fkey ( full_name ),
       courts ( id, name )
     `)
     .gte('end_time', startOfDay)
     .lte('start_time', endOfDay)
-    .in('status', ['paid', 'checked_in', 'walk_in', 'pending_payment'])
+    .in('status', ['paid', 'checked_in', 'walk_in', 'pending_payment', 'cancelled'])
     .order('start_time', { ascending: true });
 
-  const rawBookings = (rawData as unknown as (RawScheduleBooking & { guest_email?: string; notes?: string; expires_at?: string })[]) || [];
+  const rawBookings = (rawData as unknown as RawScheduleBooking[]) || [];
 
-  // Filter out expired pending payments
-  const validBookings = rawBookings.filter((b) => {
-    if (b.status === 'pending_payment') {
-      return b.expires_at ? b.expires_at > nowIso : false;
-    }
-    return ['paid', 'checked_in', 'walk_in'].includes(b.status);
-  });
-
-  const formattedBookings: ScheduleBooking[] = validBookings.map((b) => {
+  const formattedBookings: ScheduleBooking[] = rawBookings.map((b) => {
     const singleProfile = Array.isArray(b.profiles) ? b.profiles[0] : b.profiles;
     const singleCourt = Array.isArray(b.courts) ? b.courts[0] : b.courts;
 
@@ -113,7 +108,7 @@ export default async function CashierSchedulePage({ searchParams }: PageProps) {
       total_price: b.total_price,
       status: b.status,
       payment_method: b.payment_method,
-      guest_name: b.guest_name || singleProfile?.full_name || 'Walk-in Guest',
+      guest_name: b.guest_name || singleProfile?.full_name || 'Walk-in Client',
       guest_phone: b.guest_phone,
       guest_email: b.guest_email,
       notes: b.notes,

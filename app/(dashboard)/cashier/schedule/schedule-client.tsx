@@ -17,7 +17,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { createClient } from '@/utils/supabase/client';
 import { checkInBooking } from '@/app/actions';
-import { Calendar } from '@/components/ui/calendar';
 import {
   Calendar as CalendarIcon,
   ChevronLeft,
@@ -42,10 +41,8 @@ import {
   MapPin,
   Check,
   Activity,
-  Layers,
   LayoutGrid,
   ListTodo,
-  CalendarCheck2,
   Eye,
 } from 'lucide-react';
 
@@ -103,7 +100,7 @@ export default function ScheduleClient({
 }) {
   const router = useRouter();
   const [currentDate, setCurrentDate] = useState<string>(initialDateStr);
-  const [viewMode, setViewMode] = useState<'timeline' | 'month_grid'>('month_grid');
+  const [viewMode, setViewMode] = useState<'month_grid' | 'timeline'>('month_grid');
   const [selectedCourtFilter, setSelectedCourtFilter] = useState<string>('all');
   
   // Date state for month grid navigation
@@ -119,18 +116,6 @@ export default function ScheduleClient({
   const [isLoading, setIsLoading] = useState(false);
   const [isPending, startTransition] = useTransition();
   const [successBanner, setSuccessBanner] = useState<string | null>(null);
-  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
-  const [monthOverview, setMonthOverview] = useState<
-    Record<
-      string,
-      {
-        totalSlots: number;
-        bookedSlots: number;
-        availableSlots: number;
-        status: 'available' | 'almost_full' | 'fully_booked' | 'past';
-      }
-    >
-  >({});
 
   // Realtime clock for live marker (updates every 30s)
   const [currentTime, setCurrentTime] = useState<Date>(new Date());
@@ -146,35 +131,17 @@ export default function ScheduleClient({
     return `${yyyy}-${mm}`;
   }, [gridMonthDate]);
 
-  // Fetch month occupancy density for heatmap
-  useEffect(() => {
-    const fetchMonthOccupancy = async () => {
-      try {
-        const res = await fetch(`/api/availability?month=${currentMonthStr}`);
-        if (res.ok) {
-          const data = await res.json();
-          if (data.monthOverview) {
-            setMonthOverview(data.monthOverview);
-          }
-        }
-      } catch (err) {
-        console.error('Failed to fetch month density:', err);
-      }
-    };
-    fetchMonthOccupancy();
-  }, [currentMonthStr]);
-
   // Fetch all bookings for the visible month to populate the Calendar Grid
   const fetchMonthAllBookings = useCallback(async (monthStr: string) => {
     try {
       const supabase = createClient();
       const [year, month] = monthStr.split('-').map(Number);
       
+      // UTC boundaries covering the entire month in PHT (UTC+8)
       const startOfMonth = new Date(Date.UTC(year, month - 1, 1, -8, 0, 0)).toISOString();
       const endOfMonth = new Date(Date.UTC(year, month, 1, 15, 59, 59, 999)).toISOString();
-      const nowIso = new Date().toISOString();
 
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('bookings')
         .select(`
           id,
@@ -190,28 +157,26 @@ export default function ScheduleClient({
           guest_email,
           notes,
           expires_at,
-          profiles ( full_name ),
+          profiles:profiles!bookings_user_id_fkey ( full_name ),
           courts ( id, name )
         `)
         .gte('end_time', startOfMonth)
         .lte('start_time', endOfMonth)
-        .in('status', ['paid', 'checked_in', 'walk_in', 'pending_payment'])
+        .in('status', ['paid', 'checked_in', 'walk_in', 'pending_payment', 'cancelled'])
         .order('start_time', { ascending: true });
 
-      if (data) {
-        const valid = (data as unknown as (ScheduleBooking & { expires_at?: string })[]).filter((b) => {
-          if (b.status === 'pending_payment') {
-            return b.expires_at ? b.expires_at > nowIso : false;
-          }
-          return ['paid', 'checked_in', 'walk_in'].includes(b.status);
-        });
+      if (error) {
+        console.error('Error loading month bookings:', error);
+        return;
+      }
 
-        const formatted = valid.map((b) => {
+      if (data) {
+        const formatted: ScheduleBooking[] = (data as unknown as ScheduleBooking[]).map((b) => {
           const singleProfile = Array.isArray(b.profiles) ? b.profiles[0] : b.profiles;
           const singleCourt = Array.isArray(b.courts) ? b.courts[0] : b.courts;
           return {
             ...b,
-            guest_name: b.guest_name || singleProfile?.full_name || 'Walk-in Guest',
+            guest_name: b.guest_name || singleProfile?.full_name || 'Walk-in Client',
             profiles: singleProfile || null,
             courts: singleCourt || null,
           };
@@ -269,16 +234,15 @@ export default function ScheduleClient({
     };
   }, [currentDate, currentMonthStr, fetchMonthAllBookings]);
 
-  // Fetch bookings for specific date with expired pending filter
+  // Fetch bookings for specific date
   const fetchBookingsForDate = async (dateStr: string) => {
     setIsLoading(true);
     try {
       const supabase = createClient();
       const startOfDay = new Date(`${dateStr}T00:00:00.000+08:00`).toISOString();
       const endOfDay = new Date(`${dateStr}T23:59:59.999+08:00`).toISOString();
-      const nowIso = new Date().toISOString();
 
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('bookings')
         .select(`
           id,
@@ -294,28 +258,26 @@ export default function ScheduleClient({
           guest_email,
           notes,
           expires_at,
-          profiles ( full_name ),
+          profiles:profiles!bookings_user_id_fkey ( full_name ),
           courts ( id, name )
         `)
         .gte('end_time', startOfDay)
         .lte('start_time', endOfDay)
-        .in('status', ['paid', 'checked_in', 'walk_in', 'pending_payment'])
+        .in('status', ['paid', 'checked_in', 'walk_in', 'pending_payment', 'cancelled'])
         .order('start_time', { ascending: true });
 
-      if (data) {
-        const valid = (data as unknown as (ScheduleBooking & { expires_at?: string })[]).filter((b) => {
-          if (b.status === 'pending_payment') {
-            return b.expires_at ? b.expires_at > nowIso : false;
-          }
-          return ['paid', 'checked_in', 'walk_in'].includes(b.status);
-        });
+      if (error) {
+        console.error('Error fetching date schedule:', error);
+        return;
+      }
 
-        const formatted = valid.map((b) => {
+      if (data) {
+        const formatted: ScheduleBooking[] = (data as unknown as ScheduleBooking[]).map((b) => {
           const singleProfile = Array.isArray(b.profiles) ? b.profiles[0] : b.profiles;
           const singleCourt = Array.isArray(b.courts) ? b.courts[0] : b.courts;
           return {
             ...b,
-            guest_name: b.guest_name || singleProfile?.full_name || 'Walk-in Guest',
+            guest_name: b.guest_name || singleProfile?.full_name || 'Walk-in Client',
             profiles: singleProfile || null,
             courts: singleCourt || null,
           };
@@ -405,7 +367,7 @@ export default function ScheduleClient({
           date: walkInDate,
           hour24: walkInHour,
           durationHours: walkInDuration,
-          guestName: walkInName.trim() || 'Walk-in Guest',
+          guestName: walkInName.trim() || 'Walk-in Client',
           guestPhone: walkInPhone.trim() || undefined,
           paymentMethod: walkInPaymentMethod,
         }),
@@ -415,7 +377,7 @@ export default function ScheduleClient({
       if (!res.ok) throw new Error(data.error || 'Failed to create walk-in booking.');
 
       setIsWalkInOpen(false);
-      const playerDisplayName = walkInName.trim() || 'Walk-in Guest';
+      const playerDisplayName = walkInName.trim() || 'Walk-in Client';
       setWalkInName('');
       setWalkInPhone('');
       
@@ -448,7 +410,7 @@ export default function ScheduleClient({
   const formatTimeSlot = (startTime: string, endTime: string) => {
     const s = new Intl.DateTimeFormat('en-PH', { hour: 'numeric', minute: '2-digit' }).format(new Date(startTime));
     const e = new Intl.DateTimeFormat('en-PH', { hour: 'numeric', minute: '2-digit' }).format(new Date(endTime));
-    return `${s} - ${e}`;
+    return `${s} – ${e}`;
   };
 
   const getGridColumn = (startTime: string, endTime: string) => {
@@ -479,33 +441,6 @@ export default function ScheduleClient({
     ? Math.round((totalHoursBooked / totalCapacityHours) * 100)
     : 0;
 
-  // Calendar density modifiers
-  const calendarModifiers = useMemo(() => {
-    const almostFullDates: Date[] = [];
-    const fullyBookedDates: Date[] = [];
-    const availableDates: Date[] = [];
-
-    Object.entries(monthOverview).forEach(([dateKey, day]) => {
-      if (day.status === 'past') return;
-      const [y, m, d] = dateKey.split('-').map(Number);
-      const dateObj = new Date(y, m - 1, d);
-
-      if (day.status === 'almost_full') {
-        almostFullDates.push(dateObj);
-      } else if (day.status === 'fully_booked') {
-        fullyBookedDates.push(dateObj);
-      } else if (day.status === 'available') {
-        availableDates.push(dateObj);
-      }
-    });
-
-    return {
-      almostFull: almostFullDates,
-      fullyBooked: fullyBookedDates,
-      available: availableDates,
-    };
-  }, [monthOverview]);
-
   // Live Philippine Time Marker calculation
   const nowUtc = currentTime.getTime();
   const currentPhtDate = new Date(nowUtc + 8 * 3600 * 1000);
@@ -527,7 +462,6 @@ export default function ScheduleClient({
   }).format(new Date(`${currentDate}T00:00:00.000+08:00`));
 
   const isTodayActive = currentDate === getTodayStr();
-  const isTomorrowActive = currentDate === getTomorrowStr();
 
   // Calendar Grid Matrix Generation (7 Days x Weeks)
   const calendarGridDays = useMemo(() => {
@@ -632,7 +566,7 @@ export default function ScheduleClient({
             </span>
           </div>
           <p className="text-xs text-slate-400">
-            Real-time calendar grid showing all booked court sessions, player names, and instant counter check-in.
+            Real-time calendar showing all booked time slots and client names with instant check-in.
           </p>
         </div>
 
@@ -651,7 +585,7 @@ export default function ScheduleClient({
               }`}
             >
               <LayoutGrid className="w-3.5 h-3.5" />
-              <span>Calendar Grid (Who Booked)</span>
+              <span>Calendar Grid (Client Names)</span>
             </button>
             <button
               type="button"
@@ -667,12 +601,12 @@ export default function ScheduleClient({
             </button>
           </div>
 
-          {/* Player Search Bar */}
+          {/* Client Search Bar */}
           <div className="relative flex-1 sm:w-44">
             <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
             <input
               type="text"
-              placeholder="Search player..."
+              placeholder="Search client..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full h-9 pl-8 pr-3 bg-slate-950 border border-white/10 text-white rounded-xl text-xs font-medium focus:outline-none focus:border-amber-400 transition-all placeholder:text-slate-500"
@@ -818,9 +752,9 @@ export default function ScheduleClient({
                     </div>
                   </div>
 
-                  {/* Player Name & Contact */}
+                  {/* Client Name & Contact */}
                   <div className="space-y-1.5">
-                    <Label className="text-xs font-bold text-slate-300">Player Full Name</Label>
+                    <Label className="text-xs font-bold text-slate-300">Client Full Name</Label>
                     <Input
                       placeholder="e.g. Alex Santos"
                       value={walkInName}
@@ -891,7 +825,7 @@ export default function ScheduleClient({
       </div>
 
       {/* ========================================================================= */}
-      {/* VIEW 1: MONTH CALENDAR GRID VIEW (SHOWS WHO BOOKED IN GRID) */}
+      {/* VIEW 1: MONTH CALENDAR GRID (SHOWS CLIENT NAME OF WHO BOOKED THAT TIME) */}
       {/* ========================================================================= */}
       {viewMode === 'month_grid' && (
         <div className="space-y-4">
@@ -992,7 +926,8 @@ export default function ScheduleClient({
             {/* Month Day Cells */}
             <div className="grid grid-cols-7 divide-x divide-y divide-white/10 bg-[#0f1118]">
               {calendarGridDays.map((dayObj) => {
-                const dayBookings = (monthBookings[dayObj.dateStr] || []).filter((b) => {
+                const rawDayBookings = monthBookings[dayObj.dateStr] || [];
+                const dayBookings = rawDayBookings.filter((b) => {
                   if (selectedCourtFilter !== 'all' && (b.court_id !== selectedCourtFilter && b.courts?.id !== selectedCourtFilter)) {
                     return false;
                   }
@@ -1007,7 +942,7 @@ export default function ScheduleClient({
                 return (
                   <div
                     key={dayObj.dateStr}
-                    className={`min-h-[140px] sm:min-h-[175px] p-2 flex flex-col justify-between transition-all group relative ${
+                    className={`min-h-[150px] sm:min-h-[190px] p-2 flex flex-col justify-between transition-all group relative ${
                       !dayObj.isCurrentMonth
                         ? 'bg-slate-950/40 text-slate-600 opacity-45'
                         : dayObj.isToday
@@ -1047,7 +982,7 @@ export default function ScheduleClient({
                           <button
                             type="button"
                             onClick={() => openWalkInForSlot(courts[0]?.id || '', 8, dayObj.dateStr)}
-                            className="opacity-0 group-hover:opacity-100 transition-opacity text-[10px] font-bold text-slate-400 hover:text-white bg-slate-900 px-1.5 py-0.5 rounded border border-white/10"
+                            className="opacity-0 group-hover:opacity-100 transition-opacity text-[10px] font-bold text-slate-400 hover:text-white bg-slate-900 px-1.5 py-0.5 rounded border border-white/10 cursor-pointer"
                             title="Add Walk-in for this date"
                           >
                             + Book
@@ -1056,19 +991,23 @@ export default function ScheduleClient({
                       </div>
                     </div>
 
-                    {/* Booked Sessions Chips inside Calendar Grid */}
-                    <div className="flex-1 py-1 space-y-1 overflow-y-auto max-h-[120px] scrollbar-none">
+                    {/* Booked Sessions Chips inside Calendar Grid with CLIENT NAMES */}
+                    <div className="flex-1 py-1 space-y-1.5 overflow-y-auto max-h-[135px] scrollbar-none">
                       {dayBookings.length === 0 ? (
-                        <div className="h-full flex items-center justify-center">
+                        <div className="h-full flex items-center justify-center py-4">
                           <span className="text-[10px] text-slate-600 font-medium italic">
                             {dayObj.isCurrentMonth ? 'Open Court' : ''}
                           </span>
                         </div>
                       ) : (
                         dayBookings.slice(0, 4).map((b) => {
-                          const courtLabel = b.courts?.name?.includes('2') ? 'C2' : 'C1';
+                          const courtName = b.courts?.name || (b.court_id?.includes('80d4') ? 'Court 1' : 'Court 2');
+                          const courtLabel = courtName.includes('2') ? 'Court 2' : 'Court 1';
                           const isCheckedIn = b.status === 'checked_in';
                           const isWalkIn = b.status === 'walk_in';
+                          const isCancelled = b.status === 'cancelled';
+                          const isPending = b.status === 'pending_payment';
+                          const clientDisplayName = b.guest_name || b.profiles?.full_name || 'Client';
 
                           return (
                             <div
@@ -1077,34 +1016,47 @@ export default function ScheduleClient({
                                 e.stopPropagation();
                                 setSelectedBooking(b);
                               }}
-                              className={`p-1.5 rounded-lg border text-left cursor-pointer transition-all hover:scale-[1.02] shadow-sm flex flex-col gap-0.5 ${
-                                isCheckedIn
-                                  ? 'bg-blue-950/70 border-blue-500/40 text-blue-200 hover:border-blue-400'
+                              className={`p-1.5 rounded-xl border text-left cursor-pointer transition-all hover:scale-[1.02] shadow-sm flex flex-col gap-1 ${
+                                isCancelled
+                                  ? 'bg-slate-900/80 border-slate-700/50 text-slate-400 opacity-60'
+                                  : isCheckedIn
+                                  ? 'bg-blue-950/80 border-blue-500/50 text-blue-200 hover:border-blue-300'
                                   : isWalkIn
-                                  ? 'bg-purple-950/70 border-purple-500/40 text-purple-200 hover:border-purple-400'
-                                  : 'bg-emerald-950/70 border-emerald-500/40 text-emerald-200 hover:border-emerald-400'
+                                  ? 'bg-purple-950/80 border-purple-500/50 text-purple-200 hover:border-purple-300'
+                                  : isPending
+                                  ? 'bg-amber-950/80 border-amber-500/50 text-amber-200 hover:border-amber-300'
+                                  : 'bg-emerald-950/80 border-emerald-500/50 text-emerald-200 hover:border-emerald-300'
                               }`}
-                              title={`Click to inspect or check in: ${b.guest_name} (${formatTimeSlot(b.start_time, b.end_time)})`}
+                              title={`Click to check in: ${clientDisplayName} (${formatTimeSlot(b.start_time, b.end_time)})`}
                             >
-                              {/* Top row: Court Tag & Time */}
-                              <div className="flex items-center justify-between text-[9px] font-black">
-                                <span
-                                  className={`px-1 rounded ${
-                                    courtLabel === 'C1' ? 'bg-amber-500/30 text-amber-300' : 'bg-red-500/30 text-red-300'
+                              {/* Top row: Client Full Name in bold + Avatar */}
+                              <div className="flex items-center gap-1.5 truncate">
+                                <div
+                                  className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 text-[9px] font-black ${
+                                    courtLabel === 'Court 1' ? 'bg-amber-400 text-slate-950' : 'bg-red-500 text-white'
                                   }`}
                                 >
-                                  {courtLabel}
-                                </span>
-                                <span className="font-mono text-slate-300">
-                                  {new Intl.DateTimeFormat('en-PH', { hour: 'numeric', minute: '2-digit' }).format(new Date(b.start_time))}
+                                  {clientDisplayName.slice(0, 1).toUpperCase()}
+                                </div>
+                                <span className="text-[11px] font-black text-white truncate drop-shadow-sm">
+                                  {clientDisplayName}
                                 </span>
                               </div>
 
-                              {/* Player Name (Who Booked It) */}
-                              <div className="flex items-center gap-1 truncate">
-                                <User className="w-2.5 h-2.5 shrink-0 opacity-70" />
-                                <span className="text-[10px] font-extrabold text-white truncate">
-                                  {b.guest_name || 'Walk-in Guest'}
+                              {/* Bottom row: Time Range + Court Name + Status */}
+                              <div className="flex items-center justify-between text-[9px] font-bold text-slate-300">
+                                <span className="font-mono text-slate-300 flex items-center gap-0.5">
+                                  <Clock className="w-2.5 h-2.5 text-amber-400" />
+                                  {formatTimeSlot(b.start_time, b.end_time)}
+                                </span>
+                                <span
+                                  className={`px-1 py-0.2 rounded font-black text-[8px] uppercase ${
+                                    courtLabel === 'Court 1'
+                                      ? 'bg-amber-500/20 text-amber-300'
+                                      : 'bg-red-500/20 text-red-300'
+                                  }`}
+                                >
+                                  {courtLabel}
                                 </span>
                               </div>
                             </div>
@@ -1121,7 +1073,7 @@ export default function ScheduleClient({
                           }}
                           className="w-full text-center text-[9px] font-black text-amber-400 hover:underline bg-amber-500/10 py-0.5 rounded border border-amber-500/20 block"
                         >
-                          +{dayBookings.length - 4} more • Open Timeline →
+                          +{dayBookings.length - 4} more • Open Day Timeline →
                         </button>
                       )}
                     </div>
@@ -1134,7 +1086,7 @@ export default function ScheduleClient({
                           handleDateSelect(dayObj.dateStr);
                           setViewMode('timeline');
                         }}
-                        className="text-[9px] text-slate-400 hover:text-white font-bold flex items-center gap-0.5"
+                        className="text-[9px] text-slate-400 hover:text-white font-bold flex items-center gap-0.5 cursor-pointer"
                       >
                         <Eye className="w-2.5 h-2.5 text-amber-400" /> Day Timeline
                       </button>
@@ -1313,29 +1265,35 @@ export default function ScheduleClient({
                               <button
                                 type="button"
                                 onClick={() => openWalkInForSlot(court.id, hour)}
-                                className="opacity-0 group-hover/slot:opacity-100 transition-all text-[10px] font-black bg-slate-900/90 text-amber-400 hover:text-white border border-amber-500/40 hover:bg-amber-500/20 px-2 py-1 rounded-xl shadow-lg flex items-center gap-1 z-10"
+                                className="opacity-0 group-hover/slot:opacity-100 transition-all text-[10px] font-black bg-slate-900/90 text-amber-400 hover:text-white border border-amber-500/40 hover:bg-amber-500/20 px-2 py-1 rounded-xl shadow-lg flex items-center gap-1 z-10 cursor-pointer"
                               >
                                 <Plus className="w-3 h-3" /> Book
                               </button>
                             </div>
                           ))}
 
-                          {/* Render Scheduled Booking Cards on Timeline */}
+                          {/* Render Scheduled Booking Cards on Timeline with CLIENT NAME */}
                           {courtBookings.map((booking) => {
                             const isCheckedIn = booking.status === 'checked_in';
                             const isWalkIn = booking.status === 'walk_in';
-                            const customerName = booking.guest_name || booking.profiles?.full_name || 'Walk-in Player';
+                            const isCancelled = booking.status === 'cancelled';
+                            const isPending = booking.status === 'pending_payment';
+                            const clientDisplayName = booking.guest_name || booking.profiles?.full_name || 'Client';
 
                             return (
                               <div
                                 key={booking.id}
                                 onClick={() => setSelectedBooking(booking)}
                                 className={`absolute inset-y-2 rounded-2xl p-2.5 flex flex-col justify-between cursor-pointer transition-all duration-200 z-10 shadow-lg border hover:scale-[1.01] ${
-                                  isCheckedIn
-                                    ? 'bg-gradient-to-r from-blue-900/80 to-blue-950/80 border-blue-400/60 shadow-blue-500/20'
+                                  isCancelled
+                                    ? 'bg-slate-900/80 border-slate-700/50 text-slate-400 opacity-60'
+                                    : isCheckedIn
+                                    ? 'bg-gradient-to-r from-blue-900/90 to-blue-950/90 border-blue-400/60 shadow-blue-500/20'
                                     : isWalkIn
-                                    ? 'bg-gradient-to-r from-purple-900/80 to-purple-950/80 border-purple-400/60 shadow-purple-500/20'
-                                    : 'bg-gradient-to-r from-emerald-900/80 to-emerald-950/80 border-emerald-400/60 shadow-emerald-500/20'
+                                    ? 'bg-gradient-to-r from-purple-900/90 to-purple-950/90 border-purple-400/60 shadow-purple-500/20'
+                                    : isPending
+                                    ? 'bg-gradient-to-r from-amber-900/90 to-amber-950/90 border-amber-400/60 shadow-amber-500/20'
+                                    : 'bg-gradient-to-r from-emerald-900/90 to-emerald-950/90 border-emerald-400/60 shadow-emerald-500/20'
                                 }`}
                                 style={{
                                   gridColumn: getGridColumn(booking.start_time, booking.end_time),
@@ -1345,10 +1303,10 @@ export default function ScheduleClient({
                                 <div className="flex items-center justify-between gap-1.5">
                                   <div className="flex items-center gap-1.5 truncate">
                                     <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 text-[10px] font-black bg-amber-400 text-slate-950">
-                                      {customerName.slice(0, 1).toUpperCase()}
+                                      {clientDisplayName.slice(0, 1).toUpperCase()}
                                     </div>
                                     <span className="font-black text-xs text-white truncate drop-shadow-sm">
-                                      {customerName}
+                                      {clientDisplayName}
                                     </span>
                                   </div>
                                   <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-full bg-white/10 text-white">
@@ -1380,7 +1338,7 @@ export default function ScheduleClient({
       )}
 
       {/* ========================================================================= */}
-      {/* DETAILED BOOKING MODAL WITH PLAYER DETAILS & 1-CLICK CHECK-IN */}
+      {/* DETAILED BOOKING MODAL WITH CLIENT DETAILS & 1-CLICK CHECK-IN */}
       {/* ========================================================================= */}
       <Dialog open={!!selectedBooking} onOpenChange={(open) => !open && setSelectedBooking(null)}>
         <DialogContent className="sm:max-w-lg bg-[#161922] border-white/15 text-slate-100 rounded-3xl shadow-2xl">
@@ -1395,6 +1353,8 @@ export default function ScheduleClient({
                     ? 'bg-blue-500/20 text-blue-300 border border-blue-500/40'
                     : selectedBooking?.status === 'walk_in'
                     ? 'bg-purple-500/20 text-purple-300 border border-purple-500/40'
+                    : selectedBooking?.status === 'pending_payment'
+                    ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
                     : 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
                 }`}
               >
@@ -1409,17 +1369,17 @@ export default function ScheduleClient({
           {selectedBooking && (
             <div className="space-y-4 py-2">
               
-              {/* Player Identity Card */}
+              {/* Client Identity Card */}
               <div className="p-4 rounded-2xl bg-[#0f1117] border border-white/10 space-y-2">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <User className="w-4 h-4 text-amber-400" />
                     <span className="font-black text-base text-white">
-                      {selectedBooking.guest_name || 'Walk-in Player'}
+                      {selectedBooking.guest_name || 'Walk-in Client'}
                     </span>
                   </div>
                   <span className="text-xs font-black text-amber-400 bg-amber-500/10 px-2.5 py-0.5 rounded-full border border-amber-500/20">
-                    ₱{Number(selectedBooking.total_price || 300).toFixed(2)} Paid
+                    ₱{Number(selectedBooking.total_price || 300).toFixed(2)}
                   </span>
                 </div>
 
@@ -1496,7 +1456,7 @@ export default function ScheduleClient({
             >
               Close
             </Button>
-            {selectedBooking?.status !== 'checked_in' && (
+            {selectedBooking?.status !== 'checked_in' && selectedBooking?.status !== 'cancelled' && (
               <Button
                 onClick={handleCheckIn}
                 disabled={isPending}
