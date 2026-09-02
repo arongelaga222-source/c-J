@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useTransition, useMemo } from 'react';
+import { useState, useEffect, useTransition, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
@@ -43,6 +43,10 @@ import {
   Check,
   Activity,
   Layers,
+  LayoutGrid,
+  ListTodo,
+  CalendarCheck2,
+  Eye,
 } from 'lucide-react';
 
 export interface ScheduleBooking {
@@ -78,6 +82,16 @@ const OPERATING_SLOTS = Array.from(
   (_, i) => i + START_HOUR
 );
 
+// Helper to extract PHT (UTC+8) date string 'YYYY-MM-DD'
+const getPhtDateStr = (isoString: string) => {
+  const d = new Date(isoString);
+  const pht = new Date(d.getTime() + 8 * 3600 * 1000);
+  const yyyy = pht.getUTCFullYear();
+  const mm = String(pht.getUTCMonth() + 1).padStart(2, '0');
+  const dd = String(pht.getUTCDate()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}`;
+};
+
 export default function ScheduleClient({
   initialBookings,
   courts,
@@ -89,7 +103,17 @@ export default function ScheduleClient({
 }) {
   const router = useRouter();
   const [currentDate, setCurrentDate] = useState<string>(initialDateStr);
+  const [viewMode, setViewMode] = useState<'timeline' | 'month_grid'>('month_grid');
+  const [selectedCourtFilter, setSelectedCourtFilter] = useState<string>('all');
+  
+  // Date state for month grid navigation
+  const [gridMonthDate, setGridMonthDate] = useState<Date>(() => {
+    const [y, m] = initialDateStr.split('-').map(Number);
+    return new Date(y, m - 1, 1);
+  });
+
   const [bookings, setBookings] = useState<ScheduleBooking[]>(initialBookings);
+  const [monthBookings, setMonthBookings] = useState<Record<string, ScheduleBooking[]>>({});
   const [selectedBooking, setSelectedBooking] = useState<ScheduleBooking | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -115,12 +139,18 @@ export default function ScheduleClient({
     return () => clearInterval(timer);
   }, []);
 
-  // Fetch month occupancy for calendar
+  // Format month string YYYY-MM
+  const currentMonthStr = useMemo(() => {
+    const yyyy = gridMonthDate.getFullYear();
+    const mm = String(gridMonthDate.getMonth() + 1).padStart(2, '0');
+    return `${yyyy}-${mm}`;
+  }, [gridMonthDate]);
+
+  // Fetch month occupancy density for heatmap
   useEffect(() => {
     const fetchMonthOccupancy = async () => {
       try {
-        const monthStr = currentDate.slice(0, 7);
-        const res = await fetch(`/api/availability?month=${monthStr}`);
+        const res = await fetch(`/api/availability?month=${currentMonthStr}`);
         if (res.ok) {
           const data = await res.json();
           if (data.monthOverview) {
@@ -132,7 +162,79 @@ export default function ScheduleClient({
       }
     };
     fetchMonthOccupancy();
-  }, [currentDate]);
+  }, [currentMonthStr]);
+
+  // Fetch all bookings for the visible month to populate the Calendar Grid
+  const fetchMonthAllBookings = useCallback(async (monthStr: string) => {
+    try {
+      const supabase = createClient();
+      const [year, month] = monthStr.split('-').map(Number);
+      
+      const startOfMonth = new Date(Date.UTC(year, month - 1, 1, -8, 0, 0)).toISOString();
+      const endOfMonth = new Date(Date.UTC(year, month, 1, 15, 59, 59, 999)).toISOString();
+      const nowIso = new Date().toISOString();
+
+      const { data } = await supabase
+        .from('bookings')
+        .select(`
+          id,
+          court_id,
+          start_time,
+          end_time,
+          duration_hours,
+          total_price,
+          status,
+          payment_method,
+          guest_name,
+          guest_phone,
+          guest_email,
+          notes,
+          expires_at,
+          profiles ( full_name ),
+          courts ( id, name )
+        `)
+        .gte('end_time', startOfMonth)
+        .lte('start_time', endOfMonth)
+        .in('status', ['paid', 'checked_in', 'walk_in', 'pending_payment'])
+        .order('start_time', { ascending: true });
+
+      if (data) {
+        const valid = (data as unknown as (ScheduleBooking & { expires_at?: string })[]).filter((b) => {
+          if (b.status === 'pending_payment') {
+            return b.expires_at ? b.expires_at > nowIso : false;
+          }
+          return ['paid', 'checked_in', 'walk_in'].includes(b.status);
+        });
+
+        const formatted = valid.map((b) => {
+          const singleProfile = Array.isArray(b.profiles) ? b.profiles[0] : b.profiles;
+          const singleCourt = Array.isArray(b.courts) ? b.courts[0] : b.courts;
+          return {
+            ...b,
+            guest_name: b.guest_name || singleProfile?.full_name || 'Walk-in Guest',
+            profiles: singleProfile || null,
+            courts: singleCourt || null,
+          };
+        });
+
+        // Group by PHT Date YYYY-MM-DD
+        const grouped: Record<string, ScheduleBooking[]> = {};
+        formatted.forEach((b) => {
+          const dateKey = getPhtDateStr(b.start_time);
+          if (!grouped[dateKey]) grouped[dateKey] = [];
+          grouped[dateKey].push(b);
+        });
+
+        setMonthBookings(grouped);
+      }
+    } catch (err) {
+      console.error('Failed to fetch month bookings:', err);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchMonthAllBookings(currentMonthStr);
+  }, [currentMonthStr, fetchMonthAllBookings]);
 
   // Walk-in modal state
   const [isWalkInOpen, setIsWalkInOpen] = useState(false);
@@ -157,6 +259,7 @@ export default function ScheduleClient({
         { event: '*', schema: 'public', table: 'bookings' },
         () => {
           fetchBookingsForDate(currentDate);
+          fetchMonthAllBookings(currentMonthStr);
         }
       )
       .subscribe();
@@ -164,7 +267,7 @@ export default function ScheduleClient({
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [currentDate]);
+  }, [currentDate, currentMonthStr, fetchMonthAllBookings]);
 
   // Fetch bookings for specific date with expired pending filter
   const fetchBookingsForDate = async (dateStr: string) => {
@@ -212,10 +315,7 @@ export default function ScheduleClient({
           const singleCourt = Array.isArray(b.courts) ? b.courts[0] : b.courts;
           return {
             ...b,
-            guest_name:
-              b.guest_name ||
-              singleProfile?.full_name ||
-              'Walk-in Guest',
+            guest_name: b.guest_name || singleProfile?.full_name || 'Walk-in Guest',
             profiles: singleProfile || null,
             courts: singleCourt || null,
           };
@@ -234,6 +334,8 @@ export default function ScheduleClient({
   const handleDateSelect = (dateStr: string) => {
     if (!dateStr) return;
     setCurrentDate(dateStr);
+    const [y, m] = dateStr.split('-').map(Number);
+    setGridMonthDate(new Date(y, m - 1, 1));
     const url = new URL(window.location.href);
     url.searchParams.set('date', dateStr);
     window.history.pushState({}, '', url.toString());
@@ -248,6 +350,13 @@ export default function ScheduleClient({
     const mm = String(dt.getMonth() + 1).padStart(2, '0');
     const dd = String(dt.getDate()).padStart(2, '0');
     handleDateSelect(`${yyyy}-${mm}-${dd}`);
+  };
+
+  const handleOffsetMonth = (offset: number) => {
+    setGridMonthDate((prev) => {
+      const nextMonth = new Date(prev.getFullYear(), prev.getMonth() + offset, 1);
+      return nextMonth;
+    });
   };
 
   const getTodayStr = () => {
@@ -267,12 +376,13 @@ export default function ScheduleClient({
       await checkInBooking(selectedBooking.id);
       setSelectedBooking(null);
       fetchBookingsForDate(currentDate);
+      fetchMonthAllBookings(currentMonthStr);
     });
   };
 
-  const openWalkInForSlot = (courtId: string, hour: number) => {
+  const openWalkInForSlot = (courtId: string, hour: number, targetDate?: string) => {
     setWalkInCourtId(courtId);
-    setWalkInDate(currentDate);
+    setWalkInDate(targetDate || currentDate);
     setWalkInHour(hour);
     setWalkInDuration(1);
     setWalkInName('');
@@ -314,12 +424,13 @@ export default function ScheduleClient({
       );
       setTimeout(() => setSuccessBanner(null), 6000);
 
-      // Auto-switch to the date where the walk-in was booked
+      // Refresh both timeline and month bookings
       if (walkInDate !== currentDate) {
         handleDateSelect(walkInDate);
       } else {
         await fetchBookingsForDate(walkInDate);
       }
+      await fetchMonthAllBookings(currentMonthStr);
       router.refresh();
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
@@ -332,6 +443,12 @@ export default function ScheduleClient({
   const formatHour = (hour: number) => {
     if (hour === 12) return '12 PM';
     return hour > 12 ? `${hour - 12} PM` : `${hour} AM`;
+  };
+
+  const formatTimeSlot = (startTime: string, endTime: string) => {
+    const s = new Intl.DateTimeFormat('en-PH', { hour: 'numeric', minute: '2-digit' }).format(new Date(startTime));
+    const e = new Intl.DateTimeFormat('en-PH', { hour: 'numeric', minute: '2-digit' }).format(new Date(endTime));
+    return `${s} - ${e}`;
   };
 
   const getGridColumn = (startTime: string, endTime: string) => {
@@ -350,10 +467,6 @@ export default function ScheduleClient({
   // Day Metrics
   const checkedInCount = useMemo(
     () => bookings.filter((b) => b.status === 'checked_in').length,
-    [bookings]
-  );
-  const paidCount = useMemo(
-    () => bookings.filter((b) => ['paid', 'walk_in'].includes(b.status)).length,
     [bookings]
   );
   const totalHoursBooked = useMemo(
@@ -416,12 +529,81 @@ export default function ScheduleClient({
   const isTodayActive = currentDate === getTodayStr();
   const isTomorrowActive = currentDate === getTomorrowStr();
 
+  // Calendar Grid Matrix Generation (7 Days x Weeks)
+  const calendarGridDays = useMemo(() => {
+    const year = gridMonthDate.getFullYear();
+    const month = gridMonthDate.getMonth();
+
+    const firstDayIndex = new Date(year, month, 1).getDay(); // 0 = Sun
+    const totalDaysInMonth = new Date(year, month + 1, 0).getDate();
+    const totalDaysInPrevMonth = new Date(year, month, 0).getDate();
+
+    const days: {
+      dateStr: string;
+      dayNumber: number;
+      isCurrentMonth: boolean;
+      isToday: boolean;
+      isSelected: boolean;
+    }[] = [];
+
+    const todayStr = getTodayStr();
+
+    // Previous month padding
+    for (let i = firstDayIndex - 1; i >= 0; i--) {
+      const dNum = totalDaysInPrevMonth - i;
+      const prevMonth = month === 0 ? 12 : month;
+      const prevYear = month === 0 ? year - 1 : year;
+      const dateStr = `${prevYear}-${String(prevMonth).padStart(2, '0')}-${String(dNum).padStart(2, '0')}`;
+      days.push({
+        dateStr,
+        dayNumber: dNum,
+        isCurrentMonth: false,
+        isToday: dateStr === todayStr,
+        isSelected: dateStr === currentDate,
+      });
+    }
+
+    // Current month days
+    for (let d = 1; d <= totalDaysInMonth; d++) {
+      const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+      days.push({
+        dateStr,
+        dayNumber: d,
+        isCurrentMonth: true,
+        isToday: dateStr === todayStr,
+        isSelected: dateStr === currentDate,
+      });
+    }
+
+    // Next month padding to fill complete weeks (multiples of 7)
+    const remaining = (7 - (days.length % 7)) % 7;
+    for (let d = 1; d <= remaining; d++) {
+      const nextMonth = month === 11 ? 1 : month + 2;
+      const nextYear = month === 11 ? year + 1 : year;
+      const dateStr = `${nextYear}-${String(nextMonth).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+      days.push({
+        dateStr,
+        dayNumber: d,
+        isCurrentMonth: false,
+        isToday: dateStr === todayStr,
+        isSelected: dateStr === currentDate,
+      });
+    }
+
+    return days;
+  }, [gridMonthDate, currentDate]);
+
+  const monthFormattedTitle = new Intl.DateTimeFormat('en-PH', {
+    month: 'long',
+    year: 'numeric',
+  }).format(gridMonthDate);
+
   return (
-    <div className="p-4 sm:p-6 h-[calc(100vh)] flex flex-col bg-[#0f1117] text-slate-100 font-sans selection:bg-red-600 selection:text-white">
+    <div className="p-3 sm:p-6 min-h-[calc(100vh)] flex flex-col bg-[#0f1117] text-slate-100 font-sans selection:bg-red-600 selection:text-white space-y-4">
       
       {/* Success Notification Banner */}
       {successBanner && (
-        <div className="mb-3 p-3 rounded-2xl bg-emerald-950/80 border border-emerald-400/50 text-emerald-200 text-xs font-bold flex items-center justify-between shadow-lg shadow-emerald-500/10 animate-in fade-in slide-in-from-top-2 duration-200">
+        <div className="p-3 rounded-2xl bg-emerald-950/80 border border-emerald-400/50 text-emerald-200 text-xs font-bold flex items-center justify-between shadow-lg shadow-emerald-500/10 animate-in fade-in slide-in-from-top-2 duration-200">
           <div className="flex items-center gap-2">
             <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
             <span>{successBanner}</span>
@@ -435,117 +617,65 @@ export default function ScheduleClient({
         </div>
       )}
 
-      {/* Top Header & Interactive Date Control Bar */}
-      <div className="mb-5 flex flex-col xl:flex-row items-start xl:items-center justify-between gap-4">
+      {/* Top Header & View Mode Switcher */}
+      <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 p-4 rounded-3xl bg-[#141622]/90 border border-white/10 backdrop-blur-xl shadow-xl">
         
         {/* Left Title & Live Pulse */}
-        <div>
-          <div className="flex items-center gap-2.5">
+        <div className="space-y-1">
+          <div className="flex items-center gap-2.5 flex-wrap">
             <Trophy className="w-6 h-6 text-amber-400 shrink-0" />
-            <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
-              Daily Court Timeline
+            <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight">
+              Cashier Court Scheduling
             </h1>
-            <span className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 shadow-[0_0_8px_rgba(16,185,129,0.25)]">
-              <Radio className="w-3 h-3 animate-pulse" /> REALTIME LIVE
+            <span className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+              <Radio className="w-3 h-3 animate-pulse" /> Live Scheduler
             </span>
           </div>
-          <p className="text-xs text-slate-400 mt-1">
-            Court 1 & Court 2 indoor schedule, walk-in lock, and player check-in counter.
+          <p className="text-xs text-slate-400">
+            Real-time calendar grid showing all booked court sessions, player names, and instant counter check-in.
           </p>
         </div>
 
-        {/* Right Controls: Interactive Date Navigator + Search + Calendar Modal + Walk-In Button */}
-        <div className="flex flex-wrap items-center gap-2.5 w-full xl:w-auto">
+        {/* View Mode Toggle & Actions */}
+        <div className="flex flex-wrap items-center gap-2.5 w-full lg:w-auto">
           
-          {/* Quick Date Navigator */}
-          <div className="flex items-center bg-slate-900/90 border border-white/10 rounded-2xl p-1 shadow-lg backdrop-blur-md">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => handleOffsetDay(-1)}
-              className="h-8 w-8 text-slate-400 hover:text-white hover:bg-white/10 rounded-xl"
-              title="Previous Day"
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-
-            {/* Date Picker Input with formatted label */}
-            <label className="relative flex items-center px-2 cursor-pointer group">
-              <CalendarIcon className="h-4 w-4 text-amber-400 shrink-0 mr-1.5 group-hover:scale-110 transition-transform" />
-              <span className="text-xs font-black text-amber-300 group-hover:text-white transition-colors">
-                {new Intl.DateTimeFormat('en-PH', {
-                  weekday: 'short',
-                  month: 'short',
-                  day: 'numeric',
-                  year: 'numeric',
-                }).format(new Date(`${currentDate}T00:00:00.000+08:00`))}
-              </span>
-              <input
-                type="date"
-                value={currentDate}
-                onChange={(e) => handleDateSelect(e.target.value)}
-                className="absolute inset-0 opacity-0 cursor-pointer w-full [color-scheme:dark]"
-              />
-            </label>
-
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => handleOffsetDay(1)}
-              className="h-8 w-8 text-slate-400 hover:text-white hover:bg-white/10 rounded-xl"
-              title="Next Day"
-            >
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-          </div>
-
-          {/* Quick Date Jump Pills */}
-          <div className="hidden sm:flex items-center gap-1 bg-slate-900/80 border border-white/10 rounded-2xl p-1">
+          {/* Primary View Switcher: Calendar Grid vs Day Timeline */}
+          <div className="flex items-center bg-slate-950 p-1 rounded-2xl border border-white/15 shadow-inner">
             <button
               type="button"
-              onClick={() => handleDateSelect(getTodayStr())}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
-                isTodayActive
-                  ? 'bg-amber-500 text-slate-950 font-black shadow-md shadow-amber-500/20'
-                  : 'text-slate-400 hover:text-white hover:bg-white/5'
+              onClick={() => setViewMode('month_grid')}
+              className={`px-3 py-1.5 rounded-xl text-xs font-black flex items-center gap-1.5 transition-all ${
+                viewMode === 'month_grid'
+                  ? 'bg-gradient-to-r from-red-600 via-red-500 to-amber-500 text-white shadow-md'
+                  : 'text-slate-400 hover:text-white'
               }`}
             >
-              Today
+              <LayoutGrid className="w-3.5 h-3.5" />
+              <span>Calendar Grid (Who Booked)</span>
             </button>
             <button
               type="button"
-              onClick={() => handleDateSelect(getTomorrowStr())}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
-                isTomorrowActive
-                  ? 'bg-amber-500 text-slate-950 font-black shadow-md shadow-amber-500/20'
-                  : 'text-slate-400 hover:text-white hover:bg-white/5'
+              onClick={() => setViewMode('timeline')}
+              className={`px-3 py-1.5 rounded-xl text-xs font-black flex items-center gap-1.5 transition-all ${
+                viewMode === 'timeline'
+                  ? 'bg-gradient-to-r from-red-600 via-red-500 to-amber-500 text-white shadow-md'
+                  : 'text-slate-400 hover:text-white'
               }`}
             >
-              Tomorrow
+              <ListTodo className="w-3.5 h-3.5" />
+              <span>Day Timeline</span>
             </button>
           </div>
-
-          {/* Month Occupancy Heatmap Calendar Button */}
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setIsCalendarOpen(true)}
-            className="border-white/10 bg-slate-900 text-slate-200 hover:text-white hover:bg-white/10 rounded-2xl h-10 px-3 text-xs font-bold flex items-center gap-1.5 shadow-sm"
-            title="Inspect Month Occupancy Calendar"
-          >
-            <CalendarIcon className="w-3.5 h-3.5 text-amber-400" />
-            <span>Heatmap</span>
-          </Button>
 
           {/* Player Search Bar */}
-          <div className="relative flex-1 sm:w-48">
+          <div className="relative flex-1 sm:w-44">
             <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
             <input
               type="text"
-              placeholder="Find player..."
+              placeholder="Search player..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full h-10 pl-8 pr-3 bg-slate-900 border border-white/10 text-white rounded-2xl text-xs font-medium focus:outline-none focus:border-amber-400 transition-all placeholder:text-slate-500"
+              className="w-full h-9 pl-8 pr-3 bg-slate-950 border border-white/10 text-white rounded-xl text-xs font-medium focus:outline-none focus:border-amber-400 transition-all placeholder:text-slate-500"
             />
             {searchQuery && (
               <button
@@ -561,26 +691,27 @@ export default function ScheduleClient({
           <Button
             variant="outline"
             size="sm"
-            onClick={() => fetchBookingsForDate(currentDate)}
+            onClick={() => {
+              fetchBookingsForDate(currentDate);
+              fetchMonthAllBookings(currentMonthStr);
+            }}
             disabled={isLoading}
-            className="border-white/10 bg-slate-900 text-slate-200 hover:text-white hover:bg-white/10 rounded-2xl h-10 px-3 text-xs font-bold"
+            className="border-white/10 bg-slate-950 text-slate-200 hover:text-white hover:bg-white/10 rounded-xl h-9 px-3 text-xs font-bold"
           >
             <RefreshCw className={`w-3.5 h-3.5 mr-1 ${isLoading ? 'animate-spin text-amber-400' : ''}`} />
-            {isLoading ? 'Syncing...' : 'Refresh'}
+            Sync
           </Button>
 
           {/* Quick Walk-in Modal Trigger */}
           <Dialog
             open={isWalkInOpen}
             onOpenChange={(open) => {
-              if (open) {
-                setWalkInDate(currentDate);
-              }
+              if (open) setWalkInDate(currentDate);
               setIsWalkInOpen(open);
             }}
           >
-            <DialogTrigger className="inline-flex items-center justify-center rounded-2xl text-xs font-black transition-all bg-gradient-to-r from-red-600 via-red-500 to-amber-500 hover:from-red-700 hover:to-amber-600 text-white shadow-lg shadow-red-500/25 h-10 px-4 py-2 hover:scale-[1.02]">
-              <Plus className="h-4 w-4 mr-1.5" /> + Quick Walk-in Booking
+            <DialogTrigger className="inline-flex items-center justify-center rounded-xl text-xs font-black transition-all bg-gradient-to-r from-red-600 to-amber-500 hover:from-red-700 hover:to-amber-600 text-white shadow-lg shadow-red-500/25 h-9 px-3.5 hover:scale-[1.02] cursor-pointer">
+              <Plus className="h-4 w-4 mr-1" /> + Walk-in
             </DialogTrigger>
             <DialogContent className="sm:max-w-md bg-[#161922] border-white/15 text-slate-100 rounded-3xl shadow-2xl">
               <form onSubmit={handleCreateWalkIn}>
@@ -589,7 +720,7 @@ export default function ScheduleClient({
                     <Flame className="w-5 h-5 text-red-500" /> Walk-In Court Booking
                   </DialogTitle>
                   <DialogDescription className="text-xs text-slate-400">
-                    Immediately reserve a court slot and record offline cash or counter QR tender.
+                    Immediately reserve a court slot and record cash or counter QR tender.
                   </DialogDescription>
                 </DialogHeader>
 
@@ -648,7 +779,7 @@ export default function ScheduleClient({
                     >
                       {courts.map((c) => (
                         <option key={c.id} value={c.id}>
-                          {c.name} (₱{Number(c.hourly_rate ?? 1).toFixed(2)}/hr)
+                          {c.name} (₱{Number(c.hourly_rate ?? 300).toFixed(2)}/hr)
                         </option>
                       ))}
                     </select>
@@ -678,10 +809,11 @@ export default function ScheduleClient({
                         onChange={(e) => setWalkInDuration(parseInt(e.target.value, 10))}
                         className="w-full h-10 px-3 rounded-xl bg-slate-950 border border-white/10 text-white text-xs font-bold focus:outline-none focus:border-red-500"
                       >
-                        <option value={1}>1 Hour (₱300)</option>
-                        <option value={2}>2 Hours (₱600)</option>
-                        <option value={3}>3 Hours (₱900)</option>
-                        <option value={4}>4 Hours (₱1,200)</option>
+                        {Array.from({ length: 12 }, (_, i) => i + 1).map((h) => (
+                          <option key={h} value={h}>
+                            {h} Hour{h > 1 ? 's' : ''} (₱{(300 * h).toLocaleString()})
+                          </option>
+                        ))}
                       </select>
                     </div>
                   </div>
@@ -754,403 +886,508 @@ export default function ScheduleClient({
               </form>
             </DialogContent>
           </Dialog>
+
         </div>
       </div>
 
-      {/* Interactive Month Occupancy Heatmap Calendar Dialog */}
-      <Dialog open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
-        <DialogContent className="sm:max-w-md bg-[#161922] border-white/15 text-slate-100 rounded-3xl shadow-2xl p-6">
-          <DialogHeader>
-            <DialogTitle className="text-lg font-black text-white flex items-center gap-2">
-              <CalendarIcon className="w-5 h-5 text-amber-400" /> Month Occupancy Calendar
-            </DialogTitle>
-            <DialogDescription className="text-xs text-slate-400">
-              Select any date to inspect court occupancy and scheduled sessions.
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="py-2">
-            <Calendar
-              mode="single"
-              selected={new Date(`${currentDate}T00:00:00`)}
-              modifiers={calendarModifiers}
-              onSelect={(d) => {
-                if (d) {
-                  const yyyy = d.getFullYear();
-                  const mm = String(d.getMonth() + 1).padStart(2, '0');
-                  const dd = String(d.getDate()).padStart(2, '0');
-                  handleDateSelect(`${yyyy}-${mm}-${dd}`);
-                  setIsCalendarOpen(false);
-                }
-              }}
-              className="rounded-2xl border border-white/10 bg-slate-950 p-3"
-            />
-
-            {/* Occupancy Legend */}
-            <div className="flex items-center justify-between mt-4 p-3 bg-slate-900/80 rounded-2xl border border-white/5 text-[11px] font-bold">
-              <div className="flex items-center gap-1.5 text-emerald-400">
-                <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 shadow-sm shadow-emerald-500/50" />
-                <span>Open Slots</span>
-              </div>
-              <div className="flex items-center gap-1.5 text-amber-400">
-                <span className="w-2.5 h-2.5 rounded-full bg-amber-400 shadow-sm shadow-amber-500/50" />
-                <span>Almost Full (65%+)</span>
-              </div>
-              <div className="flex items-center gap-1.5 text-red-400">
-                <span className="w-2.5 h-2.5 rounded-full bg-red-500 shadow-sm shadow-red-500/50" />
-                <span>Fully Occupied</span>
-              </div>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Active Day Summary & Occupancy Ribbon */}
-      <div className="mb-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-3 p-3.5 rounded-2xl bg-gradient-to-r from-slate-900 via-slate-900 to-[#141824] border border-white/10 shadow-sm">
-        <div className="flex flex-wrap items-center gap-3">
-          <div className="flex items-center gap-2">
-            <CalendarIcon className="w-4 h-4 text-amber-400" />
-            <span className="font-extrabold text-sm text-white">{displayFormattedDate}</span>
-            {isTodayActive && (
-              <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-md bg-amber-500/20 text-amber-300 border border-amber-500/40">
-                Today
-              </span>
-            )}
-          </div>
-
-          {/* Facility Occupancy Meter */}
-          <div className="flex items-center gap-2 px-3 py-1 rounded-xl bg-slate-950/80 border border-white/10 text-xs">
-            <Activity className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-            <span className="text-slate-400 font-medium">Facility Occupancy:</span>
-            <span
-              className={`font-black ${
-                occupancyPercent >= 80
-                  ? 'text-red-400'
-                  : occupancyPercent >= 50
-                  ? 'text-amber-400'
-                  : 'text-emerald-400'
-              }`}
-            >
-              {occupancyPercent}% ({totalHoursBooked}/{totalCapacityHours} hrs booked)
-            </span>
-            {/* Visual Progress Bar */}
-            <div className="w-16 h-2 bg-slate-800 rounded-full overflow-hidden ml-1">
-              <div
-                className={`h-full rounded-full transition-all duration-300 ${
-                  occupancyPercent >= 80
-                    ? 'bg-red-500'
-                    : occupancyPercent >= 50
-                    ? 'bg-amber-400'
-                    : 'bg-emerald-400'
-                }`}
-                style={{ width: `${Math.min(100, occupancyPercent)}%` }}
-              />
-            </div>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-4 text-xs font-bold">
-          <div className="flex items-center gap-1.5 text-slate-300">
-            <span className="text-slate-500">Active Bookings:</span>
-            <span className="font-black text-amber-400">{bookings.length} sessions</span>
-          </div>
-          <div className="flex items-center gap-1.5 text-slate-300">
-            <span className="text-slate-500">Checked In:</span>
-            <span className="font-black text-emerald-400">{checkedInCount} / {bookings.length}</span>
-          </div>
-        </div>
-      </div>
-
-      {/* TIMELINE GRID CONTAINER */}
-      <div className="flex-1 bg-[#14161f]/90 border border-white/10 rounded-3xl shadow-2xl overflow-hidden flex flex-col min-h-0 backdrop-blur-xl">
-        <ScrollArea className="flex-1">
-          <div className="min-w-[2000px]">
+      {/* ========================================================================= */}
+      {/* VIEW 1: MONTH CALENDAR GRID VIEW (SHOWS WHO BOOKED IN GRID) */}
+      {/* ========================================================================= */}
+      {viewMode === 'month_grid' && (
+        <div className="space-y-4">
+          
+          {/* Calendar Grid Controls Bar */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-2xl bg-[#141622]/90 border border-white/10 shadow-md">
             
-            {/* Timeline Header: Fixed Court Column + 16 Hourly Slot Columns */}
-            <div className="flex border-b border-white/10 sticky top-0 z-30 bg-[#0f1118]/95 backdrop-blur-md relative">
-              <div className="w-[260px] min-w-[260px] p-4 font-black text-xs uppercase tracking-wider text-amber-400 border-r border-white/10 bg-[#0f1118]/95 shadow-[4px_0_8px_-2px_rgba(0,0,0,0.6)] flex items-center gap-2 sticky left-0 z-40">
-                <Trophy className="w-4 h-4 text-amber-400" />
-                <span>Courts (Indoor)</span>
-              </div>
-
-              <div
-                className="flex-1 grid relative"
-                style={{
-                  gridTemplateColumns: `repeat(${OPERATING_SLOTS.length}, minmax(110px, 1fr))`,
-                }}
+            {/* Month Navigation */}
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => handleOffsetMonth(-1)}
+                className="h-8 w-8 text-slate-300 border-white/15 bg-slate-950 rounded-xl"
               >
-                {OPERATING_SLOTS.map((hour, idx) => (
-                  <div
-                    key={hour}
-                    style={{ gridColumn: idx + 1 }}
-                    className="p-4 text-center text-xs font-black text-slate-300 border-r border-white/10 bg-slate-950/60 flex items-center justify-center"
-                  >
-                    {formatHour(hour)}
-                  </div>
-                ))}
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
 
-                {/* Live Current Time Laser Header Marker */}
-                {isTodayActive && isLiveOperating && (
-                  <div
-                    style={{ left: `${liveOffsetPercent}%` }}
-                    className="absolute top-0 bottom-0 w-[2px] bg-red-500 z-50 pointer-events-none shadow-[0_0_12px_2px_rgba(239,68,68,0.9)]"
-                  >
-                    <span className="absolute -bottom-2 -translate-x-1/2 bg-gradient-to-r from-red-600 to-amber-500 text-white text-[9px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider whitespace-nowrap shadow-xl flex items-center gap-1 border border-white/20">
-                      <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping" />
-                      LIVE NOW {formatHour(currentPhtHour)}:{String(currentPhtMinute).padStart(2, '0')}
-                    </span>
-                  </div>
-                )}
-              </div>
+              <h2 className="text-base sm:text-lg font-black text-white px-2 tracking-wide flex items-center gap-2">
+                <CalendarIcon className="w-4 h-4 text-amber-400" />
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-[#d4ff00]">
+                  {monthFormattedTitle}
+                </span>
+              </h2>
+
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => handleOffsetMonth(1)}
+                className="h-8 w-8 text-slate-300 border-white/15 bg-slate-950 rounded-xl"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  const today = new Date();
+                  setGridMonthDate(new Date(today.getFullYear(), today.getMonth(), 1));
+                  handleDateSelect(getTodayStr());
+                }}
+                className="h-8 px-2.5 text-xs font-bold text-amber-300 hover:bg-amber-500/10 rounded-xl"
+              >
+                Today
+              </Button>
             </div>
 
-            {/* Timeline Rows per Court: Left Court Card + Right 16-Slot Track */}
-            <div className="relative divide-y divide-white/10">
-              {courts.map((court) => {
-                const courtBookings = bookings.filter((b) => {
-                  const bCourtId = b.courts?.id || b.court_id;
-                  return bCourtId === court.id;
-                });
+            {/* Court Filter Pills */}
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <span className="text-xs text-slate-400 font-bold mr-1">Filter Court:</span>
+              <button
+                type="button"
+                onClick={() => setSelectedCourtFilter('all')}
+                className={`px-2.5 py-1 rounded-lg text-xs font-black transition-all ${
+                  selectedCourtFilter === 'all'
+                    ? 'bg-[#d4ff00] text-slate-950 shadow-sm'
+                    : 'bg-slate-950 border border-white/10 text-slate-300 hover:text-white'
+                }`}
+              >
+                All Courts
+              </button>
+              {courts.map((court) => (
+                <button
+                  key={court.id}
+                  type="button"
+                  onClick={() => setSelectedCourtFilter(court.id)}
+                  className={`px-2.5 py-1 rounded-lg text-xs font-black transition-all ${
+                    selectedCourtFilter === court.id
+                      ? 'bg-amber-400 text-slate-950 shadow-sm'
+                      : 'bg-slate-950 border border-white/10 text-slate-300 hover:text-white'
+                  }`}
+                >
+                  {court.name.split(' - ')[0]}
+                </button>
+              ))}
+            </div>
 
-                // Check if court has an active match in session right now
-                const activeNowBooking = isTodayActive
-                  ? courtBookings.find((b) => {
-                      const startMs = new Date(b.start_time).getTime();
-                      const endMs = new Date(b.end_time).getTime();
-                      const now = currentTime.getTime();
-                      return now >= startMs && now < endMs && ['paid', 'checked_in', 'walk_in'].includes(b.status);
-                    })
-                  : null;
+          </div>
+
+          {/* 7-Column Calendar Grid Matrix */}
+          <div className="rounded-3xl border border-white/10 bg-[#12141c]/95 backdrop-blur-2xl shadow-2xl overflow-hidden ring-1 ring-white/5">
+            
+            {/* Weekday Header */}
+            <div className="grid grid-cols-7 border-b border-white/10 bg-[#171b26] text-center">
+              {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day, idx) => (
+                <div
+                  key={day}
+                  className={`py-2.5 text-xs font-black uppercase tracking-wider ${
+                    idx === 0 || idx === 6 ? 'text-amber-400/90' : 'text-slate-300'
+                  }`}
+                >
+                  {day}
+                </div>
+              ))}
+            </div>
+
+            {/* Month Day Cells */}
+            <div className="grid grid-cols-7 divide-x divide-y divide-white/10 bg-[#0f1118]">
+              {calendarGridDays.map((dayObj) => {
+                const dayBookings = (monthBookings[dayObj.dateStr] || []).filter((b) => {
+                  if (selectedCourtFilter !== 'all' && (b.court_id !== selectedCourtFilter && b.courts?.id !== selectedCourtFilter)) {
+                    return false;
+                  }
+                  if (searchQuery.trim()) {
+                    const q = searchQuery.toLowerCase();
+                    const name = (b.guest_name || b.profiles?.full_name || '').toLowerCase();
+                    return name.includes(q);
+                  }
+                  return true;
+                });
 
                 return (
                   <div
-                    key={court.id}
-                    className="flex border-b border-white/10 min-h-[115px] relative group hover:bg-white/[0.01] transition-colors"
+                    key={dayObj.dateStr}
+                    className={`min-h-[140px] sm:min-h-[175px] p-2 flex flex-col justify-between transition-all group relative ${
+                      !dayObj.isCurrentMonth
+                        ? 'bg-slate-950/40 text-slate-600 opacity-45'
+                        : dayObj.isToday
+                        ? 'bg-gradient-to-b from-amber-500/10 via-[#141622] to-[#141622] ring-1 ring-amber-400/40'
+                        : 'hover:bg-slate-900/60'
+                    }`}
                   >
-                    {/* Fixed Left Column: Court Info + Live Occupancy Badge */}
-                    <div className="w-[260px] min-w-[260px] p-4 text-xs font-bold text-white border-r border-white/10 bg-[#12141c]/95 group-hover:bg-[#161924] sticky left-0 z-20 flex flex-col justify-between shadow-[4px_0_8px_-2px_rgba(0,0,0,0.6)]">
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 shadow-md shadow-emerald-500/50" />
-                          <span className="font-black text-sm text-white tracking-tight">{court.name}</span>
-                        </div>
-                        <div className="flex items-center gap-2 mt-1 ml-4.5 text-[11px] font-bold text-amber-400">
-                          <span>₱{Number(court.hourly_rate ?? 1).toFixed(2)}/hr</span>
-                          <span className="text-slate-500">•</span>
-                          <span className="text-slate-400">8mm Pro Cushion</span>
-                        </div>
+                    
+                    {/* Day Cell Header: Date Number & Session Count */}
+                    <div className="flex items-center justify-between pb-1.5 border-b border-white/5">
+                      <div className="flex items-center gap-1.5">
+                        <span
+                          className={`text-xs sm:text-sm font-black w-6 h-6 rounded-lg flex items-center justify-center ${
+                            dayObj.isToday
+                              ? 'bg-gradient-to-r from-red-600 to-amber-500 text-white shadow-md ring-1 ring-amber-300'
+                              : dayObj.isCurrentMonth
+                              ? 'text-slate-200'
+                              : 'text-slate-600'
+                          }`}
+                        >
+                          {dayObj.dayNumber}
+                        </span>
+                        {dayObj.isToday && (
+                          <span className="text-[9px] font-black uppercase text-amber-400 hidden sm:inline">
+                            Today
+                          </span>
+                        )}
                       </div>
 
-                      {/* Live Court Occupancy Status Indicator */}
-                      {isTodayActive ? (
-                        activeNowBooking ? (
-                          <div className="mt-2 px-2.5 py-1.5 rounded-xl bg-red-950/80 border border-red-500/60 shadow-md shadow-red-500/10">
-                            <div className="flex items-center gap-1.5 text-red-300">
-                              <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-                              <span className="text-[10px] font-black uppercase tracking-wider">🔴 OCCUPIED (IN PLAY)</span>
-                            </div>
-                            <p className="text-[11px] font-bold text-white truncate mt-0.5">
-                              👤 {activeNowBooking.guest_name}
-                            </p>
-                          </div>
+                      {/* Booking Count Badge or + Add Walkin Button */}
+                      <div className="flex items-center gap-1">
+                        {dayBookings.length > 0 ? (
+                          <span className="text-[10px] font-black px-1.5 py-0.2 rounded-md bg-[#d4ff00]/15 text-[#d4ff00] border border-[#d4ff00]/30">
+                            {dayBookings.length} Booked
+                          </span>
                         ) : (
-                          <div className="mt-2 px-2.5 py-1.5 rounded-xl bg-emerald-950/60 border border-emerald-500/40">
-                            <div className="flex items-center gap-1.5 text-emerald-400">
-                              <span className="w-2 h-2 rounded-full bg-emerald-400" />
-                              <span className="text-[10px] font-black uppercase tracking-wider">🟢 COURT VACANT</span>
-                            </div>
-                            <p className="text-[10px] font-medium text-slate-400 mt-0.5">
-                              Open for Walk-In / Play
-                            </p>
-                          </div>
-                        )
-                      ) : (
-                        <div className="mt-2 px-2.5 py-1 rounded-xl bg-slate-900/60 border border-white/5 text-[10px] font-bold text-slate-400">
-                          <span>{courtBookings.length} sessions booked</span>
-                        </div>
-                      )}
+                          <button
+                            type="button"
+                            onClick={() => openWalkInForSlot(courts[0]?.id || '', 8, dayObj.dateStr)}
+                            className="opacity-0 group-hover:opacity-100 transition-opacity text-[10px] font-bold text-slate-400 hover:text-white bg-slate-900 px-1.5 py-0.5 rounded border border-white/10"
+                            title="Add Walk-in for this date"
+                          >
+                            + Book
+                          </button>
+                        )}
+                      </div>
                     </div>
 
-                    {/* Right Timeline Grid (16 columns) */}
-                    <div
-                      className="flex-1 grid relative"
-                      style={{
-                        gridTemplateColumns: `repeat(${OPERATING_SLOTS.length}, minmax(110px, 1fr))`,
-                      }}
-                    >
-                      {/* 16 Background Slot Columns (Click to Quick Book) */}
-                      {OPERATING_SLOTS.map((hour, idx) => (
-                        <div
-                          key={hour}
-                          style={{
-                            gridColumn: idx + 1,
-                            gridRow: 1,
-                          }}
-                          onClick={() => openWalkInForSlot(court.id, hour)}
-                          className="border-r border-white/10 h-full relative group/cell hover:bg-emerald-500/10 cursor-pointer transition-colors flex items-center justify-center min-h-[115px]"
-                          title={`Click to book ${court.name} at ${formatHour(hour)}`}
-                        >
-                          <span className="opacity-0 group-hover/cell:opacity-100 text-[10px] font-black text-emerald-400 bg-emerald-950/90 px-2 py-1 rounded-lg border border-emerald-500/40 pointer-events-none transition-opacity shadow-lg">
-                            + Book
+                    {/* Booked Sessions Chips inside Calendar Grid */}
+                    <div className="flex-1 py-1 space-y-1 overflow-y-auto max-h-[120px] scrollbar-none">
+                      {dayBookings.length === 0 ? (
+                        <div className="h-full flex items-center justify-center">
+                          <span className="text-[10px] text-slate-600 font-medium italic">
+                            {dayObj.isCurrentMonth ? 'Open Court' : ''}
                           </span>
                         </div>
-                      ))}
+                      ) : (
+                        dayBookings.slice(0, 4).map((b) => {
+                          const courtLabel = b.courts?.name?.includes('2') ? 'C2' : 'C1';
+                          const isCheckedIn = b.status === 'checked_in';
+                          const isWalkIn = b.status === 'walk_in';
 
-                      {/* Live Current Time Laser Row Marker */}
-                      {isTodayActive && isLiveOperating && (
-                        <div
-                          style={{ left: `${liveOffsetPercent}%` }}
-                          className="absolute top-0 bottom-0 w-[2px] bg-red-500 z-20 pointer-events-none shadow-[0_0_10px_2px_rgba(239,68,68,0.8)]"
-                        />
-                      )}
-
-                      {/* Placed Distinct Booking Blocks in Row 1 */}
-                      {courtBookings.map((booking) => {
-                        const isCheckedIn = booking.status === 'checked_in';
-                        const isWalkIn = booking.status === 'walk_in';
-                        const isPendingLock = booking.status === 'pending_payment';
-                        const customerName = booking.guest_name || 'Player';
-
-                        const startMs = new Date(booking.start_time).getTime();
-                        const endMs = new Date(booking.end_time).getTime();
-                        const isMatchInPlay = isTodayActive && currentTime.getTime() >= startMs && currentTime.getTime() < endMs;
-                        const isMatchPast = isTodayActive && currentTime.getTime() >= endMs;
-
-                        const isPaddleRental =
-                          booking.notes?.toLowerCase().includes('paddle') || false;
-
-                        // Check if matches user search query
-                        const matchesSearch =
-                          !searchQuery.trim() ||
-                          customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          (booking.guest_phone && booking.guest_phone.includes(searchQuery)) ||
-                          booking.id.toLowerCase().includes(searchQuery.toLowerCase());
-
-                        return (
-                          <div
-                            key={booking.id}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setSelectedBooking(booking);
-                            }}
-                            className={`rounded-2xl p-3 text-xs font-bold cursor-pointer flex flex-col justify-between shadow-xl transition-all duration-150 border-2 my-2 mx-1.5 overflow-hidden z-10 ${
-                              !matchesSearch ? 'opacity-30' : 'opacity-100 hover:scale-[1.02] hover:z-30'
-                            } ${
-                              isMatchInPlay
-                                ? 'bg-gradient-to-br from-red-950/95 via-slate-900 to-red-900/70 text-red-100 border-red-400 shadow-red-500/30 ring-2 ring-red-500/60 ring-offset-2 ring-offset-slate-950'
-                                : isMatchPast
-                                ? 'bg-slate-900/90 text-slate-400 border-white/10 opacity-75'
-                                : isCheckedIn
-                                ? 'bg-gradient-to-br from-blue-950/95 via-slate-900 to-blue-900/70 text-blue-100 border-blue-400/80 shadow-blue-500/25'
-                                : isWalkIn
-                                ? 'bg-gradient-to-br from-purple-950/95 via-slate-900 to-purple-900/70 text-purple-100 border-purple-400/80 shadow-purple-500/25'
-                                : isPendingLock
-                                ? 'bg-gradient-to-br from-amber-950/85 via-slate-900 to-amber-900/60 text-amber-100 border-amber-400/80 shadow-amber-500/25'
-                                : 'bg-gradient-to-br from-emerald-950/95 via-slate-900 to-emerald-900/70 text-emerald-100 border-emerald-400/80 shadow-emerald-500/25'
-                            }`}
-                            style={{
-                              gridColumn: getGridColumn(booking.start_time, booking.end_time),
-                              gridRow: 1,
-                            }}
-                          >
-                            {/* Top Row: Distinct Player Name + Status / Occupancy Badge */}
-                            <div className="flex items-center justify-between gap-1.5">
-                              <div className="flex items-center gap-1.5 truncate">
-                                <div
-                                  className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 text-[10px] font-black ${
-                                    isMatchInPlay
-                                      ? 'bg-red-500 text-white'
-                                      : isCheckedIn
-                                      ? 'bg-blue-500 text-white'
-                                      : isWalkIn
-                                      ? 'bg-purple-500 text-white'
-                                      : 'bg-emerald-500 text-slate-950'
+                          return (
+                            <div
+                              key={b.id}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedBooking(b);
+                              }}
+                              className={`p-1.5 rounded-lg border text-left cursor-pointer transition-all hover:scale-[1.02] shadow-sm flex flex-col gap-0.5 ${
+                                isCheckedIn
+                                  ? 'bg-blue-950/70 border-blue-500/40 text-blue-200 hover:border-blue-400'
+                                  : isWalkIn
+                                  ? 'bg-purple-950/70 border-purple-500/40 text-purple-200 hover:border-purple-400'
+                                  : 'bg-emerald-950/70 border-emerald-500/40 text-emerald-200 hover:border-emerald-400'
+                              }`}
+                              title={`Click to inspect or check in: ${b.guest_name} (${formatTimeSlot(b.start_time, b.end_time)})`}
+                            >
+                              {/* Top row: Court Tag & Time */}
+                              <div className="flex items-center justify-between text-[9px] font-black">
+                                <span
+                                  className={`px-1 rounded ${
+                                    courtLabel === 'C1' ? 'bg-amber-500/30 text-amber-300' : 'bg-red-500/30 text-red-300'
                                   }`}
                                 >
-                                  {customerName.slice(0, 1).toUpperCase()}
-                                </div>
-                                <span className="font-black text-xs text-white truncate drop-shadow-sm">
-                                  {customerName}
+                                  {courtLabel}
+                                </span>
+                                <span className="font-mono text-slate-300">
+                                  {new Intl.DateTimeFormat('en-PH', { hour: 'numeric', minute: '2-digit' }).format(new Date(b.start_time))}
                                 </span>
                               </div>
 
-                              {/* Status / Occupancy Tag Pill */}
-                              <span
-                                className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full tracking-wider shrink-0 ${
-                                  isMatchInPlay
-                                    ? 'bg-red-500 text-white border border-red-300 animate-pulse'
-                                    : isMatchPast
-                                    ? 'bg-white/5 text-slate-400 border border-white/10'
-                                    : isCheckedIn
-                                    ? 'bg-blue-500/30 text-blue-300 border border-blue-400/40'
-                                    : isWalkIn
-                                    ? 'bg-purple-500/30 text-purple-300 border border-purple-400/40'
-                                    : isPendingLock
-                                    ? 'bg-amber-500/30 text-amber-300 border border-amber-400/40 animate-pulse'
-                                    : 'bg-emerald-500/30 text-emerald-300 border border-emerald-400/40'
-                                }`}
-                              >
-                                {isMatchInPlay
-                                  ? '🔥 IN PLAY (LIVE)'
-                                  : isMatchPast
-                                  ? '✓ COMPLETED'
-                                  : isCheckedIn
-                                  ? '✓ CHECKED IN'
-                                  : isWalkIn
-                                  ? 'WALK-IN'
-                                  : isPendingLock
-                                  ? 'PAY PENDING'
-                                  : 'PAID'}
-                              </span>
-                            </div>
-
-                            {/* Bottom Row: Time Interval, Paddle Addon, Ref */}
-                            <div className="flex items-center justify-between text-[10px] font-bold text-slate-300 pt-1 border-t border-white/10 mt-1">
-                              <span className="flex items-center gap-1">
-                                <Clock className="w-3 h-3 text-amber-400 shrink-0" />
-                                {new Intl.DateTimeFormat('en-PH', {
-                                  hour: 'numeric',
-                                  minute: '2-digit',
-                                }).format(new Date(booking.start_time))}{' '}
-                                –{' '}
-                                {new Intl.DateTimeFormat('en-PH', {
-                                  hour: 'numeric',
-                                  minute: '2-digit',
-                                }).format(new Date(booking.end_time))}
-                                <span className="text-slate-400">({booking.duration_hours || 1}h)</span>
-                              </span>
-
-                              <div className="flex items-center gap-1">
-                                {isPaddleRental && (
-                                  <span className="px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 text-[9px] font-black border border-amber-500/30">
-                                    🏓 Paddle
-                                  </span>
-                                )}
-                                <span className="text-slate-400 font-mono text-[9px]">
-                                  #{booking.id.slice(0, 5).toUpperCase()}
+                              {/* Player Name (Who Booked It) */}
+                              <div className="flex items-center gap-1 truncate">
+                                <User className="w-2.5 h-2.5 shrink-0 opacity-70" />
+                                <span className="text-[10px] font-extrabold text-white truncate">
+                                  {b.guest_name || 'Walk-in Guest'}
                                 </span>
                               </div>
                             </div>
-                          </div>
-                        );
-                      })}
+                          );
+                        })
+                      )}
+
+                      {dayBookings.length > 4 && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            handleDateSelect(dayObj.dateStr);
+                            setViewMode('timeline');
+                          }}
+                          className="w-full text-center text-[9px] font-black text-amber-400 hover:underline bg-amber-500/10 py-0.5 rounded border border-amber-500/20 block"
+                        >
+                          +{dayBookings.length - 4} more • Open Timeline →
+                        </button>
+                      )}
                     </div>
+
+                    {/* Footer link to switch to single day timeline */}
+                    <div className="pt-1 border-t border-white/5 flex items-center justify-between">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          handleDateSelect(dayObj.dateStr);
+                          setViewMode('timeline');
+                        }}
+                        className="text-[9px] text-slate-400 hover:text-white font-bold flex items-center gap-0.5"
+                      >
+                        <Eye className="w-2.5 h-2.5 text-amber-400" /> Day Timeline
+                      </button>
+                    </div>
+
                   </div>
                 );
               })}
             </div>
-          </div>
-          <ScrollBar orientation="horizontal" />
-        </ScrollArea>
-      </div>
 
-      {/* Detailed Booking Modal with Player Details & 1-Click Check-in */}
+          </div>
+
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* VIEW 2: HOURLY MULTI-COURT DAY TIMELINE */}
+      {/* ========================================================================= */}
+      {viewMode === 'timeline' && (
+        <div className="space-y-4 flex-1 flex flex-col min-h-0">
+          
+          {/* Day Selector & Occupancy Ribbon */}
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-3 p-3.5 rounded-2xl bg-gradient-to-r from-slate-900 via-slate-900 to-[#141824] border border-white/10 shadow-sm">
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => handleOffsetDay(-1)}
+                  className="h-7 w-7 text-slate-400 hover:text-white rounded-lg"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <span className="font-extrabold text-sm text-white">{displayFormattedDate}</span>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => handleOffsetDay(1)}
+                  className="h-7 w-7 text-slate-400 hover:text-white rounded-lg"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+                {isTodayActive && (
+                  <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-md bg-amber-500/20 text-amber-300 border border-amber-500/40">
+                    Today
+                  </span>
+                )}
+              </div>
+
+              {/* Facility Occupancy Meter */}
+              <div className="flex items-center gap-2 px-3 py-1 rounded-xl bg-slate-950/80 border border-white/10 text-xs">
+                <Activity className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                <span className="text-slate-400 font-medium">Facility Occupancy:</span>
+                <span
+                  className={`font-black ${
+                    occupancyPercent >= 80
+                      ? 'text-red-400'
+                      : occupancyPercent >= 50
+                      ? 'text-amber-400'
+                      : 'text-emerald-400'
+                  }`}
+                >
+                  {occupancyPercent}% ({totalHoursBooked}/{totalCapacityHours} hrs booked)
+                </span>
+                <div className="w-16 h-2 bg-slate-800 rounded-full overflow-hidden ml-1">
+                  <div
+                    className={`h-full rounded-full transition-all duration-300 ${
+                      occupancyPercent >= 80
+                        ? 'bg-red-500'
+                        : occupancyPercent >= 50
+                        ? 'bg-amber-400'
+                        : 'bg-emerald-400'
+                    }`}
+                    style={{ width: `${Math.min(100, occupancyPercent)}%` }}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-4 text-xs font-bold">
+              <div className="flex items-center gap-1.5 text-slate-300">
+                <span className="text-slate-500">Active Bookings:</span>
+                <span className="font-black text-amber-400">{bookings.length} sessions</span>
+              </div>
+              <div className="flex items-center gap-1.5 text-slate-300">
+                <span className="text-slate-500">Checked In:</span>
+                <span className="font-black text-emerald-400">{checkedInCount} / {bookings.length}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* TIMELINE GRID CONTAINER */}
+          <div className="flex-1 bg-[#14161f]/90 border border-white/10 rounded-3xl shadow-2xl overflow-hidden flex flex-col min-h-0 backdrop-blur-xl">
+            <ScrollArea className="flex-1">
+              <div className="min-w-[2000px]">
+                
+                {/* Timeline Header: Fixed Court Column + 16 Hourly Slot Columns */}
+                <div className="flex border-b border-white/10 sticky top-0 z-30 bg-[#0f1118]/95 backdrop-blur-md relative">
+                  <div className="w-[260px] min-w-[260px] p-4 font-black text-xs uppercase tracking-wider text-amber-400 border-r border-white/10 bg-[#0f1118]/95 shadow-[4px_0_8px_-2px_rgba(0,0,0,0.6)] flex items-center gap-2 sticky left-0 z-40">
+                    <Trophy className="w-4 h-4 text-amber-400" />
+                    <span>Courts (Indoor)</span>
+                  </div>
+
+                  <div
+                    className="flex-1 grid relative"
+                    style={{
+                      gridTemplateColumns: `repeat(${OPERATING_SLOTS.length}, minmax(110px, 1fr))`,
+                    }}
+                  >
+                    {OPERATING_SLOTS.map((hour, idx) => (
+                      <div
+                        key={hour}
+                        style={{ gridColumn: idx + 1 }}
+                        className="p-4 text-center text-xs font-black text-slate-300 border-r border-white/10 bg-slate-950/60 flex items-center justify-center"
+                      >
+                        {formatHour(hour)}
+                      </div>
+                    ))}
+
+                    {/* Live Current Time Laser Marker */}
+                    {isTodayActive && isLiveOperating && (
+                      <div
+                        style={{ left: `${liveOffsetPercent}%` }}
+                        className="absolute top-0 bottom-0 w-[2px] bg-red-500 z-50 pointer-events-none shadow-[0_0_12px_2px_rgba(239,68,68,0.9)]"
+                      >
+                        <span className="absolute -bottom-2 -translate-x-1/2 bg-gradient-to-r from-red-600 to-amber-500 text-white text-[9px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider whitespace-nowrap shadow-xl flex items-center gap-1 border border-white/20">
+                          <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping" />
+                          LIVE NOW {formatHour(currentPhtHour)}:{String(currentPhtMinute).padStart(2, '0')}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Timeline Rows per Court */}
+                <div className="relative divide-y divide-white/10">
+                  {courts.map((court) => {
+                    const courtBookings = bookings.filter((b) => {
+                      const bCourtId = b.courts?.id || b.court_id;
+                      return bCourtId === court.id;
+                    });
+
+                    return (
+                      <div
+                        key={court.id}
+                        className="flex border-b border-white/10 min-h-[115px] relative group hover:bg-white/[0.01] transition-colors"
+                      >
+                        {/* Court Info */}
+                        <div className="w-[260px] min-w-[260px] p-4 text-xs font-bold text-white border-r border-white/10 bg-[#12141c]/95 group-hover:bg-[#161924] sticky left-0 z-20 flex flex-col justify-between shadow-[4px_0_8px_-2px_rgba(0,0,0,0.6)]">
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 shadow-md shadow-emerald-500/50" />
+                              <span className="font-black text-sm text-white tracking-tight">{court.name}</span>
+                            </div>
+                            <div className="flex items-center gap-2 mt-1 ml-4.5 text-[11px] font-bold text-amber-400">
+                              <span>₱{Number(court.hourly_rate ?? 300).toFixed(2)}/hr</span>
+                              <span className="text-slate-500">•</span>
+                              <span className="text-slate-400">Indoor Cushion</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* 16 Hourly Slots Track */}
+                        <div
+                          className="flex-1 grid relative bg-[#12141c]/40"
+                          style={{
+                            gridTemplateColumns: `repeat(${OPERATING_SLOTS.length}, minmax(110px, 1fr))`,
+                          }}
+                        >
+                          {OPERATING_SLOTS.map((hour, idx) => (
+                            <div
+                              key={hour}
+                              style={{ gridColumn: idx + 1, gridRow: 1 }}
+                              className="border-r border-white/5 h-full relative group/slot flex items-center justify-center p-2"
+                            >
+                              <button
+                                type="button"
+                                onClick={() => openWalkInForSlot(court.id, hour)}
+                                className="opacity-0 group-hover/slot:opacity-100 transition-all text-[10px] font-black bg-slate-900/90 text-amber-400 hover:text-white border border-amber-500/40 hover:bg-amber-500/20 px-2 py-1 rounded-xl shadow-lg flex items-center gap-1 z-10"
+                              >
+                                <Plus className="w-3 h-3" /> Book
+                              </button>
+                            </div>
+                          ))}
+
+                          {/* Render Scheduled Booking Cards on Timeline */}
+                          {courtBookings.map((booking) => {
+                            const isCheckedIn = booking.status === 'checked_in';
+                            const isWalkIn = booking.status === 'walk_in';
+                            const customerName = booking.guest_name || booking.profiles?.full_name || 'Walk-in Player';
+
+                            return (
+                              <div
+                                key={booking.id}
+                                onClick={() => setSelectedBooking(booking)}
+                                className={`absolute inset-y-2 rounded-2xl p-2.5 flex flex-col justify-between cursor-pointer transition-all duration-200 z-10 shadow-lg border hover:scale-[1.01] ${
+                                  isCheckedIn
+                                    ? 'bg-gradient-to-r from-blue-900/80 to-blue-950/80 border-blue-400/60 shadow-blue-500/20'
+                                    : isWalkIn
+                                    ? 'bg-gradient-to-r from-purple-900/80 to-purple-950/80 border-purple-400/60 shadow-purple-500/20'
+                                    : 'bg-gradient-to-r from-emerald-900/80 to-emerald-950/80 border-emerald-400/60 shadow-emerald-500/20'
+                                }`}
+                                style={{
+                                  gridColumn: getGridColumn(booking.start_time, booking.end_time),
+                                  gridRow: 1,
+                                }}
+                              >
+                                <div className="flex items-center justify-between gap-1.5">
+                                  <div className="flex items-center gap-1.5 truncate">
+                                    <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 text-[10px] font-black bg-amber-400 text-slate-950">
+                                      {customerName.slice(0, 1).toUpperCase()}
+                                    </div>
+                                    <span className="font-black text-xs text-white truncate drop-shadow-sm">
+                                      {customerName}
+                                    </span>
+                                  </div>
+                                  <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-full bg-white/10 text-white">
+                                    {booking.status}
+                                  </span>
+                                </div>
+
+                                <div className="flex items-center justify-between text-[10px] font-bold text-slate-300 pt-1 border-t border-white/10 mt-1">
+                                  <span className="flex items-center gap-1">
+                                    <Clock className="w-3 h-3 text-amber-400 shrink-0" />
+                                    {formatTimeSlot(booking.start_time, booking.end_time)}
+                                  </span>
+                                  <span className="font-mono text-amber-400">#{booking.id.slice(0, 5)}</span>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+              <ScrollBar orientation="horizontal" />
+            </ScrollArea>
+          </div>
+
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* DETAILED BOOKING MODAL WITH PLAYER DETAILS & 1-CLICK CHECK-IN */}
+      {/* ========================================================================= */}
       <Dialog open={!!selectedBooking} onOpenChange={(open) => !open && setSelectedBooking(null)}>
         <DialogContent className="sm:max-w-lg bg-[#161922] border-white/15 text-slate-100 rounded-3xl shadow-2xl">
           <DialogHeader>
             <div className="flex items-center justify-between pb-2">
               <DialogTitle className="text-xl font-black text-white flex items-center gap-2">
-                <Sparkles className="w-5 h-5 text-amber-400" /> Court Session Details
+                <Sparkles className="w-5 h-5 text-amber-400" /> Court Reservation Details
               </DialogTitle>
               <span
                 className={`text-[10px] font-black uppercase px-2.5 py-1 rounded-full ${
@@ -1229,15 +1466,7 @@ export default function ScheduleClient({
                     <Clock className="w-3 h-3 text-amber-400" /> Session Time
                   </p>
                   <p className="font-black text-white">
-                    {new Intl.DateTimeFormat('en-PH', {
-                      hour: '2-digit',
-                      minute: '2-digit',
-                    }).format(new Date(selectedBooking.start_time))}{' '}
-                    –{' '}
-                    {new Intl.DateTimeFormat('en-PH', {
-                      hour: '2-digit',
-                      minute: '2-digit',
-                    }).format(new Date(selectedBooking.end_time))}
+                    {formatTimeSlot(selectedBooking.start_time, selectedBooking.end_time)}
                   </p>
                 </div>
 
