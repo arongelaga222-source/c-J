@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { BrandLogo } from "@/components/brand-logo";
+import { AuthSubmitButton } from "@/components/auth-submit-button";
 import { signup } from "@/app/actions";
 
 export default async function SignUpPage({
@@ -120,12 +121,11 @@ export default async function SignUpPage({
             </CardContent>
 
             <CardFooter className="flex flex-col space-y-4 pt-7 pb-6 border-t-0 bg-transparent">
-              <Button 
-                type="submit" 
-                className="w-full h-12 font-black bg-gradient-to-r from-red-600 via-red-500 to-amber-500 hover:from-red-700 hover:to-amber-600 text-white shadow-lg shadow-red-500/30 rounded-xl"
-              >
-                Create Free Player Account <ArrowRight className="w-4 h-4 ml-1.5" />
-              </Button>
+              <AuthSubmitButton 
+                label="Create Free Player Account"
+                loadingLabel="Creating Account..."
+                className="w-full h-12 font-black bg-gradient-to-r from-red-600 via-red-500 to-amber-500 hover:from-red-700 hover:to-amber-600 text-white shadow-lg shadow-red-500/30 rounded-xl transition-all"
+              />
 
               <div className="text-xs text-center text-slate-400">
                 Already a player?{" "}
