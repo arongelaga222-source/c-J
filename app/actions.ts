@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
+import { headers } from 'next/headers';
 import { createClient } from '@/utils/supabase/server';
 import { createClient as createServiceClient } from '@supabase/supabase-js';
 
@@ -91,9 +92,23 @@ export async function login(formData: FormData) {
  */
 export async function signup(formData: FormData) {
   const supabase = await createClient();
-  const email = formData.get('email') as string;
+  const email = (formData.get('email') as string)?.trim();
   const password = formData.get('password') as string;
-  const fullName = formData.get('fullName') as string;
+  const fullName = (formData.get('fullName') as string)?.trim();
+
+  // Resolve current site origin dynamically for redirect
+  const headersList = await headers();
+  const host = headersList.get('x-forwarded-host') || headersList.get('host');
+  const proto = headersList.get('x-forwarded-proto') || 'https';
+  let origin = headersList.get('origin');
+  if (!origin && host) {
+    origin = `${proto}://${host}`;
+  }
+  if (!origin) {
+    origin = process.env.NEXT_PUBLIC_APP_URL || 'https://c-j-pickleball.vercel.app';
+  }
+
+  const emailRedirectTo = `${origin}/auth/callback?next=/dashboard`;
 
   const { data, error } = await supabase.auth.signUp({
     email,
@@ -103,12 +118,18 @@ export async function signup(formData: FormData) {
         full_name: fullName,
         role: 'client',
       },
+      emailRedirectTo,
     },
   });
 
   if (error) {
     console.error('[Auth Error - Signup]:', error.message);
     return redirect(`/signup?message=${encodeURIComponent(error.message)}`);
+  }
+
+  // If user signed up but session is null, Supabase has sent a verification email
+  if (data?.user && !data.session) {
+    return redirect(`/signup?verification_sent=true&email=${encodeURIComponent(email)}`);
   }
 
   if (data?.user) {

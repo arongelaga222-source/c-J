@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { BrandLogo } from "@/components/brand-logo";
 import { PickleballCourtVisualizer } from "@/components/pickleball-court-visualizer";
+import { ReserveCourtModal } from "@/components/reserve-court-modal";
+import { createClient } from "@/utils/supabase/server";
 import { 
   ArrowRight, 
   Trophy, 
@@ -24,7 +26,10 @@ import {
   Star
 } from "lucide-react";
 
-export default function LandingPage() {
+export default async function LandingPage() {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
   const arenaStats = [
     { label: "Indoor Pro Courts", value: "2 Courts", subtext: "Court 1 & Court 2 Indoor" },
     { label: "Fixed Flat Rate", value: "₱300 / hr", subtext: "Zero Surge • Zero Hidden Fees" },
@@ -149,15 +154,12 @@ export default function LandingPage() {
 
           {/* Main Action CTAs */}
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-2">
-            <Link href="/book" className="w-full sm:w-auto">
-              <Button 
-                size="lg" 
-                className="w-full sm:w-auto px-9 h-14 text-base font-black bg-gradient-to-r from-red-600 via-red-500 to-amber-500 hover:from-red-700 hover:to-amber-600 text-white shadow-xl shadow-red-600/30 rounded-2xl transition-all hover:scale-[1.02] flex items-center justify-center gap-2"
-              >
-                <span>Reserve Court (₱300 / hr)</span>
-                <ArrowRight className="w-5 h-5" />
-              </Button>
-            </Link>
+            <ReserveCourtModal
+              isLoggedIn={!!user}
+              buttonText="Reserve Court (₱300 / hr)"
+              triggerSize="lg"
+              triggerClassName="w-full sm:w-auto px-9 h-14 text-base font-black bg-gradient-to-r from-red-600 via-red-500 to-amber-500 hover:from-red-700 hover:to-amber-600 text-white shadow-xl shadow-red-600/30 rounded-2xl transition-all hover:scale-[1.02] flex items-center justify-center gap-2"
+            />
             <Link href="/pricing" className="w-full sm:w-auto">
               <Button 
                 size="lg" 
@@ -378,11 +380,12 @@ export default function LandingPage() {
             Fixed ₱300 per hour flat rate for Court 1 &amp; Court 2 Indoor. Check real-time availability and lock your session today.
           </p>
           <div className="pt-2">
-            <Link href="/book">
-              <Button size="lg" className="bg-gradient-to-r from-red-600 via-red-500 to-amber-500 hover:from-red-700 hover:to-amber-600 text-white font-black px-8 h-12 shadow-lg shadow-red-600/30 rounded-xl">
-                Reserve Your Court Now (₱300/hr)
-              </Button>
-            </Link>
+            <ReserveCourtModal
+              isLoggedIn={!!user}
+              buttonText="Reserve Your Court Now (₱300/hr)"
+              triggerSize="lg"
+              triggerClassName="bg-gradient-to-r from-red-600 via-red-500 to-amber-500 hover:from-red-700 hover:to-amber-600 text-white font-black px-8 h-12 shadow-lg shadow-red-600/30 rounded-xl"
+            />
           </div>
         </div>
       </section>

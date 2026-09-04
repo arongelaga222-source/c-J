@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { createClient } from "@/utils/supabase/server";
 import { logout } from "@/app/actions";
 import { BrandLogo } from "@/components/brand-logo";
+import { ReserveCourtModal } from "@/components/reserve-court-modal";
 import { 
   MapPin, 
   Clock, 
@@ -152,11 +153,17 @@ export default async function PublicLayout({ children }: { children: React.React
                   Sign In
                 </Button>
               </Link>
-              <Link href="/book">
-                <Button size="sm" className="bg-gradient-to-r from-red-600 via-red-500 to-amber-500 hover:from-red-700 hover:to-amber-600 text-white font-black shadow-lg shadow-red-600/30 rounded-xl px-4 text-xs">
-                  Book Court <ArrowRight className="w-3.5 h-3.5 ml-1" />
+              <Link href="/signup">
+                <Button size="sm" variant="outline" className="border-[#d4ff00]/40 text-[#d4ff00] hover:bg-[#d4ff00]/10 hover:border-[#d4ff00] rounded-xl font-bold text-xs transition-colors">
+                  Sign Up
                 </Button>
               </Link>
+              <ReserveCourtModal
+                isLoggedIn={!!user}
+                buttonText="Book Court"
+                triggerSize="sm"
+                triggerClassName="bg-gradient-to-r from-red-600 via-red-500 to-amber-500 hover:from-red-700 hover:to-amber-600 text-white font-black shadow-lg shadow-red-600/30 rounded-xl px-4 text-xs"
+              />
             </div>
           )}
         </div>
