@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import Link from 'next/link';
 import { Calendar } from '@/components/ui/calendar';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -25,7 +26,10 @@ import {
   Sunset,
   Moon,
   CalendarCheck2,
-  ChevronDown
+  ChevronDown,
+  Lock,
+  ArrowRight,
+  UserPlus
 } from 'lucide-react';
 
 interface DaySummary {
@@ -90,12 +94,13 @@ export default function BookPage() {
   const [durationHours, setDurationHours] = useState<number>(1);
   const [selectedSlot, setSelectedSlot] = useState<AvailabilitySlot | null>(null);
 
-  // Guest Contact Form
+  // Registered Member Form
   const [guestName, setGuestName] = useState('');
   const [guestEmail, setGuestEmail] = useState('');
   const [guestPhone, setGuestPhone] = useState('');
   const [paddleRental, setPaddleRental] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isAuthLoading, setIsAuthLoading] = useState(true);
 
   // Availability & Density Heatmap State
   const [slots, setSlots] = useState<AvailabilitySlot[]>([]);
@@ -110,21 +115,31 @@ export default function BookPage() {
     async function loadInitialData() {
       const supabase = createClient();
 
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+      try {
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
 
-      if (user) {
-        setIsAuthenticated(true);
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('full_name, phone')
-          .eq('id', user.id)
-          .single();
+        if (user) {
+          setIsAuthenticated(true);
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('full_name, phone')
+            .eq('id', user.id)
+            .single();
 
-        if (profile?.full_name) setGuestName(profile.full_name);
-        if (user.email) setGuestEmail(user.email);
-        if (profile?.phone) setGuestPhone(profile.phone);
+          if (profile?.full_name) setGuestName(profile.full_name);
+          else if (user.user_metadata?.full_name) setGuestName(user.user_metadata.full_name);
+          if (user.email) setGuestEmail(user.email);
+          if (profile?.phone) setGuestPhone(profile.phone);
+        } else {
+          setIsAuthenticated(false);
+        }
+      } catch (authErr) {
+        console.warn('Auth check error:', authErr);
+        setIsAuthenticated(false);
+      } finally {
+        setIsAuthLoading(false);
       }
 
       const { data: dbCourts } = await supabase
@@ -288,12 +303,16 @@ export default function BookPage() {
   // Handle Checkout submission
   const handleInitiateCheckout = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!isAuthenticated) {
+      window.location.href = `/login?next=${encodeURIComponent('/book')}`;
+      return;
+    }
     if (!selectedSlot) {
       setErrorMessage('Please pick an available time slot from the schedule below.');
       return;
     }
     if (!guestName.trim() || !guestEmail.trim()) {
-      setErrorMessage('Please enter your full name and email for your booking receipt.');
+      setErrorMessage('Your account name or email is missing. Please update your profile before booking.');
       return;
     }
 
@@ -391,6 +410,37 @@ export default function BookPage() {
           </span>
         </div>
       </div>
+
+      {/* Account Required Notice for Unauthenticated Users */}
+      {!isAuthLoading && !isAuthenticated && (
+        <div className="p-4 rounded-2xl border border-amber-500/30 bg-amber-500/10 backdrop-blur-md flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs shadow-lg">
+          <div className="flex items-center gap-3 text-amber-200">
+            <div className="w-8 h-8 rounded-xl bg-amber-500/20 text-amber-300 flex items-center justify-center shrink-0 border border-amber-500/30">
+              <Lock className="w-4 h-4" />
+            </div>
+            <div>
+              <strong className="text-white block font-black text-xs uppercase tracking-wide">
+                Account Required to Reserve
+              </strong>
+              <span className="text-slate-300 text-xs">
+                Guest checkout is disabled. Please sign in or create an account to book your court schedule.
+              </span>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <Link href="/login?next=/book">
+              <Button size="sm" className="h-8 px-3.5 text-xs font-black bg-gradient-to-r from-red-600 to-amber-500 text-white rounded-xl shadow-md hover:scale-105 transition-all">
+                Sign In
+              </Button>
+            </Link>
+            <Link href="/signup?next=/book">
+              <Button size="sm" variant="outline" className="h-8 px-3.5 text-xs font-bold border-white/20 text-slate-200 hover:text-white hover:bg-white/10 rounded-xl">
+                Create Account
+              </Button>
+            </Link>
+          </div>
+        </div>
+      )}
 
       {/* Error Alert */}
       {errorMessage && (
@@ -646,10 +696,16 @@ export default function BookPage() {
                 <ShieldCheck className="w-4 h-4 text-red-400" />
                 <CardTitle className="text-sm font-black text-white">3. Summary &amp; Instant Pay</CardTitle>
               </div>
-              {isAuthenticated && (
-                <span className="text-[10px] font-bold text-[#d4ff00] flex items-center gap-1">
-                  <UserCheck className="w-3 h-3" /> Auto-filled
-                </span>
+              {!isAuthLoading && (
+                isAuthenticated ? (
+                  <span className="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 px-2 py-0.5 rounded-full flex items-center gap-1">
+                    <UserCheck className="w-3 h-3" /> Member Account
+                  </span>
+                ) : (
+                  <span className="text-[10px] font-bold text-amber-400 bg-amber-500/10 border border-amber-500/30 px-2 py-0.5 rounded-full flex items-center gap-1">
+                    <Lock className="w-3 h-3" /> Account Required
+                  </span>
+                )
               )}
             </CardHeader>
 
@@ -695,107 +751,144 @@ export default function BookPage() {
                 </div>
               </div>
 
-              {/* Guest Form */}
-              <form onSubmit={handleInitiateCheckout} className="space-y-3.5">
-                <div className="space-y-1">
-                  <Label htmlFor="guestName" className="text-xs font-bold text-slate-200">
-                    Full Name <span className="text-red-400">*</span>
-                  </Label>
-                  <Input
-                    id="guestName"
-                    placeholder="e.g. Alex Santos"
-                    value={guestName}
-                    onChange={(e) => setGuestName(e.target.value)}
-                    required
-                    className="h-9 bg-slate-950 border-white/15 text-white rounded-xl text-xs focus-visible:ring-red-500"
-                  />
+              {/* Conditional: Loading vs Unauthenticated Gate vs Authenticated Checkout */}
+              {isAuthLoading ? (
+                <div className="py-8 flex flex-col items-center justify-center gap-2.5 text-slate-400">
+                  <Loader2 className="w-6 h-6 animate-spin text-red-500" />
+                  <span className="text-xs font-medium">Verifying member account...</span>
                 </div>
-
-                <div className="space-y-1">
-                  <Label htmlFor="guestEmail" className="text-xs font-bold text-slate-200">
-                    Email Address (Ticket / QR Pass) <span className="text-red-400">*</span>
-                  </Label>
-                  <Input
-                    id="guestEmail"
-                    type="email"
-                    placeholder="e.g. alex@example.com"
-                    value={guestEmail}
-                    onChange={(e) => setGuestEmail(e.target.value)}
-                    required
-                    className="h-9 bg-slate-950 border-white/15 text-white rounded-xl text-xs focus-visible:ring-red-500"
-                  />
-                </div>
-
-                <div className="space-y-1">
-                  <Label htmlFor="guestPhone" className="text-xs font-bold text-slate-200">
-                    Phone Number (Optional)
-                  </Label>
-                  <Input
-                    id="guestPhone"
-                    type="tel"
-                    placeholder="e.g. 0917 123 4567"
-                    value={guestPhone}
-                    onChange={(e) => setGuestPhone(e.target.value)}
-                    className="h-9 bg-slate-950 border-white/15 text-white rounded-xl text-xs focus-visible:ring-red-500"
-                  />
-                </div>
-
-                {/* Pro Paddle Rental Toggle */}
-                <div className="flex items-center justify-between p-3 rounded-xl border border-white/10 bg-[#0f1218] gap-2">
-                  <div className="space-y-0.5">
-                    <span className="font-bold text-xs text-white block">Add Pro Paddle Rental (+₱150)</span>
-                    <span className="text-[10px] text-slate-400 block">2 Carbon fiber paddles + 3 balls</span>
+              ) : !isAuthenticated ? (
+                /* Account Required Gate (Guests cannot book) */
+                <div className="p-4 rounded-2xl bg-[#0f1218] border border-amber-500/30 space-y-4 text-center">
+                  <div className="w-12 h-12 rounded-2xl bg-amber-500/15 border border-amber-500/30 text-amber-400 flex items-center justify-center mx-auto shadow-lg shadow-amber-500/10">
+                    <Lock className="w-6 h-6" />
                   </div>
+                  
+                  <div className="space-y-1">
+                    <h3 className="text-sm font-black text-white">Sign In Required to Book</h3>
+                    <p className="text-xs text-slate-400 leading-relaxed">
+                      Guest reservations are disabled. Please sign in or create an account to reserve courts, obtain your digital QR pass, and manage cancellations.
+                    </p>
+                  </div>
+
+                  <div className="space-y-2 pt-1">
+                    <Link href="/login?next=/book" className="block w-full">
+                      <Button
+                        type="button"
+                        className="w-full h-11 text-xs font-black bg-gradient-to-r from-red-600 via-red-500 to-amber-500 hover:from-red-700 hover:to-amber-600 text-white rounded-xl shadow-lg shadow-red-500/25 flex items-center justify-center gap-2 cursor-pointer"
+                      >
+                        <UserCheck className="w-4 h-4" /> Sign In to Book
+                      </Button>
+                    </Link>
+
+                    <Link href="/signup?next=/book" className="block w-full">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="w-full h-10 text-xs font-bold border-white/20 text-slate-200 hover:text-white hover:bg-white/10 rounded-xl flex items-center justify-center gap-1.5 cursor-pointer"
+                      >
+                        <UserPlus className="w-4 h-4" /> Create Free Player Account
+                      </Button>
+                    </Link>
+                  </div>
+                </div>
+              ) : (
+                /* Authenticated Member Checkout Form */
+                <form onSubmit={handleInitiateCheckout} className="space-y-3.5">
+                  {/* Verified Member Badge & Info Box */}
+                  <div className="p-3 rounded-2xl bg-black/40 border border-emerald-500/30 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-black uppercase text-emerald-400 flex items-center gap-1.5">
+                        <Check className="w-3.5 h-3.5" /> Verified Member Account
+                      </span>
+                      <span className="text-[10px] text-slate-400 font-mono">Linked Pass</span>
+                    </div>
+
+                    <div className="space-y-1 text-xs">
+                      <div className="flex items-center justify-between">
+                        <span className="text-slate-400">Player:</span>
+                        <strong className="text-white font-bold">{guestName || 'Member Player'}</strong>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-slate-400">Email:</span>
+                        <span className="text-slate-200 font-mono text-[11px]">{guestEmail}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Phone Number (Optional for SMS/updates) */}
+                  <div className="space-y-1">
+                    <Label htmlFor="guestPhone" className="text-xs font-bold text-slate-200 flex items-center justify-between">
+                      <span>Phone Number</span>
+                      <span className="text-[10px] text-slate-400 font-normal">For SMS / QR Pass</span>
+                    </Label>
+                    <Input
+                      id="guestPhone"
+                      type="tel"
+                      placeholder="e.g. 0917 123 4567"
+                      value={guestPhone}
+                      onChange={(e) => setGuestPhone(e.target.value)}
+                      className="h-9 bg-slate-950 border-white/15 text-white rounded-xl text-xs focus-visible:ring-red-500"
+                    />
+                  </div>
+
+                  {/* Pro Paddle Rental Toggle */}
+                  <div className="flex items-center justify-between p-3 rounded-xl border border-white/10 bg-[#0f1218] gap-2">
+                    <div className="space-y-0.5">
+                      <span className="font-bold text-xs text-white block">Add Pro Paddle Rental (+₱150)</span>
+                      <span className="text-[10px] text-slate-400 block">2 Carbon fiber paddles + 3 balls</span>
+                    </div>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant={paddleRental ? 'default' : 'outline'}
+                      className={
+                        paddleRental
+                          ? 'h-7 px-2.5 text-xs bg-gradient-to-r from-red-500 to-amber-500 text-white font-black rounded-lg'
+                          : 'h-7 px-2.5 text-xs border-white/20 text-slate-300 rounded-lg'
+                      }
+                      onClick={() => setPaddleRental(!paddleRental)}
+                    >
+                      {paddleRental ? '✓ Added' : '+ Add'}
+                    </Button>
+                  </div>
+
+                  {/* PayMongo Badge */}
+                  <div className="p-2.5 rounded-xl border border-[#d4ff00]/30 bg-[#d4ff00]/10 space-y-1 text-xs">
+                    <div className="flex items-center gap-1.5 font-black text-[#d4ff00] text-[11px] uppercase tracking-wider">
+                      <CreditCard className="w-3.5 h-3.5" /> PayMongo Secure Gateway
+                    </div>
+                    <div className="flex flex-wrap gap-1.5 pt-0.5 text-[10px] font-black text-slate-300">
+                      <span className="px-2 py-0.5 rounded bg-slate-900 border border-white/10 text-blue-400">GCash</span>
+                      <span className="px-2 py-0.5 rounded bg-slate-900 border border-white/10 text-emerald-400">Maya</span>
+                      <span className="px-2 py-0.5 rounded bg-slate-900 border border-white/10 text-cyan-400">QR Ph</span>
+                      <span className="px-2 py-0.5 rounded bg-slate-900 border border-white/10 text-amber-300">Cards</span>
+                    </div>
+                  </div>
+
+                  {/* Pay Button */}
                   <Button
-                    type="button"
-                    size="sm"
-                    variant={paddleRental ? 'default' : 'outline'}
-                    className={
-                      paddleRental
-                        ? 'h-7 px-2.5 text-xs bg-gradient-to-r from-red-500 to-amber-500 text-white font-black rounded-lg'
-                        : 'h-7 px-2.5 text-xs border-white/20 text-slate-300 rounded-lg'
-                    }
-                    onClick={() => setPaddleRental(!paddleRental)}
+                    type="submit"
+                    size="lg"
+                    disabled={!selectedSlot || isSubmitting}
+                    className="w-full h-12 text-sm font-black text-white shadow-xl rounded-xl flex items-center justify-center gap-2 transition-all bg-gradient-to-r from-red-600 via-red-500 to-amber-500 hover:from-red-700 hover:to-amber-600 shadow-red-500/40 cursor-pointer disabled:opacity-50"
                   >
-                    {paddleRental ? '✓ Added' : '+ Add'}
+                    {isSubmitting ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" /> Securing Court...
+                      </>
+                    ) : (
+                      <>
+                        <QrCode className="w-4 h-4" /> Pay with PayMongo (₱{totalAmount.toFixed(2)})
+                      </>
+                    )}
                   </Button>
-                </div>
 
-                {/* PayMongo Badge */}
-                <div className="p-2.5 rounded-xl border border-[#d4ff00]/30 bg-[#d4ff00]/10 space-y-1 text-xs">
-                  <div className="flex items-center gap-1.5 font-black text-[#d4ff00] text-[11px] uppercase tracking-wider">
-                    <CreditCard className="w-3.5 h-3.5" /> PayMongo Secure Gateway
-                  </div>
-                  <div className="flex flex-wrap gap-1.5 pt-0.5 text-[10px] font-black text-slate-300">
-                    <span className="px-2 py-0.5 rounded bg-slate-900 border border-white/10 text-blue-400">GCash</span>
-                    <span className="px-2 py-0.5 rounded bg-slate-900 border border-white/10 text-emerald-400">Maya</span>
-                    <span className="px-2 py-0.5 rounded bg-slate-900 border border-white/10 text-cyan-400">QR Ph</span>
-                    <span className="px-2 py-0.5 rounded bg-slate-900 border border-white/10 text-amber-300">Cards</span>
-                  </div>
-                </div>
-
-                {/* Pay Button */}
-                <Button
-                  type="submit"
-                  size="lg"
-                  disabled={!selectedSlot || isSubmitting}
-                  className="w-full h-12 text-sm font-black text-white shadow-xl rounded-xl flex items-center justify-center gap-2 transition-all bg-gradient-to-r from-red-600 via-red-500 to-amber-500 hover:from-red-700 hover:to-amber-600 shadow-red-500/40 cursor-pointer"
-                >
-                  {isSubmitting ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin" /> Securing Court...
-                    </>
-                  ) : (
-                    <>
-                      <QrCode className="w-4 h-4" /> Pay with PayMongo (₱{totalAmount.toFixed(2)})
-                    </>
-                  )}
-                </Button>
-
-                <p className="text-[10px] text-slate-500 text-center">
-                  🔒 Instant slot lock. Digital QR check-in pass sent to your email immediately.
-                </p>
-              </form>
+                  <p className="text-[10px] text-slate-500 text-center">
+                    🔒 Instant slot lock. Digital QR check-in pass sent to {guestEmail || 'your email'}.
+                  </p>
+                </form>
+              )}
 
             </CardContent>
           </Card>

@@ -114,13 +114,17 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 3. Authenticated User (if logged in)
-    let user = null;
-    try {
-      const { data: authData } = await supabase.auth.getUser();
-      user = authData?.user || null;
-    } catch {
-      // Guest booking mode
+    // 3. Authenticate User (Required: Guests cannot book without an account)
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      return NextResponse.json(
+        { error: 'An active account is required to reserve a court. Please sign in or create an account.' },
+        { status: 401 }
+      );
     }
 
     // 4. Calculate Total Price (court rate * duration + optional paddle rental)
@@ -140,9 +144,9 @@ export async function POST(request: NextRequest) {
         .from('bookings')
         .insert({
           court_id: court.id,
-          user_id: user ? user.id : null,
-          guest_name: guestName,
-          guest_email: guestEmail,
+          user_id: user.id,
+          guest_name: guestName || user.user_metadata?.full_name || 'Member Player',
+          guest_email: user.email || guestEmail,
           guest_phone: guestPhone || null,
           start_time: startTime.toISOString(),
           end_time: endTime.toISOString(),
