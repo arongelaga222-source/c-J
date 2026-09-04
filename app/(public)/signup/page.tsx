@@ -10,9 +10,9 @@ import { signup } from "@/app/actions";
 export default async function SignUpPage({
   searchParams,
 }: {
-  searchParams: Promise<{ message?: string; verification_sent?: string; email?: string }>;
+  searchParams: Promise<{ message?: string; verification_sent?: string; email?: string; next?: string }>;
 }) {
-  const { message, verification_sent, email } = await searchParams;
+  const { message, verification_sent, email, next } = await searchParams;
 
   return (
     <div className="flex-1 flex items-center justify-center px-4 py-16 sm:px-6 lg:px-8 relative overflow-hidden font-sans bg-[#0f1218]">
@@ -59,6 +59,7 @@ export default async function SignUpPage({
           </div>
         ) : (
           <form action={signup}>
+            {next && <input type="hidden" name="next" value={next} />}
             <CardHeader className="space-y-2 text-center pb-6">
               <div className="flex justify-center pb-2">
                 <BrandLogo size="md" />
@@ -128,7 +129,7 @@ export default async function SignUpPage({
 
               <div className="text-xs text-center text-slate-400">
                 Already a player?{" "}
-                <Link href="/login" className="font-black text-[#d4ff00] hover:underline">
+                <Link href={next ? `/login?next=${encodeURIComponent(next)}` : "/login"} className="font-black text-[#d4ff00] hover:underline">
                   Sign in here
                 </Link>
               </div>

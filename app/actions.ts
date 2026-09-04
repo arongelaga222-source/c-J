@@ -40,7 +40,7 @@ import { createClient as createServiceClient } from '@supabase/supabase-js';
 /**
  * Internal helper to redirect users to their appropriate dashboard based on role.
  */
-async function redirectBasedOnRole(userId: string): Promise<void> {
+async function redirectBasedOnRole(userId: string, nextUrl?: string | null): Promise<void> {
   const supabase = await createClient();
 
   const { data: profile } = await supabase
@@ -57,6 +57,8 @@ async function redirectBasedOnRole(userId: string): Promise<void> {
     redirect('/admin');
   } else if (role === 'cashier') {
     redirect('/cashier/schedule');
+  } else if (nextUrl && nextUrl.startsWith('/')) {
+    redirect(nextUrl);
   } else {
     redirect('/dashboard');
   }
@@ -67,8 +69,9 @@ async function redirectBasedOnRole(userId: string): Promise<void> {
  */
 export async function login(formData: FormData) {
   const supabase = await createClient();
-  const email = formData.get('email') as string;
+  const email = (formData.get('email') as string)?.trim();
   const password = formData.get('password') as string;
+  const next = formData.get('next') as string | null;
 
   const { data, error } = await supabase.auth.signInWithPassword({
     email,
@@ -77,14 +80,17 @@ export async function login(formData: FormData) {
 
   if (error) {
     console.error('[Auth Error - Login]:', error.message);
-    return redirect(`/login?message=${encodeURIComponent(error.message)}`);
+    const redirectUrl = next 
+      ? `/login?message=${encodeURIComponent(error.message)}&next=${encodeURIComponent(next)}`
+      : `/login?message=${encodeURIComponent(error.message)}`;
+    return redirect(redirectUrl);
   }
 
   if (data?.user) {
-    await redirectBasedOnRole(data.user.id);
+    await redirectBasedOnRole(data.user.id, next);
   }
 
-  redirect('/dashboard');
+  redirect(next && next.startsWith('/') ? next : '/dashboard');
 }
 
 /**
@@ -95,6 +101,7 @@ export async function signup(formData: FormData) {
   const email = (formData.get('email') as string)?.trim();
   const password = formData.get('password') as string;
   const fullName = (formData.get('fullName') as string)?.trim();
+  const next = formData.get('next') as string | null;
 
   // Resolve current site origin dynamically for redirect
   const headersList = await headers();
@@ -108,7 +115,8 @@ export async function signup(formData: FormData) {
     origin = process.env.NEXT_PUBLIC_APP_URL || 'https://c-j-pickleball.vercel.app';
   }
 
-  const emailRedirectTo = `${origin}/auth/callback?next=/dashboard`;
+  const destination = next && next.startsWith('/') ? next : '/dashboard';
+  const emailRedirectTo = `${origin}/auth/callback?next=${encodeURIComponent(destination)}`;
 
   const { data, error } = await supabase.auth.signUp({
     email,
@@ -124,19 +132,25 @@ export async function signup(formData: FormData) {
 
   if (error) {
     console.error('[Auth Error - Signup]:', error.message);
-    return redirect(`/signup?message=${encodeURIComponent(error.message)}`);
+    const redirectUrl = next 
+      ? `/signup?message=${encodeURIComponent(error.message)}&next=${encodeURIComponent(next)}`
+      : `/signup?message=${encodeURIComponent(error.message)}`;
+    return redirect(redirectUrl);
   }
 
   // If user signed up but session is null, Supabase has sent a verification email
   if (data?.user && !data.session) {
-    return redirect(`/signup?verification_sent=true&email=${encodeURIComponent(email)}`);
+    const redirectUrl = next
+      ? `/signup?verification_sent=true&email=${encodeURIComponent(email)}&next=${encodeURIComponent(next)}`
+      : `/signup?verification_sent=true&email=${encodeURIComponent(email)}`;
+    return redirect(redirectUrl);
   }
 
   if (data?.user) {
-    await redirectBasedOnRole(data.user.id);
+    await redirectBasedOnRole(data.user.id, next);
   }
 
-  redirect('/dashboard');
+  redirect(destination);
 }
 
 /**

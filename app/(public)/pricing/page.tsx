@@ -2,8 +2,13 @@ import Link from "next/link";
 import { Check, Sparkles, Trophy, Zap, Shield, HelpCircle, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { createClient } from "@/utils/supabase/server";
+import { ReserveCourtModal } from "@/components/reserve-court-modal";
 
-export default function PricingPage() {
+export default async function PricingPage() {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
   const tiers = [
     {
       name: "Hourly Court Rental",
@@ -150,18 +155,17 @@ export default function PricingPage() {
               </CardContent>
 
               <CardFooter className="p-8 pt-0">
-                <Link href={tier.href} className="w-full">
-                  <Button
-                    size="lg"
-                    className={`w-full h-12 font-black rounded-xl ${
-                      tier.highlighted
-                        ? "bg-gradient-to-r from-red-600 via-red-500 to-amber-500 hover:from-red-700 hover:to-amber-600 text-white shadow-lg shadow-red-500/30"
-                        : "bg-slate-800 hover:bg-slate-700 text-white border border-white/10"
-                    }`}
-                  >
-                    {tier.cta}
-                  </Button>
-                </Link>
+                <ReserveCourtModal
+                  isLoggedIn={!!user}
+                  buttonText={tier.cta}
+                  triggerSize="lg"
+                  showIcon={false}
+                  triggerClassName={`w-full h-12 font-black rounded-xl ${
+                    tier.highlighted
+                      ? "bg-gradient-to-r from-red-600 via-red-500 to-amber-500 hover:from-red-700 hover:to-amber-600 text-white shadow-lg shadow-red-500/30"
+                      : "bg-slate-800 hover:bg-slate-700 text-white border border-white/10"
+                  }`}
+                />
               </CardFooter>
             </Card>
           );

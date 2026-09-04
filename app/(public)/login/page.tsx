@@ -10,9 +10,9 @@ import { login } from "@/app/actions";
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ message?: string }>;
+  searchParams: Promise<{ message?: string; next?: string }>;
 }) {
-  const { message } = await searchParams;
+  const { message, next } = await searchParams;
 
   return (
     <div className="flex-1 flex items-center justify-center px-4 py-16 sm:px-6 lg:px-8 relative overflow-hidden font-sans bg-[#0f1218]">
@@ -22,6 +22,7 @@ export default async function LoginPage({
 
       <Card className="w-full max-w-md border-white/10 bg-[#171b24]/90 backdrop-blur-2xl shadow-2xl relative z-10 rounded-3xl">
         <form action={login}>
+          {next && <input type="hidden" name="next" value={next} />}
           <CardHeader className="space-y-2 text-center pb-6">
             <div className="flex justify-center pb-2">
               <BrandLogo size="md" />
