@@ -104,7 +104,6 @@ export async function POST(request: NextRequest) {
         end_time: endTime.toISOString(),
         duration_hours: duration,
         total_price: totalPrice,
-        total_amount: totalPrice,
         currency: 'PHP',
         status: 'walk_in',
         payment_method: paymentMethod === 'counter_qr' ? 'counter_qr' : 'cash',
