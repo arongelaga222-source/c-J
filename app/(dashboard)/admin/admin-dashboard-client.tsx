@@ -29,8 +29,10 @@ import {
   ShieldCheck,
   CreditCard,
   Banknote,
+  Wallet,
 } from 'lucide-react';
 import { createCashierAccount, voidTransaction } from '@/app/actions';
+import { AdminVoidRefundModal } from '@/components/admin-void-refund-modal';
 
 export interface AdminBookingRecord {
   id: string;
@@ -45,6 +47,13 @@ export interface AdminBookingRecord {
   guest_phone: string | null;
   court_name: string;
   created_at: string;
+  refund_wallet_type?: string | null;
+  refund_account_name?: string | null;
+  refund_account_number?: string | null;
+  refund_reason?: string | null;
+  refund_status?: string | null;
+  refund_reference?: string | null;
+  refund_processed_at?: string | null;
 }
 
 export interface AdminMetrics {
@@ -70,6 +79,7 @@ export default function AdminDashboardClient({
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [methodFilter, setMethodFilter] = useState('all');
+  const [voidModalBooking, setVoidModalBooking] = useState<AdminBookingRecord | null>(null);
 
   // Filter bookings
   const filteredBookings = bookings.filter((b) => {
@@ -78,13 +88,21 @@ export default function AdminDashboardClient({
       b.id.toLowerCase().includes(query) ||
       (b.guest_name && b.guest_name.toLowerCase().includes(query)) ||
       (b.guest_email && b.guest_email.toLowerCase().includes(query)) ||
-      b.court_name.toLowerCase().includes(query);
+      b.court_name.toLowerCase().includes(query) ||
+      (b.refund_reference && b.refund_reference.toLowerCase().includes(query)) ||
+      (b.refund_account_name && b.refund_account_name.toLowerCase().includes(query)) ||
+      (b.refund_account_number && b.refund_account_number.toLowerCase().includes(query));
 
     const matchesStatus = statusFilter === 'all' || b.status === statusFilter;
     const matchesMethod = methodFilter === 'all' || b.payment_method === methodFilter;
 
     return matchesSearch && matchesStatus && matchesMethod;
   });
+
+  // Count pending refunds for top banner alert
+  const pendingRefunds = bookings.filter(
+    (b) => b.status === 'cancelled_refund_pending' || b.refund_status === 'pending'
+  );
 
   // Export Bookings Audit to CSV
   const handleExportCSV = () => {
@@ -102,6 +120,11 @@ export default function AdminDashboardClient({
       'Total Amount (PHP)',
       'Payment Method',
       'Status',
+      'Refund Status',
+      'Refund Wallet',
+      'Refund Account Name',
+      'Refund Account Number',
+      'Refund Reference',
       'Created At',
     ];
 
@@ -117,6 +140,11 @@ export default function AdminDashboardClient({
       b.total_price,
       b.payment_method,
       b.status,
+      b.refund_status || 'none',
+      `"${b.refund_wallet_type || ''}"`,
+      `"${b.refund_account_name || ''}"`,
+      `"${b.refund_account_number || ''}"`,
+      `"${b.refund_reference || ''}"`,
       `"${b.created_at}"`,
     ]);
 
@@ -251,6 +279,35 @@ export default function AdminDashboardClient({
           </Dialog>
         </div>
       </div>
+
+      {/* Pending Refund Requests Notification Banner */}
+      {pendingRefunds.length > 0 && (
+        <div className="bg-gradient-to-r from-amber-500/15 via-red-500/15 to-amber-500/10 border border-amber-500/30 rounded-3xl p-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 backdrop-blur-md shadow-xl">
+          <div className="flex items-center gap-3.5">
+            <div className="w-10 h-10 rounded-2xl bg-amber-500 text-slate-950 flex items-center justify-center font-black shrink-0 shadow-lg shadow-amber-500/30">
+              <Wallet className="w-5 h-5" />
+            </div>
+            <div>
+              <h4 className="text-sm font-black text-amber-300 uppercase tracking-wider flex items-center gap-2">
+                Pending Refund Requests ({pendingRefunds.length})
+              </h4>
+              <p className="text-xs text-slate-300 mt-0.5">
+                Players have submitted cancellation requests with GCash / E-Wallet payout details. Void schedule to release the court slot and issue their refund payout.
+              </p>
+            </div>
+          </div>
+          <Button
+            onClick={() => {
+              setStatusFilter('cancelled_refund_pending');
+              const el = document.getElementById('audit-table');
+              if (el) el.scrollIntoView({ behavior: 'smooth' });
+            }}
+            className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs px-4 h-9 rounded-xl shadow-lg shadow-amber-500/20 shrink-0"
+          >
+            Filter Pending Requests
+          </Button>
+        </div>
+      )}
 
       {/* Overview Metric Cards Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -395,7 +452,7 @@ export default function AdminDashboardClient({
       </Card>
 
       {/* Master Booking & Client Audit Log Table */}
-      <Card className="border-slate-800 bg-slate-900/70 backdrop-blur-md rounded-3xl overflow-hidden shadow-xl">
+      <Card id="audit-table" className="border-slate-800 bg-slate-900/70 backdrop-blur-md rounded-3xl overflow-hidden shadow-xl">
         <CardHeader className="border-b border-slate-800 bg-slate-950/60 p-6 space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
@@ -457,12 +514,13 @@ export default function AdminDashboardClient({
                 <TableHead className="text-xs font-black text-slate-400">Channel</TableHead>
                 <TableHead className="text-xs font-black text-slate-400">Status</TableHead>
                 <TableHead className="text-right text-xs font-black text-slate-400">Amount Paid</TableHead>
+                <TableHead className="text-right text-xs font-black text-slate-400">Action</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filteredBookings.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-12 text-slate-500 text-xs font-medium">
+                  <TableCell colSpan={8} className="text-center py-12 text-slate-500 text-xs font-medium">
                     No bookings matched your filter criteria.
                   </TableCell>
                 </TableRow>
@@ -470,7 +528,7 @@ export default function AdminDashboardClient({
                 filteredBookings.map((b) => {
                   const isCheckedIn = b.status === 'checked_in';
                   const isPaid = b.status === 'paid';
-                  const isRefundPending = b.status === 'cancelled_refund_pending';
+                  const isRefundPending = b.status === 'cancelled_refund_pending' || b.refund_status === 'pending';
                   const isCancelled = b.status === 'cancelled';
 
                   return (
@@ -501,7 +559,7 @@ export default function AdminDashboardClient({
                             Paid
                           </span>
                         ) : isRefundPending ? (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-black uppercase bg-red-500/15 text-red-400 border border-red-500/30">
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-black uppercase bg-red-500/15 text-red-400 border border-red-500/30 animate-pulse">
                             Refund Queued
                           </span>
                         ) : isCancelled ? (
@@ -517,6 +575,42 @@ export default function AdminDashboardClient({
                       <TableCell className="text-right font-black text-sm text-white">
                         ₱{Number(b.total_price).toFixed(2)}
                       </TableCell>
+                      <TableCell className="text-right">
+                        {isRefundPending ? (
+                          <Button
+                            size="sm"
+                            onClick={() => setVoidModalBooking(b)}
+                            className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-[11px] h-7 px-2.5 rounded-lg shadow-lg shadow-amber-500/20 inline-flex items-center gap-1.5"
+                          >
+                            <Wallet className="w-3.5 h-3.5" />
+                            Review Refund
+                          </Button>
+                        ) : isCancelled ? (
+                          <div className="text-right">
+                            {b.refund_reference ? (
+                              <span
+                                className="inline-flex items-center gap-1 text-[10px] font-mono font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20"
+                                title={`Refund Ref: ${b.refund_reference}`}
+                              >
+                                <CheckCircle2 className="w-3 h-3" />
+                                Refunded
+                              </span>
+                            ) : (
+                              <span className="text-[11px] text-slate-500 font-medium">Voided</span>
+                            )}
+                          </div>
+                        ) : (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => setVoidModalBooking(b)}
+                            className="border-red-500/30 text-red-400 hover:bg-red-500/15 hover:border-red-500/60 font-bold text-[11px] h-7 px-2.5 rounded-lg inline-flex items-center gap-1.5 transition-all"
+                          >
+                            <Ban className="w-3 h-3" />
+                            Void Slot
+                          </Button>
+                        )}
+                      </TableCell>
                     </TableRow>
                   );
                 })
@@ -525,6 +619,16 @@ export default function AdminDashboardClient({
           </Table>
         </CardContent>
       </Card>
+
+      {/* Admin Void and Refund Modal */}
+      {voidModalBooking && (
+        <AdminVoidRefundModal
+          isOpen={!!voidModalBooking}
+          onClose={() => setVoidModalBooking(null)}
+          booking={voidModalBooking}
+          onSuccess={() => setVoidModalBooking(null)}
+        />
+      )}
     </div>
   );
 }

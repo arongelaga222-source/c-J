@@ -261,6 +261,229 @@ export async function cancelBooking(bookingId: string): Promise<{
 }
 
 /**
+ * Request Booking Refund with E-Wallet Details (GCash, Maya, etc.):
+ * - Player provides E-Wallet provider, account holder name, and account/mobile number.
+ * - Validates strict 24-hour rule (unless staff override).
+ * - Transitions status to 'cancelled_refund_pending' and refund_status to 'pending'.
+ */
+export async function requestBookingRefund({
+  bookingId,
+  walletType,
+  accountName,
+  accountNumber,
+  reason,
+}: {
+  bookingId: string;
+  walletType: string;
+  accountName: string;
+  accountNumber: string;
+  reason?: string;
+}): Promise<{
+  success?: boolean;
+  status?: string;
+  message?: string;
+  error?: string;
+}> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { error: 'You must be logged in to request a refund.' };
+  }
+
+  if (!walletType || !accountName?.trim() || !accountNumber?.trim()) {
+    return { error: 'Please specify the E-Wallet provider, account name, and account/mobile number.' };
+  }
+
+  // 1. Fetch target booking
+  const { data: booking, error: fetchError } = await supabase
+    .from('bookings')
+    .select('id, user_id, start_time, status, total_price, payment_method')
+    .eq('id', bookingId)
+    .single();
+
+  if (fetchError || !booking) {
+    return { error: 'Booking reservation not found.' };
+  }
+
+  // 2. Check permissions
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .single();
+
+  const isStaff = profile?.role && ['owner', 'admin', 'cashier'].includes(profile.role);
+
+  if (!isStaff && booking.user_id !== user.id) {
+    return { error: 'You are not authorized to cancel this booking.' };
+  }
+
+  if (['cancelled', 'cancelled_refund_pending', 'expired'].includes(booking.status)) {
+    return { error: `Booking is already marked as ${booking.status}.` };
+  }
+
+  // 3. Evaluate 24-hour rule
+  const startTime = new Date(booking.start_time).getTime();
+  const now = Date.now();
+  const differenceHours = (startTime - now) / (1000 * 60 * 60);
+
+  if (!isStaff && differenceHours < 24) {
+    return {
+      error: `Strict 24-hour cancellation rule: This court reservation begins in ${differenceHours.toFixed(
+        1
+      )} hours. Cancellations are only permitted at least 24 hours in advance.`,
+    };
+  }
+
+  // 4. Update status & save refund e-wallet details
+  const { error: updateError } = await supabase
+    .from('bookings')
+    .update({
+      status: 'cancelled_refund_pending',
+      refund_status: 'pending',
+      refund_wallet_type: walletType,
+      refund_account_name: accountName.trim(),
+      refund_account_number: accountNumber.trim(),
+      refund_reason: reason?.trim() || null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', booking.id);
+
+  if (updateError) {
+    console.error('[Refund Request Error]:', updateError);
+    return { error: 'Failed to record refund request. Please try again.' };
+  }
+
+  revalidatePath('/dashboard');
+  revalidatePath('/cashier/schedule');
+  revalidatePath('/admin');
+  revalidatePath('/book');
+
+  return {
+    success: true,
+    status: 'cancelled_refund_pending',
+    message: `Cancellation requested. Your refund of ₱${Number(booking.total_price).toFixed(2)} will be processed to your ${walletType} account (${accountNumber.trim()}) by management.`,
+  };
+}
+
+/**
+ * Admin Void Schedule & Process Refund:
+ * - Allows Admin/Owner to void court booking schedule and release the slot.
+ * - Marks refund as completed with optional transaction/reference ID (e.g. GCash Ref No).
+ */
+export async function adminVoidAndRefundBooking({
+  bookingId,
+  action,
+  refundReference,
+  adminNotes,
+}: {
+  bookingId: string;
+  action: 'void_and_refund' | 'void_only' | 'reject_refund';
+  refundReference?: string;
+  adminNotes?: string;
+}): Promise<{
+  success?: boolean;
+  message?: string;
+  error?: string;
+}> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { error: 'Unauthorized. Staff login required.' };
+  }
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .single();
+
+  if (!profile || !['owner', 'admin'].includes(profile.role)) {
+    return { error: 'Access denied: Only administrators or owners can void schedules and process refunds.' };
+  }
+
+  const { data: booking, error: fetchError } = await supabase
+    .from('bookings')
+    .select('*')
+    .eq('id', bookingId)
+    .single();
+
+  if (fetchError || !booking) {
+    return { error: 'Booking not found.' };
+  }
+
+  let updatePayload: Record<string, any> = {
+    updated_at: new Date().toISOString(),
+  };
+
+  if (action === 'void_and_refund') {
+    updatePayload = {
+      ...updatePayload,
+      status: 'cancelled',
+      refund_status: 'completed',
+      refund_reference: refundReference?.trim() || 'ADMIN_VOID_REFUND',
+      refund_processed_at: new Date().toISOString(),
+      refund_processed_by: user.id,
+      notes: adminNotes?.trim() 
+        ? (booking.notes ? `${booking.notes} | Voided: ${adminNotes.trim()}` : adminNotes.trim())
+        : booking.notes,
+    };
+  } else if (action === 'void_only') {
+    updatePayload = {
+      ...updatePayload,
+      status: 'cancelled',
+      refund_status: 'voided_no_refund',
+      refund_processed_at: new Date().toISOString(),
+      refund_processed_by: user.id,
+      notes: adminNotes?.trim() 
+        ? (booking.notes ? `${booking.notes} | Voided without refund: ${adminNotes.trim()}` : adminNotes.trim())
+        : booking.notes,
+    };
+  } else if (action === 'reject_refund') {
+    updatePayload = {
+      ...updatePayload,
+      status: 'paid',
+      refund_status: 'rejected',
+      notes: adminNotes?.trim() 
+        ? (booking.notes ? `${booking.notes} | Refund Rejected: ${adminNotes.trim()}` : adminNotes.trim())
+        : booking.notes,
+    };
+  }
+
+  const { error: updateError } = await supabase
+    .from('bookings')
+    .update(updatePayload)
+    .eq('id', bookingId);
+
+  if (updateError) {
+    console.error('[Admin Void Error]:', updateError);
+    return { error: 'Failed to update booking status.' };
+  }
+
+  revalidatePath('/admin');
+  revalidatePath('/dashboard');
+  revalidatePath('/cashier/schedule');
+  revalidatePath('/book');
+
+  const actionDescriptions = {
+    void_and_refund: 'Schedule voided and refund marked as completed. Court slot is now available.',
+    void_only: 'Schedule voided without refund. Court slot is now available.',
+    reject_refund: 'Refund request rejected. Booking restored to paid status.',
+  };
+
+  return {
+    success: true,
+    message: actionDescriptions[action] || 'Action completed successfully.',
+  };
+}
+
+/**
  * Check In Player at Reception Desk.
  */
 export async function checkInBooking(bookingId: string): Promise<{ success: boolean }> {

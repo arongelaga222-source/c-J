@@ -20,9 +20,11 @@ import {
   Activity,
   Award,
   Zap,
-  Sparkles
+  Sparkles,
+  Wallet,
 } from 'lucide-react';
 import { cancelBooking } from '@/app/actions';
+import { RefundRequestModal } from '@/components/refund-request-modal';
 
 export interface UserBookingItem {
   id: string;
@@ -35,6 +37,11 @@ export interface UserBookingItem {
   payment_method: string;
   court_name: string;
   created_at: string;
+  refund_wallet_type?: string | null;
+  refund_account_name?: string | null;
+  refund_account_number?: string | null;
+  refund_status?: string | null;
+  refund_reference?: string | null;
 }
 
 export default function UserDashboardClient({
@@ -48,6 +55,7 @@ export default function UserDashboardClient({
 }) {
   const [activeBookings, setActiveBookings] = useState<UserBookingItem[]>(bookings);
   const [cancellingId, setCancellingId] = useState<string | null>(null);
+  const [refundModalBooking, setRefundModalBooking] = useState<UserBookingItem | null>(null);
   const [feedbackMessage, setFeedbackMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [isPending, startTransition] = useTransition();
 
@@ -259,9 +267,16 @@ export default function UserDashboardClient({
                   className="border-white/10 bg-[#171b24]/90 backdrop-blur-md rounded-2xl overflow-hidden shadow-xl"
                 >
                   <div className="bg-[#0f1218]/90 px-6 py-3 border-b border-white/5 flex justify-between items-center">
-                    <span className="text-xs font-black uppercase tracking-wider text-[#d4ff00] bg-[#d4ff00]/10 px-2.5 py-0.5 rounded border border-[#d4ff00]/20">
-                      {b.status === 'checked_in' ? 'Checked In' : 'Confirmed • ' + b.status}
-                    </span>
+                    {b.status === 'cancelled_refund_pending' ? (
+                      <span className="text-xs font-black uppercase tracking-wider text-amber-400 bg-amber-500/15 px-2.5 py-0.5 rounded border border-amber-500/30 flex items-center gap-1.5">
+                        <Clock className="w-3 h-3" />
+                        <span>Refund Queued • {b.refund_wallet_type || 'E-Wallet'}</span>
+                      </span>
+                    ) : (
+                      <span className="text-xs font-black uppercase tracking-wider text-[#d4ff00] bg-[#d4ff00]/10 px-2.5 py-0.5 rounded border border-[#d4ff00]/20">
+                        {b.status === 'checked_in' ? 'Checked In' : 'Confirmed • ' + b.status}
+                      </span>
+                    )}
                     <span className="text-xs text-slate-400 font-mono">
                       Ref: #{b.id.slice(0, 8).toUpperCase()}
                     </span>
@@ -301,20 +316,21 @@ export default function UserDashboardClient({
                           </Button>
                         </Link>
 
-                        {/* Strict 24h Cancellation Button */}
-                        {isEligible ? (
+                        {/* Refund Status / Cancellation Button */}
+                        {b.status === 'cancelled_refund_pending' ? (
+                          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-300 font-bold">
+                            <Wallet className="w-3.5 h-3.5 text-[#d4ff00]" />
+                            <span>P{Number(b.total_price).toFixed(0)} to {b.refund_wallet_type || 'E-Wallet'} ({b.refund_account_number}) pending</span>
+                          </div>
+                        ) : isEligible ? (
                           <Button
                             variant="outline"
                             size="sm"
                             disabled={isCurrentlyCancelling || isPending}
-                            onClick={() => handleCancelBooking(b.id)}
+                            onClick={() => setRefundModalBooking(b)}
                             className="border-red-500/40 text-red-400 hover:bg-red-950/40 rounded-xl text-xs font-bold h-9"
                           >
-                            {isCurrentlyCancelling ? (
-                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                            ) : (
-                              'Cancel Session'
-                            )}
+                            Cancel &amp; Refund
                           </Button>
                         ) : (
                           <div
@@ -376,7 +392,15 @@ export default function UserDashboardClient({
                         <p className="font-black text-sm text-[#d4ff00]">
                           ₱{Number(b.total_price).toFixed(2)}
                         </p>
-                        <p className="text-[10px] uppercase font-bold text-slate-500">{b.status}</p>
+                        <p className="text-[10px] uppercase font-bold text-slate-500">
+                          {b.refund_status === 'completed' ? (
+                            <span className="text-emerald-400">
+                              Refunded ({b.refund_wallet_type || 'E-Wallet'}) {b.refund_reference ? `• Ref: ${b.refund_reference}` : ''}
+                            </span>
+                          ) : (
+                            b.status
+                          )}
+                        </p>
                       </div>
                     </div>
                   ))}
@@ -412,6 +436,34 @@ export default function UserDashboardClient({
           </Card>
         </TabsContent>
       </Tabs>
+
+      {refundModalBooking && (
+        <RefundRequestModal
+          isOpen={Boolean(refundModalBooking)}
+          onClose={() => setRefundModalBooking(null)}
+          booking={{
+            id: refundModalBooking.id,
+            court_name: refundModalBooking.court_name,
+            start_time: refundModalBooking.start_time,
+            duration_hours: refundModalBooking.duration_hours,
+            total_price: refundModalBooking.total_price,
+          }}
+          onSuccess={(msg) => {
+            setFeedbackMessage({ type: 'success', text: msg });
+            setActiveBookings((prev) =>
+              prev.map((item) =>
+                item.id === refundModalBooking.id
+                  ? {
+                      ...item,
+                      status: 'cancelled_refund_pending',
+                      refund_status: 'pending',
+                    }
+                  : item
+              )
+            );
+          }}
+        />
+      )}
     </div>
   );
 }

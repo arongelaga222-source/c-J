@@ -15,6 +15,11 @@ interface RawUserBooking {
   currency: string;
   status: string;
   payment_method: string;
+  refund_wallet_type?: string | null;
+  refund_account_name?: string | null;
+  refund_account_number?: string | null;
+  refund_status?: string | null;
+  refund_reference?: string | null;
   created_at: string;
   courts: { name: string } | { name: string }[] | null;
 }
@@ -52,6 +57,11 @@ export default async function UserDashboardPage() {
       currency,
       status,
       payment_method,
+      refund_wallet_type,
+      refund_account_name,
+      refund_account_number,
+      refund_status,
+      refund_reference,
       created_at,
       courts ( name )
     `)
@@ -73,6 +83,11 @@ export default async function UserDashboardPage() {
       currency: b.currency || 'PHP',
       status: b.status,
       payment_method: b.payment_method,
+      refund_wallet_type: b.refund_wallet_type || null,
+      refund_account_name: b.refund_account_name || null,
+      refund_account_number: b.refund_account_number || null,
+      refund_status: b.refund_status || null,
+      refund_reference: b.refund_reference || null,
       court_name: courtName || 'Court 1 - Indoor',
       created_at: b.created_at,
     };

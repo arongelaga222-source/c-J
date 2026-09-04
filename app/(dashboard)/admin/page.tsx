@@ -20,6 +20,13 @@ interface RawAdminBooking {
   created_at: string;
   courts: { name: string } | { name: string }[] | null;
   profiles: { full_name: string | null; phone: string | null } | { full_name: string | null; phone: string | null }[] | null;
+  refund_wallet_type?: string | null;
+  refund_account_name?: string | null;
+  refund_account_number?: string | null;
+  refund_reason?: string | null;
+  refund_status?: string | null;
+  refund_reference?: string | null;
+  refund_processed_at?: string | null;
 }
 
 export default async function AdminOverviewPage() {
@@ -56,7 +63,15 @@ export default async function AdminOverviewPage() {
       payment_method,
       guest_name,
       guest_email,
+      guest_phone,
       created_at,
+      refund_wallet_type,
+      refund_account_name,
+      refund_account_number,
+      refund_reason,
+      refund_status,
+      refund_reference,
+      refund_processed_at,
       courts ( name )
     `)
     .order('created_at', { ascending: false });
@@ -168,6 +183,13 @@ export default async function AdminOverviewPage() {
       guest_phone: b.guest_phone,
       court_name: courtName || 'Court 1 - Indoor',
       created_at: b.created_at,
+      refund_wallet_type: b.refund_wallet_type,
+      refund_account_name: b.refund_account_name,
+      refund_account_number: b.refund_account_number,
+      refund_reason: b.refund_reason,
+      refund_status: b.refund_status,
+      refund_reference: b.refund_reference,
+      refund_processed_at: b.refund_processed_at,
     };
   });
 
