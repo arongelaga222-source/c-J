@@ -40,7 +40,7 @@ export async function GET(request: NextRequest) {
       Boolean(id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id));
 
     let targetCourtId = isValidUuid(courtId) ? courtId : null;
-    let allBookings: Array<{ id: string; start_time: string; end_time: string; status: string }> = [];
+    let allBookings: Array<{ id: string; start_time: string; end_time: string; status: string; expires_at?: string | null }> = [];
 
     // Determine target month for heatmap density overview
     const activeMonthStr = monthParam || (dateStr ? dateStr.slice(0, 7) : new Date().toISOString().slice(0, 7));
@@ -70,9 +70,20 @@ export async function GET(request: NextRequest) {
         }
       }
 
+      // Proactively mark abandoned/expired checkout holds as 'expired'
+      try {
+        await supabase
+          .from('bookings')
+          .update({ status: 'expired' })
+          .eq('status', 'pending_payment')
+          .lt('expires_at', nowUtc.toISOString());
+      } catch (cleanErr) {
+        console.warn('[Availability API] Could not auto-expire pending holds:', cleanErr);
+      }
+
       let monthQuery = supabase
         .from('bookings')
-        .select('id, start_time, end_time, status')
+        .select('id, start_time, end_time, status, expires_at')
         .gte('end_time', startOfMonth.toISOString())
         .lte('start_time', endOfMonth.toISOString())
         .in('status', ['paid', 'checked_in', 'walk_in', 'pending_payment']);
@@ -116,6 +127,13 @@ export async function GET(request: NextRequest) {
       const dayOccupiedHours = new Set<number>();
 
       for (const b of allBookings) {
+        // Skip pending payments whose temporary hold has expired
+        if (b.status === 'pending_payment') {
+          if (!b.expires_at || new Date(b.expires_at) <= nowUtc) {
+            continue;
+          }
+        }
+
         const bStart = new Date(b.start_time);
         const bEnd = new Date(b.end_time);
 
@@ -198,6 +216,13 @@ export async function GET(request: NextRequest) {
     const targetDayEnd = new Date(`${dateStr}T23:59:59.999+08:00`);
 
     for (const b of allBookings) {
+      // Skip pending payments whose temporary hold has expired
+      if (b.status === 'pending_payment') {
+        if (!b.expires_at || new Date(b.expires_at) <= nowUtc) {
+          continue;
+        }
+      }
+
       const bStart = new Date(b.start_time);
       const bEnd = new Date(b.end_time);
 

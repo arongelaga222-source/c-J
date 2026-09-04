@@ -174,8 +174,10 @@ export default function ScheduleClient({
         const formatted: ScheduleBooking[] = (data as unknown as ScheduleBooking[]).map((b) => {
           const singleProfile = Array.isArray(b.profiles) ? b.profiles[0] : b.profiles;
           const singleCourt = Array.isArray(b.courts) ? b.courts[0] : b.courts;
+          const isExpiredHold = b.status === 'pending_payment' && b.expires_at && new Date(b.expires_at) <= new Date();
           return {
             ...b,
+            status: isExpiredHold ? 'expired' : b.status,
             guest_name: b.guest_name || singleProfile?.full_name || 'Walk-in Client',
             profiles: singleProfile || null,
             courts: singleCourt || null,
@@ -275,8 +277,10 @@ export default function ScheduleClient({
         const formatted: ScheduleBooking[] = (data as unknown as ScheduleBooking[]).map((b) => {
           const singleProfile = Array.isArray(b.profiles) ? b.profiles[0] : b.profiles;
           const singleCourt = Array.isArray(b.courts) ? b.courts[0] : b.courts;
+          const isExpiredHold = b.status === 'pending_payment' && b.expires_at && new Date(b.expires_at) <= new Date();
           return {
             ...b,
+            status: isExpiredHold ? 'expired' : b.status,
             guest_name: b.guest_name || singleProfile?.full_name || 'Walk-in Client',
             profiles: singleProfile || null,
             courts: singleCourt || null,
@@ -928,6 +932,12 @@ export default function ScheduleClient({
               {calendarGridDays.map((dayObj) => {
                 const rawDayBookings = monthBookings[dayObj.dateStr] || [];
                 const dayBookings = rawDayBookings.filter((b) => {
+                  if (b.status === 'expired' || b.status === 'cancelled') {
+                    return false;
+                  }
+                  if (b.status === 'pending_payment' && b.expires_at && new Date(b.expires_at) <= new Date()) {
+                    return false;
+                  }
                   if (selectedCourtFilter !== 'all' && (b.court_id !== selectedCourtFilter && b.courts?.id !== selectedCourtFilter)) {
                     return false;
                   }

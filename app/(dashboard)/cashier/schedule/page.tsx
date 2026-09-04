@@ -98,6 +98,7 @@ export default async function CashierSchedulePage({ searchParams }: PageProps) {
   const formattedBookings: ScheduleBooking[] = rawBookings.map((b) => {
     const singleProfile = Array.isArray(b.profiles) ? b.profiles[0] : b.profiles;
     const singleCourt = Array.isArray(b.courts) ? b.courts[0] : b.courts;
+    const isExpiredHold = b.status === 'pending_payment' && b.expires_at && new Date(b.expires_at) <= new Date();
 
     return {
       id: b.id,
@@ -106,12 +107,13 @@ export default async function CashierSchedulePage({ searchParams }: PageProps) {
       end_time: b.end_time,
       duration_hours: b.duration_hours,
       total_price: b.total_price,
-      status: b.status,
+      status: isExpiredHold ? 'expired' : b.status,
       payment_method: b.payment_method,
       guest_name: b.guest_name || singleProfile?.full_name || 'Walk-in Client',
       guest_phone: b.guest_phone,
       guest_email: b.guest_email,
       notes: b.notes,
+      expires_at: b.expires_at,
       profiles: singleProfile || null,
       courts: singleCourt || null,
     };
