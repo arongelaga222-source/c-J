@@ -75,7 +75,7 @@ export default async function LoginPage({
             </div>
           </CardContent>
 
-          <CardFooter className="flex flex-col space-y-4 pt-2">
+          <CardFooter className="flex flex-col space-y-4 pt-7 pb-6 border-t-0 bg-transparent">
             <Button 
               type="submit" 
               className="w-full h-12 font-black bg-gradient-to-r from-red-600 via-red-500 to-amber-500 hover:from-red-700 hover:to-amber-600 text-white shadow-lg shadow-red-500/30 rounded-xl"
