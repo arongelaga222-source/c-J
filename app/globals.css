@@ -48,59 +48,34 @@
 }
 
 :root {
-  --background: #f8fafc; /* Crisp Stadium Light Canvas */
-  --foreground: #0f172a; /* Deep Slate Typography */
-  --card: #ffffff; /* Elevated Clean White Card */
-  --card-foreground: #0f172a;
-  --popover: #ffffff;
-  --popover-foreground: #0f172a;
-  --primary: #ea2e2e; /* C&J Signature Athletic Red */
-  --primary-foreground: #ffffff;
-  --secondary: #f1f5f9; /* Soft Slate */
-  --secondary-foreground: #0f172a;
-  --muted: #f1f5f9;
-  --muted-foreground: #64748b;
-  --accent: #d4ff00; /* Optic Pickleball Lime */
-  --accent-foreground: #0f1218;
-  --destructive: #ef4444;
-  --border: #e2e8f0;
-  --input: #cbd5e1;
-  --ring: #ea2e2e;
-  --chart-1: #ea2e2e;
-  --chart-2: #16a34a;
-  --chart-3: #0284c7;
-  --chart-4: #ca8a04;
-  --chart-5: #9333ea;
-  --radius: 0.875rem;
-  --sidebar: #ffffff;
-  --sidebar-foreground: #0f172a;
-  --sidebar-primary: #ea2e2e;
-  --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #f1f5f9;
-  --sidebar-accent-foreground: #0f172a;
-  --sidebar-border: #e2e8f0;
-  --sidebar-ring: #ea2e2e;
-}
-
-.dark {
-  --background: #0f1218; /* Deep Stadium Slate */
+  --background: #0f1218;
+  /* Deep Stadium Slate */
   --foreground: #f8fafc;
-  --card: #171b24; /* Elevated Court Charcoal */
+  --card: #171b24;
+  /* Elevated Court Charcoal */
   --card-foreground: #f8fafc;
   --popover: #171b24;
   --popover-foreground: #f8fafc;
-  --primary: #ea2e2e; /* C&J Signature Athletic Red */
+  --primary: #ea2e2e;
+  /* C&J Signature Athletic Red */
   --primary-foreground: #ffffff;
-  --secondary: #222836; /* Deep Ocean Slate */
+  --secondary: #222836;
+  /* Deep Ocean Slate */
   --secondary-foreground: #f8fafc;
   --muted: #1e2330;
   --muted-foreground: #94a3b8;
-  --accent: #d4ff00; /* Optic Pickleball Lime Yellow */
+  --accent: #d4ff00;
+  /* Optic Pickleball Lime Yellow */
   --accent-foreground: #0f1218;
   --destructive: #ef4444;
   --border: rgba(255, 255, 255, 0.1);
   --input: rgba(255, 255, 255, 0.12);
-  --ring: #d4ff00;
+  --ring: #ea2e2e;
+  --chart-1: #ea2e2e;
+  --chart-2: #d4ff00;
+  --chart-3: #10b981;
+  --chart-4: #38bdf8;
+  --chart-5: #f59e0b;
   --radius: 0.875rem;
   --sidebar: #12151d;
   --sidebar-foreground: #f8fafc;
@@ -112,16 +87,45 @@
   --sidebar-ring: #d4ff00;
 }
 
+.dark {
+  --background: #0f1218;
+  --foreground: #f8fafc;
+  --card: #171b24;
+  --card-foreground: #f8fafc;
+  --popover: #171b24;
+  --popover-foreground: #f8fafc;
+  --primary: #ea2e2e;
+  --primary-foreground: #ffffff;
+  --secondary: #222836;
+  --secondary-foreground: #f8fafc;
+  --muted: #1e2330;
+  --muted-foreground: #94a3b8;
+  --accent: #d4ff00;
+  --accent-foreground: #0f1218;
+  --destructive: #ef4444;
+  --border: rgba(255, 255, 255, 0.1);
+  --input: rgba(255, 255, 255, 0.12);
+  --ring: #d4ff00;
+  --radius: 0.875rem;
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
   }
+
   body {
-    background-color: var(--background);
-    color: var(--foreground);
-    @apply font-sans antialiased selection:bg-red-600 selection:text-white transition-colors duration-200;
+    background-color: #0f1218;
+    color: #f8fafc;
+    @apply font-sans antialiased selection:bg-red-600 selection:text-white;
   }
-  h1, h2, h3, h4, h5, h6 {
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
     font-family: var(--font-heading), var(--font-sans), sans-serif;
     letter-spacing: -0.02em;
   }
@@ -130,7 +134,7 @@
 /* Pickleball Custom Visual Patterns & Utilities */
 .pickleball-grid-pattern {
   background-size: 32px 32px;
-  background-image: 
+  background-image:
     linear-gradient(to right, rgba(255, 255, 255, 0.04) 1px, transparent 1px),
     linear-gradient(to bottom, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
 }
@@ -138,6 +142,7 @@
 .pickleball-court-lines {
   position: relative;
 }
+
 .pickleball-court-lines::before {
   content: "";
   position: absolute;
@@ -157,9 +162,12 @@
 
 /* Smooth Weightless Float Animation */
 @keyframes float-slow {
-  0%, 100% {
+
+  0%,
+  100% {
     transform: translateY(0px);
   }
+
   50% {
     transform: translateY(-8px);
   }
@@ -169,140 +177,21 @@
   animation: float-slow 4s ease-in-out infinite;
 }
 
-/* Custom Fine Scrollbar */
+/* Custom Fine Scrollbar on Dark Court Slate */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
+
 ::-webkit-scrollbar-track {
-  background: var(--background);
+  background: #0f1218;
 }
+
 ::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
+  background: #2b3244;
   border-radius: 9999px;
 }
+
 ::-webkit-scrollbar-thumb:hover {
   background: #ea2e2e;
 }
-
-.dark ::-webkit-scrollbar-track {
-  background: #0f1218;
-}
-.dark ::-webkit-scrollbar-thumb {
-  background: #2b3244;
-}
-.dark ::-webkit-scrollbar-thumb:hover {
-  background: #ea2e2e;
-}
-
-/* ========================================================================= */
-/* LIGHT MODE ADAPTER LAYER: Enables seamless light theme across all pages   */
-/* ========================================================================= */
-html:not(.dark) {
-  /* Body, main wrappers & public page backdrops */
-  .bg-\[\#0f1218\],
-  .bg-\[\#14161b\],
-  .bg-\[\#141622\],
-  .bg-\[\#0f1118\] {
-    background-color: #f8fafc !important;
-  }
-
-  /* Elevated cards, sidebars, headers & panels */
-  .bg-\[\#171b24\],
-  .bg-\[\#171b24\]\/90,
-  .bg-\[\#171b24\]\/85,
-  .bg-\[\#16181e\],
-  .bg-\[\#141822\],
-  .bg-\[\#141822\]\/80,
-  .bg-\[\#12141c\],
-  .bg-\[\#12141c\]\/95,
-  .bg-slate-900,
-  .bg-slate-900\/90,
-  .bg-slate-900\/80,
-  .bg-slate-900\/70,
-  .bg-slate-900\/60,
-  .bg-slate-950,
-  .bg-slate-950\/90,
-  .bg-slate-950\/80,
-  .bg-slate-950\/70,
-  .bg-slate-950\/60,
-  .bg-black\/60,
-  .bg-black\/40 {
-    background-color: #ffffff !important;
-  }
-
-  /* Muted & subtle accent containers */
-  .bg-slate-950\/40,
-  .bg-white\/5 {
-    background-color: #f1f5f9 !important;
-  }
-
-  /* Borders & Dividers */
-  .border-white\/10,
-  .border-white\/15,
-  .border-white\/20,
-  .border-white\/5,
-  .border-slate-800,
-  .border-slate-800\/80,
-  .border-slate-800\/50,
-  .border-slate-700 {
-    border-color: #e2e8f0 !important;
-  }
-
-  /* Primary Headings & Bold Text */
-  .text-slate-100,
-  .text-white:not([class*="bg-red"]):not([class*="from-red"]):not([class*="bg-emerald"]):not([class*="bg-amber"]):not([class*="badge"]):not(button):not(button *) {
-    color: #0f172a !important;
-  }
-
-  /* Secondary & Body Text */
-  .text-slate-200,
-  .text-slate-300 {
-    color: #334155 !important;
-  }
-
-  .text-slate-400 {
-    color: #64748b !important;
-  }
-
-  /* Card and Panel Shadows */
-  .shadow-2xl,
-  .shadow-xl {
-    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.03) !important;
-  }
-
-  /* Inputs & Form Controls */
-  input.bg-slate-950,
-  select.bg-slate-950,
-  input.bg-slate-900,
-  select.bg-slate-900,
-  textarea.bg-slate-950,
-  textarea.bg-slate-900 {
-    background-color: #ffffff !important;
-    color: #0f172a !important;
-    border-color: #cbd5e1 !important;
-  }
-
-  input.bg-slate-950::placeholder,
-  input.bg-slate-900::placeholder {
-    color: #94a3b8 !important;
-  }
-
-  /* Tables */
-  .bg-slate-950\/70,
-  .bg-slate-950\/60,
-  .bg-\[\#171b26\] {
-    background-color: #f8fafc !important;
-  }
-
-  tr:hover {
-    background-color: #f8fafc !important;
-  }
-
-  /* Court Grid Pattern in Light Mode */
-  .pickleball-grid-pattern {
-    background-image: 
-      linear-gradient(to right, rgba(0, 0, 0, 0.04) 1px, transparent 1px),
-      linear-gradient(to bottom, rgba(0, 0, 0, 0.04) 1px, transparent 1px) !important;
-  }
-}

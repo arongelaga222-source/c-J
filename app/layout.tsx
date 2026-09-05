@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { Plus_Jakarta_Sans, Outfit } from "next/font/google";
 import "./globals.css";
-import { ThemeProvider } from "@/components/theme-provider";
 
 const sans = Plus_Jakarta_Sans({
   variable: "--font-sans",
@@ -30,37 +29,11 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      suppressHydrationWarning
-      className={`${sans.variable} ${outfit.variable} h-full antialiased`}
+      className={`${sans.variable} ${outfit.variable} h-full antialiased dark`}
     >
-      <head>
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-              (function() {
-                try {
-                  var saved = localStorage.getItem('cj_theme');
-                  var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-                  var theme = saved || (prefersDark ? 'dark' : 'light');
-                  if (theme === 'dark') {
-                    document.documentElement.classList.add('dark');
-                    document.documentElement.classList.remove('light');
-                  } else {
-                    document.documentElement.classList.add('light');
-                    document.documentElement.classList.remove('dark');
-                  }
-                } catch (e) {}
-              })();
-            `,
-          }}
-        />
-      </head>
-      <body className="min-h-full flex flex-col font-sans bg-background text-foreground selection:bg-red-600 selection:text-white transition-colors duration-200">
-        <ThemeProvider>
-          {children}
-        </ThemeProvider>
+      <body className="min-h-full flex flex-col font-sans bg-[#14161b] text-slate-100 selection:bg-red-600 selection:text-white">
+        {children}
       </body>
     </html>
   );
 }
-
