@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { createClient } from "@/utils/supabase/server";
 import { logout } from "@/app/actions";
 import { BrandLogo } from "@/components/brand-logo";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { 
   ShoppingCart, 
   Calendar, 
@@ -31,9 +32,9 @@ export default async function DashboardLayout({ children }: { children: React.Re
   const isOwnerOrAdmin = userRole === "owner" || userRole === "admin";
 
   return (
-    <div className="min-h-screen flex bg-[#14161b] text-slate-100 font-sans">
-      {/* Sleek Dark Gray Sidebar */}
-      <aside className="w-64 bg-[#16181e] border-r border-white/10 flex flex-col justify-between shrink-0">
+    <div className="min-h-screen flex bg-background text-foreground font-sans transition-colors duration-200">
+      {/* Sleek Sidebar */}
+      <aside className="w-64 bg-card border-r border-border flex flex-col justify-between shrink-0 transition-colors duration-200">
         <div>
           {/* Brand Logo Header */}
           <div className="p-5 border-b border-slate-800 space-y-3">
@@ -115,13 +116,14 @@ export default async function DashboardLayout({ children }: { children: React.Re
           </nav>
         </div>
 
-        {/* Working Logout Action */}
-        <div className="p-4 border-t border-slate-800">
+        {/* Theme Toggle & Working Logout Action */}
+        <div className="p-4 border-t border-border space-y-2">
+          <ThemeToggle showLabel className="w-full justify-center" />
           <form action={logout}>
             <Button 
               variant="ghost" 
               type="submit" 
-              className="w-full justify-start text-slate-400 hover:text-red-400 hover:bg-red-950/30 rounded-xl font-bold text-xs"
+              className="w-full justify-start text-muted-foreground hover:text-red-500 hover:bg-red-500/10 rounded-xl font-bold text-xs cursor-pointer"
             >
               <LogOut className="h-4 w-4 mr-2" />
               Sign Out
@@ -131,7 +133,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
       </aside>
 
       {/* Main Terminal Content */}
-      <main className="flex-1 overflow-auto bg-[#14161b]">
+      <main className="flex-1 overflow-auto bg-background transition-colors duration-200">
         {children}
       </main>
     </div>

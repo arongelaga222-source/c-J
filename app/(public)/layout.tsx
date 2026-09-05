@@ -4,6 +4,7 @@ import { createClient } from "@/utils/supabase/server";
 import { logout } from "@/app/actions";
 import { BrandLogo } from "@/components/brand-logo";
 import { ReserveCourtModal } from "@/components/reserve-court-modal";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { 
   MapPin, 
   Clock, 
@@ -13,11 +14,11 @@ import {
   Flame, 
   Sparkles, 
   Trophy, 
-  Calendar,
-  Activity,
-  ShieldCheck,
-  Zap,
-  ArrowRight
+  Calendar, 
+  Activity, 
+  ShieldCheck, 
+  Zap, 
+  ArrowRight 
 } from "lucide-react";
 
 export default async function PublicLayout({ children }: { children: React.ReactNode }) {
@@ -35,15 +36,15 @@ export default async function PublicLayout({ children }: { children: React.React
   }
 
   return (
-    <div className="min-h-screen bg-[#0f1218] text-slate-100 flex flex-col font-sans selection:bg-red-600 selection:text-white">
+    <div className="min-h-screen bg-background text-foreground flex flex-col font-sans selection:bg-red-600 selection:text-white transition-colors duration-200">
       {/* Background Stadium Court Atmosphere */}
       <div className="fixed inset-0 pointer-events-none -z-10 overflow-hidden">
         <div 
-          className="absolute inset-0 bg-cover bg-center bg-no-repeat scale-105 transform-gpu opacity-15 filter contrast-125 saturate-125 brightness-90"
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat scale-105 transform-gpu opacity-15 dark:opacity-15 filter contrast-125 saturate-125 brightness-90"
           style={{ backgroundImage: "url('/cj-court-bg.jpg')" }}
         />
-        {/* Dark Stadium Vignette & Glows */}
-        <div className="absolute inset-0 bg-gradient-to-b from-[#0f1218]/90 via-[#0f1218]/80 to-[#0f1218]/98" />
+        {/* Stadium Vignette & Glows */}
+        <div className="absolute inset-0 bg-gradient-to-b from-background/90 via-background/80 to-background/98" />
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-7xl h-[650px] bg-gradient-to-b from-red-600/15 via-[#d4ff00]/5 to-transparent blur-3xl pointer-events-none" />
         <div className="absolute top-1/4 right-[-100px] w-[500px] h-[500px] bg-red-600/10 blur-[150px] rounded-full pointer-events-none" />
         <div className="absolute bottom-1/4 left-[-100px] w-[500px] h-[500px] bg-[#d4ff00]/10 blur-[150px] rounded-full pointer-events-none" />
@@ -73,7 +74,7 @@ export default async function PublicLayout({ children }: { children: React.React
       </div>
 
       {/* Glassmorphism Header */}
-      <header className="border-b border-white/10 bg-[#171b24]/85 backdrop-blur-xl px-4 sm:px-8 py-3 flex items-center justify-between sticky top-0 z-50 shadow-md shadow-black/20">
+      <header className="border-b border-border bg-card/85 backdrop-blur-xl px-4 sm:px-8 py-3 flex items-center justify-between sticky top-0 z-50 shadow-md shadow-black/5 dark:shadow-black/20 transition-colors duration-200">
         <div className="flex items-center space-x-8">
           {/* Logo unchanged */}
           <Link href="/" className="flex items-center group">
@@ -83,7 +84,7 @@ export default async function PublicLayout({ children }: { children: React.React
           <nav className="hidden lg:flex items-center space-x-1">
             <Link
               href="/"
-              className="px-3.5 py-2 rounded-xl text-xs font-bold uppercase tracking-wider text-slate-300 hover:text-white hover:bg-white/5 transition-all"
+              className="px-3.5 py-2 rounded-xl text-xs font-bold uppercase tracking-wider text-muted-foreground hover:text-foreground hover:bg-muted transition-all"
             >
               Arena Home
             </Link>
@@ -91,14 +92,14 @@ export default async function PublicLayout({ children }: { children: React.React
               href="/book"
               className="px-3.5 py-2 rounded-xl text-xs font-bold uppercase tracking-wider text-white bg-gradient-to-r from-red-600/20 to-amber-500/20 border border-red-500/30 hover:border-red-500/60 transition-all flex items-center gap-2 shadow-sm"
             >
-              <span>Book Court</span>
+              <span className="text-foreground font-bold">Book Court</span>
               <span className="px-1.5 py-0.5 text-[9px] font-black bg-[#d4ff00] text-slate-950 rounded-md">
                 ₱300/HR
               </span>
             </Link>
             <Link
               href="/pricing"
-              className="px-3.5 py-2 rounded-xl text-xs font-bold uppercase tracking-wider text-slate-300 hover:text-white hover:bg-white/5 transition-all"
+              className="px-3.5 py-2 rounded-xl text-xs font-bold uppercase tracking-wider text-muted-foreground hover:text-foreground hover:bg-muted transition-all"
             >
               Rates &amp; Gear
             </Link>
@@ -107,10 +108,13 @@ export default async function PublicLayout({ children }: { children: React.React
 
         {/* Header Right Actions */}
         <div className="flex items-center space-x-3">
+          {/* Theme Toggle Button */}
+          <ThemeToggle />
+
           {/* Quick Court Status Badge */}
-          <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-900/80 border border-white/10 text-xs text-slate-300">
+          <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-card border border-border text-xs text-muted-foreground">
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-            <span className="font-bold text-[11px] text-white">Courts 1 &amp; 2 Active</span>
+            <span className="font-bold text-[11px] text-foreground">Courts 1 &amp; 2 Active</span>
           </div>
 
           {user ? (
