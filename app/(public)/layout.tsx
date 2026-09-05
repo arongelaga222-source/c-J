@@ -4,6 +4,7 @@ import { createClient } from "@/utils/supabase/server";
 import { logout } from "@/app/actions";
 import { BrandLogo } from "@/components/brand-logo";
 import { ReserveCourtModal } from "@/components/reserve-court-modal";
+import { PublicMobileNav } from "@/components/public-mobile-nav";
 import {
   MapPin,
   Clock,
@@ -106,7 +107,7 @@ export default async function PublicLayout({ children }: { children: React.React
         </div>
 
         {/* Header Right Actions */}
-        <div className="flex items-center space-x-3">
+        <div className="flex items-center space-x-2 sm:space-x-3">
           {/* Quick Court Status Badge */}
           <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-900/80 border border-white/10 text-xs text-slate-300">
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
@@ -114,28 +115,28 @@ export default async function PublicLayout({ children }: { children: React.React
           </div>
 
           {user ? (
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 sm:gap-2">
               {userRole === "admin" || userRole === "owner" ? (
                 <Link href="/admin">
-                  <Button size="sm" className="bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-black shadow-md rounded-xl text-xs">
-                    Admin Center
+                  <Button size="sm" className="bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 font-black shadow-md rounded-xl text-[11px] sm:text-xs px-2.5 sm:px-3">
+                    Admin
                   </Button>
                 </Link>
               ) : userRole === "cashier" ? (
                 <Link href="/cashier">
-                  <Button size="sm" className="bg-gradient-to-r from-red-600 to-amber-500 hover:from-red-700 hover:to-amber-600 text-white font-black shadow-md rounded-xl text-xs">
-                    POS Terminal
+                  <Button size="sm" className="bg-gradient-to-r from-red-600 to-amber-500 text-white font-black shadow-md rounded-xl text-[11px] sm:text-xs px-2.5 sm:px-3">
+                    POS
                   </Button>
                 </Link>
               ) : (
                 <Link href="/dashboard">
-                  <Button size="sm" variant="outline" className="border-red-500/40 text-red-400 hover:bg-red-950/50 rounded-xl font-bold text-xs">
+                  <Button size="sm" variant="outline" className="border-red-500/40 text-red-400 hover:bg-red-950/50 rounded-xl font-bold text-[11px] sm:text-xs px-2.5 sm:px-3">
                     My Bookings
                   </Button>
                 </Link>
               )}
 
-              <form action={logout}>
+              <form action={logout} className="hidden sm:block">
                 <Button
                   variant="ghost"
                   size="sm"
@@ -147,13 +148,13 @@ export default async function PublicLayout({ children }: { children: React.React
               </form>
             </div>
           ) : (
-            <div className="flex items-center gap-2">
-              <Link href="/login">
+            <div className="flex items-center gap-1.5 sm:gap-2">
+              <Link href="/login" className="hidden sm:inline-block">
                 <Button variant="ghost" size="sm" className="text-slate-300 hover:text-white hover:bg-white/5 rounded-xl font-bold text-xs">
                   Sign In
                 </Button>
               </Link>
-              <Link href="/signup">
+              <Link href="/signup" className="hidden md:inline-block">
                 <Button size="sm" variant="outline" className="border-[#d4ff00]/40 text-[#d4ff00] hover:bg-[#d4ff00]/10 hover:border-[#d4ff00] rounded-xl font-bold text-xs transition-colors">
                   Sign Up
                 </Button>
@@ -162,10 +163,13 @@ export default async function PublicLayout({ children }: { children: React.React
                 isLoggedIn={!!user}
                 buttonText="Book Court"
                 triggerSize="sm"
-                triggerClassName="bg-gradient-to-r from-red-600 via-red-500 to-amber-500 hover:from-red-700 hover:to-amber-600 text-white font-black shadow-lg shadow-red-600/30 rounded-xl px-4 text-xs"
+                triggerClassName="bg-gradient-to-r from-red-600 via-red-500 to-amber-500 hover:from-red-700 hover:to-amber-600 text-white font-black shadow-lg shadow-red-600/30 rounded-xl px-2.5 sm:px-4 text-[11px] sm:text-xs"
               />
             </div>
           )}
+
+          {/* Mobile Drawer Trigger */}
+          <PublicMobileNav userRole={userRole} isLoggedIn={!!user} />
         </div>
       </header>
 

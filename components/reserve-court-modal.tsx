@@ -79,7 +79,7 @@ export function ReserveCourtModal({
           />
 
           {/* Dialog Container */}
-          <div className="relative w-full max-w-md bg-[#171b24] border border-white/15 rounded-3xl p-6 sm:p-8 shadow-2xl shadow-black/60 z-10 text-slate-100 animate-in zoom-in-95 duration-200">
+          <div className="relative w-full max-w-md max-h-[90vh] overflow-y-auto bg-[#171b24] border border-white/15 rounded-3xl p-5 sm:p-8 shadow-2xl shadow-black/60 z-10 text-slate-100 animate-in zoom-in-95 duration-200">
             {/* Close Button */}
             <button
               onClick={() => setIsOpen(false)}

@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { createClient } from "@/utils/supabase/server";
 import { logout } from "@/app/actions";
 import { BrandLogo } from "@/components/brand-logo";
+import { DashboardMobileNav } from "@/components/dashboard-mobile-nav";
 import {
   ShoppingCart,
   Calendar,
@@ -31,9 +32,16 @@ export default async function DashboardLayout({ children }: { children: React.Re
   const isOwnerOrAdmin = userRole === "owner" || userRole === "admin";
 
   return (
-    <div className="min-h-screen flex bg-[#14161b] text-slate-100 font-sans">
+    <div className="min-h-screen flex flex-col md:flex-row bg-[#14161b] text-slate-100 font-sans">
+      {/* Mobile Top Navigation Bar */}
+      <DashboardMobileNav
+        userRole={userRole}
+        userName={profile?.full_name || user.email || "Staff"}
+        isOwnerOrAdmin={isOwnerOrAdmin}
+      />
+
       {/* Sleek Dark Gray Sidebar */}
-      <aside className="w-64 bg-[#16181e] border-r border-white/10 flex flex-col justify-between shrink-0">
+      <aside className="hidden md:flex w-64 bg-[#16181e] border-r border-white/10 flex-col justify-between shrink-0">
         <div>
           {/* Brand Logo Header */}
           <div className="p-5 border-b border-slate-800 space-y-3">

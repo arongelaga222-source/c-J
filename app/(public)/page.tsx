@@ -133,13 +133,13 @@ export default async function LandingPage() {
           </div>
 
           {/* Athletic Scoreboard Badge */}
-          <div className="inline-flex items-center gap-2.5 rounded-full border border-[#d4ff00]/30 bg-[#d4ff00]/10 px-4 py-1.5 text-xs font-black text-[#d4ff00] backdrop-blur-md shadow-sm">
-            <Flame className="w-4 h-4 text-red-500 animate-pulse" />
-            <span className="tracking-wide uppercase">0-0-2 Ready to Serve • Metro Manila&apos;s Premier Indoor Arena</span>
+          <div className="inline-flex items-center gap-2 rounded-full border border-[#d4ff00]/30 bg-[#d4ff00]/10 px-3 sm:px-4 py-1.5 text-[11px] sm:text-xs font-black text-[#d4ff00] backdrop-blur-md shadow-sm max-w-full">
+            <Flame className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-red-500 animate-pulse shrink-0" />
+            <span className="tracking-wide uppercase truncate sm:whitespace-normal">0-0-2 Ready to Serve • Metro Manila&apos;s Premier Arena</span>
           </div>
 
           {/* Kinetic Headline */}
-          <h1 className="text-4xl sm:text-6xl md:text-7xl font-black tracking-tight leading-[1.08] text-white">
+          <h1 className="text-3xl sm:text-6xl md:text-7xl font-black tracking-tight leading-[1.08] text-white">
             Play Hard. Dink Fast. <br />
             <span className="bg-gradient-to-r from-red-500 via-amber-400 to-[#d4ff00] bg-clip-text text-transparent">
               Dominate C&amp;J Courts.
@@ -147,24 +147,24 @@ export default async function LandingPage() {
           </h1>
 
           {/* Subtitle */}
-          <p className="text-base md:text-xl text-slate-300 max-w-2xl mx-auto leading-relaxed">
+          <p className="text-sm sm:text-base md:text-xl text-slate-300 max-w-2xl mx-auto leading-relaxed px-2">
             Two official tournament-grade indoor cushioned courts in Quezon City. 
             Fixed <span className="text-[#d4ff00] font-black">₱300/hr</span> flat rate, air-conditioned player lounge, and instant PayMongo reservation.
           </p>
 
           {/* Main Action CTAs */}
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-2">
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 pt-2">
             <ReserveCourtModal
               isLoggedIn={!!user}
               buttonText="Reserve Court (₱300 / hr)"
               triggerSize="lg"
-              triggerClassName="w-full sm:w-auto px-9 h-14 text-base font-black bg-gradient-to-r from-red-600 via-red-500 to-amber-500 hover:from-red-700 hover:to-amber-600 text-white shadow-xl shadow-red-600/30 rounded-2xl transition-all hover:scale-[1.02] flex items-center justify-center gap-2"
+              triggerClassName="w-full sm:w-auto px-6 sm:px-9 h-12 sm:h-14 text-sm sm:text-base font-black bg-gradient-to-r from-red-600 via-red-500 to-amber-500 hover:from-red-700 hover:to-amber-600 text-white shadow-xl shadow-red-600/30 rounded-2xl transition-all hover:scale-[1.02] flex items-center justify-center gap-2"
             />
             <Link href="/pricing" className="w-full sm:w-auto">
               <Button 
                 size="lg" 
                 variant="outline" 
-                className="w-full sm:w-auto px-8 h-14 text-base font-bold border-white/20 hover:bg-white/10 text-slate-200 rounded-2xl backdrop-blur-md"
+                className="w-full sm:w-auto px-6 sm:px-8 h-12 sm:h-14 text-sm sm:text-base font-bold border-white/20 hover:bg-white/10 text-slate-200 rounded-2xl backdrop-blur-md"
               >
                 View Rates &amp; Rentals
               </Button>
@@ -186,8 +186,8 @@ export default async function LandingPage() {
                 <div className="absolute inset-0 bg-gradient-to-r from-[#0f1218]/70 via-transparent to-[#0f1218]/70" />
 
                 {/* Floating Arena Badges */}
-                <div className="absolute top-3 left-3 sm:top-4 sm:left-4 flex flex-wrap gap-2">
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-black bg-[#0f1218]/90 backdrop-blur-md text-[#d4ff00] border border-[#d4ff00]/30 shadow-lg">
+                <div className="absolute top-2.5 left-2.5 sm:top-4 sm:left-4 flex flex-wrap gap-2 z-10">
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-full text-[10px] sm:text-xs font-black bg-[#0f1218]/90 backdrop-blur-md text-[#d4ff00] border border-[#d4ff00]/30 shadow-lg">
                     <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
                     Tomas Morato, QC • Live Booking
                   </span>
@@ -196,15 +196,15 @@ export default async function LandingPage() {
                   </span>
                 </div>
 
-                <div className="absolute bottom-3 left-3 right-3 sm:bottom-4 sm:left-4 sm:right-4 flex items-center justify-between">
+                <div className="absolute bottom-2.5 left-2.5 right-2.5 sm:bottom-4 sm:left-4 sm:right-4 flex items-end justify-between gap-2 z-10">
                   <div className="text-left">
-                    <p className="text-xs sm:text-sm font-black text-white drop-shadow-md flex items-center gap-2">
-                      <span>Tournament 8mm Cushioned Floor</span>
-                      <span className="text-[#d4ff00]">•</span>
-                      <span>850-Lux LED Floodlights</span>
+                    <p className="text-[11px] sm:text-sm font-black text-white drop-shadow-md flex flex-wrap items-center gap-1 sm:gap-2">
+                      <span>Tournament 8mm Floor</span>
+                      <span className="text-[#d4ff00] hidden sm:inline">•</span>
+                      <span className="hidden sm:inline">850-Lux LED Floodlights</span>
                     </p>
-                    <p className="text-[10px] sm:text-xs text-slate-300 drop-shadow">
-                      Official 20&apos; × 44&apos; USAP Specification True-Bounce Surface
+                    <p className="text-[9px] sm:text-xs text-slate-300 drop-shadow line-clamp-1">
+                      Official 20&apos; × 44&apos; USAP Specification Surface
                     </p>
                   </div>
                   <Link href="/book">

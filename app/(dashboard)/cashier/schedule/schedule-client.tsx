@@ -582,26 +582,28 @@ export default function ScheduleClient({
             <button
               type="button"
               onClick={() => setViewMode('month_grid')}
-              className={`px-3 py-1.5 rounded-xl text-xs font-black flex items-center gap-1.5 transition-all ${
+              className={`px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-black flex items-center gap-1.5 transition-all ${
                 viewMode === 'month_grid'
                   ? 'bg-gradient-to-r from-red-600 via-red-500 to-amber-500 text-white shadow-md'
                   : 'text-slate-400 hover:text-white'
               }`}
             >
-              <LayoutGrid className="w-3.5 h-3.5" />
-              <span>Calendar Grid (Client Names)</span>
+              <LayoutGrid className="w-3.5 h-3.5 shrink-0" />
+              <span className="hidden sm:inline">Calendar Grid (Clients)</span>
+              <span className="sm:hidden">Grid</span>
             </button>
             <button
               type="button"
               onClick={() => setViewMode('timeline')}
-              className={`px-3 py-1.5 rounded-xl text-xs font-black flex items-center gap-1.5 transition-all ${
+              className={`px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-black flex items-center gap-1.5 transition-all ${
                 viewMode === 'timeline'
                   ? 'bg-gradient-to-r from-red-600 via-red-500 to-amber-500 text-white shadow-md'
                   : 'text-slate-400 hover:text-white'
               }`}
             >
-              <ListTodo className="w-3.5 h-3.5" />
-              <span>Day Timeline</span>
+              <ListTodo className="w-3.5 h-3.5 shrink-0" />
+              <span className="hidden sm:inline">Day Timeline</span>
+              <span className="sm:hidden">Timeline</span>
             </button>
           </div>
 

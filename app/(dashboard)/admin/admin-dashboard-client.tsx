@@ -176,15 +176,15 @@ export default function AdminDashboardClient({
   const cashPercent = 100 - paymongoPercent;
 
   return (
-    <div className="p-8 max-w-7xl mx-auto space-y-8 text-slate-100 font-sans">
+    <div className="p-4 sm:p-8 max-w-7xl mx-auto space-y-6 sm:space-y-8 text-slate-100 font-sans">
       {/* Header & Staff Account Provisioning */}
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border-b border-slate-800 pb-6">
         <div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <span className="px-2.5 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider bg-red-500/20 text-red-400 border border-red-500/30">
               Executive Owner
             </span>
-            <h1 className="text-3xl font-black text-white">C&amp;J Court Financial &amp; Operations Center</h1>
+            <h1 className="text-xl sm:text-3xl font-black text-white">C&amp;J Court Financial &amp; Operations Center</h1>
           </div>
           <p className="text-xs text-slate-400 mt-1">
             Real-time revenue metrics, occupancy utilization, PayMongo channel analytics, and master booking audit.
@@ -503,7 +503,7 @@ export default function AdminDashboardClient({
           </div>
         </CardHeader>
 
-        <CardContent className="p-0">
+        <CardContent className="p-0 overflow-x-auto">
           <Table>
             <TableHeader className="bg-slate-950/70 border-b border-slate-800">
               <TableRow className="border-slate-800">

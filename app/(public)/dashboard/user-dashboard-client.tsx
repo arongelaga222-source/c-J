@@ -138,73 +138,73 @@ export default function UserDashboardClient({
     <div className="max-w-6xl mx-auto w-full px-4 py-10 space-y-8 font-sans text-slate-100 bg-[#0f1218]">
       
       {/* Profile Header Card with Court Backdrop */}
-      <div className="relative overflow-hidden flex flex-col md:flex-row items-start md:items-center justify-between gap-6 p-6 sm:p-8 rounded-3xl border border-white/10 bg-[#171b24]/90 backdrop-blur-xl shadow-2xl">
+      <div className="relative overflow-hidden flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 sm:gap-6 p-4 sm:p-8 rounded-3xl border border-white/10 bg-[#171b24]/90 backdrop-blur-xl shadow-2xl">
         <div 
           className="absolute inset-0 bg-cover bg-center opacity-15 filter contrast-125 saturate-125 -z-10"
           style={{ backgroundImage: "url('/cj-court-bg.jpg')" }}
         />
         <div className="absolute inset-0 bg-gradient-to-r from-[#171b24] via-[#171b24]/90 to-red-950/40 -z-10" />
 
-        <div className="flex items-center space-x-4 relative z-10">
-          <Avatar className="h-16 w-16 border-2 border-[#d4ff00] shadow-xl shadow-[#d4ff00]/20">
-            <AvatarFallback className="bg-gradient-to-tr from-red-600 via-red-500 to-amber-400 text-white font-black text-xl">
+        <div className="flex items-center space-x-3 sm:space-x-4 relative z-10">
+          <Avatar className="h-12 w-12 sm:h-16 sm:w-16 border-2 border-[#d4ff00] shadow-xl shadow-[#d4ff00]/20 shrink-0">
+            <AvatarFallback className="bg-gradient-to-tr from-red-600 via-red-500 to-amber-400 text-white font-black text-base sm:text-xl">
               {initials}
             </AvatarFallback>
           </Avatar>
-          <div className="space-y-1">
-            <div className="flex items-center gap-2">
-              <h1 className="text-2xl md:text-3xl font-black text-white">{firstName}&apos;s Player Pass</h1>
-              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase bg-[#d4ff00]/20 text-[#d4ff00] border border-[#d4ff00]/30 shadow-sm">
+          <div className="space-y-0.5 sm:space-y-1 min-w-0">
+            <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+              <h1 className="text-lg sm:text-2xl md:text-3xl font-black text-white truncate">{firstName}&apos;s Player Pass</h1>
+              <span className="px-2 py-0.5 rounded-full text-[9px] sm:text-[10px] font-black uppercase bg-[#d4ff00]/20 text-[#d4ff00] border border-[#d4ff00]/30 shadow-sm">
                 C&amp;J Player
               </span>
             </div>
-            <p className="text-xs text-slate-400 flex items-center gap-2">
+            <p className="text-[11px] sm:text-xs text-slate-400 flex flex-wrap items-center gap-1.5">
               <span>🏟️ Tomas Morato Arena</span>
-              <span>•</span>
+              <span className="hidden sm:inline">•</span>
               <span>Member since {profile?.created_at ? formatMemberSince(profile.created_at) : 'recently'}</span>
             </p>
           </div>
         </div>
         <Link href="/book" className="relative z-10 w-full sm:w-auto">
-          <Button className="w-full sm:w-auto bg-gradient-to-r from-red-600 via-red-500 to-amber-500 hover:from-red-700 hover:to-amber-600 text-white font-black px-6 h-11 shadow-lg shadow-red-500/20 rounded-xl">
+          <Button className="w-full sm:w-auto bg-gradient-to-r from-red-600 via-red-500 to-amber-500 hover:from-red-700 hover:to-amber-600 text-white font-black px-5 sm:px-6 h-10 sm:h-11 shadow-lg shadow-red-500/20 rounded-xl text-xs sm:text-sm">
             <Plus className="w-4 h-4 mr-1.5" /> Book a Court (₱300/hr)
           </Button>
         </Link>
       </div>
 
       {/* Quick Player Stats Matrix */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="p-4 rounded-2xl bg-[#171b24] border border-white/10 space-y-1">
-          <div className="flex items-center justify-between text-slate-400 text-xs font-bold">
-            <span>Upcoming Matches</span>
-            <Trophy className="w-4 h-4 text-[#d4ff00]" />
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+        <div className="p-3.5 sm:p-4 rounded-2xl bg-[#171b24] border border-white/10 space-y-1">
+          <div className="flex items-center justify-between text-slate-400 text-[11px] sm:text-xs font-bold">
+            <span>Upcoming</span>
+            <Trophy className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#d4ff00]" />
           </div>
-          <p className="text-2xl font-black text-white">{upcomingBookings.length}</p>
-          <p className="text-[10px] text-slate-400">Scheduled court sessions</p>
+          <p className="text-xl sm:text-2xl font-black text-white">{upcomingBookings.length}</p>
+          <p className="text-[9px] sm:text-[10px] text-slate-400">Scheduled sessions</p>
         </div>
-        <div className="p-4 rounded-2xl bg-[#171b24] border border-white/10 space-y-1">
-          <div className="flex items-center justify-between text-slate-400 text-xs font-bold">
-            <span>Court Hours Logged</span>
-            <Clock className="w-4 h-4 text-amber-400" />
+        <div className="p-3.5 sm:p-4 rounded-2xl bg-[#171b24] border border-white/10 space-y-1">
+          <div className="flex items-center justify-between text-slate-400 text-[11px] sm:text-xs font-bold">
+            <span>Court Hours</span>
+            <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-400" />
           </div>
-          <p className="text-2xl font-black text-[#d4ff00]">{totalHoursPlayed} hrs</p>
-          <p className="text-[10px] text-slate-400">Lifetime play on court</p>
+          <p className="text-xl sm:text-2xl font-black text-[#d4ff00]">{totalHoursPlayed} hrs</p>
+          <p className="text-[9px] sm:text-[10px] text-slate-400">Lifetime play</p>
         </div>
-        <div className="p-4 rounded-2xl bg-[#171b24] border border-white/10 space-y-1">
-          <div className="flex items-center justify-between text-slate-400 text-xs font-bold">
-            <span>Arena Surface</span>
-            <Activity className="w-4 h-4 text-emerald-400" />
+        <div className="p-3.5 sm:p-4 rounded-2xl bg-[#171b24] border border-white/10 space-y-1">
+          <div className="flex items-center justify-between text-slate-400 text-[11px] sm:text-xs font-bold">
+            <span>Surface</span>
+            <Activity className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-400" />
           </div>
-          <p className="text-sm font-black text-white pt-1">8mm Poly Cushion</p>
-          <p className="text-[10px] text-slate-400">Knee &amp; ankle protection</p>
+          <p className="text-xs sm:text-sm font-black text-white pt-1">8mm Cushion</p>
+          <p className="text-[9px] sm:text-[10px] text-slate-400">Knee protection</p>
         </div>
-        <div className="p-4 rounded-2xl bg-[#171b24] border border-white/10 space-y-1">
-          <div className="flex items-center justify-between text-slate-400 text-xs font-bold">
-            <span>DUPR Tier Status</span>
-            <Award className="w-4 h-4 text-red-400" />
+        <div className="p-3.5 sm:p-4 rounded-2xl bg-[#171b24] border border-white/10 space-y-1">
+          <div className="flex items-center justify-between text-slate-400 text-[11px] sm:text-xs font-bold">
+            <span>DUPR Tier</span>
+            <Award className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-red-400" />
           </div>
-          <p className="text-sm font-black text-white pt-1">All Skill Levels</p>
-          <p className="text-[10px] text-slate-400">Casual to 4.5+ Shootouts</p>
+          <p className="text-xs sm:text-sm font-black text-white pt-1">All Levels</p>
+          <p className="text-[9px] sm:text-[10px] text-slate-400">Casual &amp; Shootouts</p>
         </div>
       </div>
 

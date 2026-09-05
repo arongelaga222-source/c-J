@@ -97,14 +97,14 @@ export default function CashierClient({
   };
 
   return (
-    <div className="p-6 h-[calc(100vh)] flex flex-col bg-slate-950 text-slate-100 font-sans">
+    <div className="p-4 sm:p-6 min-h-screen lg:h-screen flex flex-col bg-slate-950 text-slate-100 font-sans">
       
       {/* Header & Search */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4 sm:mb-6">
         <div>
           <div className="flex items-center gap-2">
             <span className="w-2.5 h-2.5 rounded-full bg-red-500 animate-ping" />
-            <h1 className="text-2xl sm:text-3xl font-black text-white">C&amp;J&apos;s POS Terminal</h1>
+            <h1 className="text-xl sm:text-3xl font-black text-white">C&amp;J&apos;s POS Terminal</h1>
           </div>
           <p className="text-xs text-slate-400 mt-0.5">Pro shop equipment, paddle rentals, cold beverages, and walk-in court fees.</p>
         </div>
@@ -116,7 +116,7 @@ export default function CashierClient({
             placeholder="Search items or gear..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-9 bg-slate-900 border-slate-800 text-slate-100 placeholder:text-slate-500 rounded-xl focus-visible:ring-red-500"
+            className="pl-9 bg-slate-900 border-slate-800 text-slate-100 placeholder:text-slate-500 rounded-xl focus-visible:ring-red-500 text-xs"
           />
         </div>
       </div>
@@ -125,10 +125,10 @@ export default function CashierClient({
       <div className="flex-1 flex flex-col lg:flex-row gap-6 min-h-0">
         
         {/* Left Column: Product Catalog */}
-        <div className="flex-1 flex flex-col bg-slate-900/70 border border-slate-800 rounded-3xl p-5 overflow-hidden backdrop-blur-md">
+        <div className="flex-1 flex flex-col bg-slate-900/70 border border-slate-800 rounded-3xl p-4 sm:p-5 overflow-hidden backdrop-blur-md">
           
           {/* Category Filter Chips */}
-          <div className="flex items-center gap-2 overflow-x-auto pb-3 mb-4 scrollbar-none">
+          <div className="flex items-center gap-2 overflow-x-auto pb-3 mb-3 scrollbar-none">
             {categories.map((cat) => (
               <button
                 key={cat}
@@ -147,7 +147,7 @@ export default function CashierClient({
 
           {/* Product Cards Grid */}
           <div className="flex-1 overflow-y-auto pr-1">
-            <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3.5">
+            <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3">
               {filteredProducts.map((product) => {
                 const inCart = cart.find((item) => item.id === product.id);
                 return (
@@ -160,7 +160,7 @@ export default function CashierClient({
                         : "border-slate-800 bg-slate-900/90 hover:border-amber-400/60 hover:bg-slate-800/80"
                     }`}
                   >
-                    <CardContent className="p-4 flex flex-col justify-between h-36">
+                    <CardContent className="p-3 sm:p-4 flex flex-col justify-between min-h-[140px] space-y-2">
                       <div className="space-y-1">
                         <span className="text-[10px] font-black uppercase tracking-wider text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20 inline-block">
                           {product.category}

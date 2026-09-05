@@ -396,16 +396,16 @@ export default function BookPage() {
         </div>
 
         {/* 3 Steps Progress In-Line Badge */}
-        <div className="flex items-center gap-2 text-xs font-bold text-slate-300">
-          <span className={`px-2.5 py-1 rounded-lg border ${selectedDate ? 'bg-[#d4ff00]/20 text-[#d4ff00] border-[#d4ff00]/40' : 'bg-slate-900 border-white/10'}`}>
+        <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 text-[11px] sm:text-xs font-bold text-slate-300">
+          <span className={`px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-lg border ${selectedDate ? 'bg-[#d4ff00]/20 text-[#d4ff00] border-[#d4ff00]/40' : 'bg-slate-900 border-white/10'}`}>
             1. Date &amp; Court
           </span>
           <span className="text-slate-600">→</span>
-          <span className={`px-2.5 py-1 rounded-lg border ${selectedSlot ? 'bg-amber-500/20 text-amber-300 border-amber-500/40' : 'bg-slate-900 border-white/10'}`}>
+          <span className={`px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-lg border ${selectedSlot ? 'bg-amber-500/20 text-amber-300 border-amber-500/40' : 'bg-slate-900 border-white/10'}`}>
             2. Time Slot
           </span>
-          <span className="text-slate-600">→</span>
-          <span className={`px-2.5 py-1 rounded-lg border ${selectedSlot ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40' : 'bg-slate-900 border-white/10'}`}>
+          <span className="text-slate-600 hidden sm:inline">→</span>
+          <span className={`px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-lg border ${selectedSlot ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40' : 'bg-slate-900 border-white/10'}`}>
             3. PayMongo Lock
           </span>
         </div>
