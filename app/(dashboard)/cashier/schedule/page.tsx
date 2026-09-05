@@ -56,11 +56,10 @@ export default async function CashierSchedulePage({ searchParams }: PageProps) {
   const resolvedParams = searchParams ? await searchParams : {};
   const requestedDate = resolvedParams?.date;
 
-  const today = new Date();
-  const yyyy = today.getFullYear();
-  const mm = String(today.getMonth() + 1).padStart(2, '0');
-  const dd = String(today.getDate()).padStart(2, '0');
-  const todayStr = `${yyyy}-${mm}-${dd}`;
+  // Resolve current date in Philippine Time (UTC+8)
+  const nowUtc = new Date();
+  const phDate = new Date(nowUtc.getTime() + 8 * 3600 * 1000);
+  const todayStr = phDate.toISOString().split('T')[0];
 
   const targetDateStr =
     requestedDate && /^\d{4}-\d{2}-\d{2}$/.test(requestedDate) ? requestedDate : todayStr;

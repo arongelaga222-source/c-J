@@ -538,6 +538,27 @@ export async function createWalkInBooking(formData: FormData): Promise<void> {
   const startTime = new Date(`${dateStr}T${hour.toString().padStart(2, '0')}:00:00.000+08:00`);
   const endTime = new Date(startTime.getTime() + duration * 60 * 60 * 1000);
 
+  // Check for conflicting active bookings (Availability check domain rule)
+  const nowUtc = new Date();
+  const { data: overlappingBookings } = await supabase
+    .from('bookings')
+    .select('id, status, expires_at')
+    .eq('court_id', courtId)
+    .in('status', ['paid', 'checked_in', 'walk_in', 'pending_payment'])
+    .lt('start_time', endTime.toISOString())
+    .gt('end_time', startTime.toISOString());
+
+  const activeConflict = (overlappingBookings || []).find((b) => {
+    if (b.status === 'pending_payment') {
+      return b.expires_at ? new Date(b.expires_at) > nowUtc : false;
+    }
+    return true;
+  });
+
+  if (activeConflict) {
+    throw new Error('Court is already reserved or occupied during this time slot.');
+  }
+
   // Fetch court rate
   const { data: court } = await supabase
     .from('courts')
@@ -573,12 +594,13 @@ export async function createWalkInBooking(formData: FormData): Promise<void> {
 
 /**
  * Process POS Item Sale (Equipment, Pro Paddles, Beverages).
+ * Validates prices from pos_products server-side and decrements stock levels.
  */
 export async function processPosTransaction(
-  cart: { id: string; price: number; quantity: number }[],
-  total: number,
+  cart: { id: string; price?: number; quantity: number }[],
+  _clientTotal: number,
   paymentMethod: string
-): Promise<{ success: boolean; transactionId: string }> {
+): Promise<{ success: boolean; transactionId: string; total: number }> {
   const supabase = await createClient();
   const {
     data: { user },
@@ -586,12 +608,51 @@ export async function processPosTransaction(
 
   if (!user) throw new Error('Unauthorized');
 
-  // 1. Insert master transaction
+  if (!cart || cart.length === 0) {
+    throw new Error('Cannot process empty cart.');
+  }
+
+  // 1. Fetch products from database to calculate trusted server-side total and check stock
+  const productIds = cart.map((item) => item.id);
+  const { data: dbProducts, error: prodError } = await supabase
+    .from('pos_products')
+    .select('id, name, price, stock_level')
+    .in('id', productIds);
+
+  if (prodError || !dbProducts) {
+    console.error('[POS Products Fetch Error]:', prodError);
+    throw new Error('Failed to verify product prices from inventory.');
+  }
+
+  const productMap = new Map<string, { id: string; name: string; price: number; stock_level: number }>(
+    dbProducts.map((p) => [p.id, { ...p, price: Number(p.price), stock_level: Number(p.stock_level ?? 0) }])
+  );
+
+  let verifiedTotal = 0;
+  const lineItems: { transaction_id?: string; product_id: string; quantity: number; price_at_time: number }[] = [];
+
+  for (const item of cart) {
+    const dbProduct = productMap.get(item.id);
+    if (!dbProduct) {
+      throw new Error(`Product not found in inventory: ${item.id}`);
+    }
+    const itemQuantity = Math.max(1, item.quantity);
+    const itemPrice = dbProduct.price;
+    verifiedTotal += itemPrice * itemQuantity;
+
+    lineItems.push({
+      product_id: dbProduct.id,
+      quantity: itemQuantity,
+      price_at_time: itemPrice,
+    });
+  }
+
+  // 2. Insert master transaction with trusted server-side total
   const { data: transaction, error: txError } = await supabase
     .from('pos_transactions')
     .insert({
       cashier_id: user.id,
-      total_amount: total,
+      total_amount: verifiedTotal,
       payment_method: paymentMethod,
     })
     .select()
@@ -602,24 +663,34 @@ export async function processPosTransaction(
     throw new Error('Failed to process POS transaction.');
   }
 
-  // 2. Insert item details
-  const lineItems = cart.map((item) => ({
+  // 3. Insert transaction line items
+  const itemsWithTxId = lineItems.map((item) => ({
+    ...item,
     transaction_id: transaction.id,
-    product_id: item.id,
-    quantity: item.quantity,
-    price_at_time: item.price,
   }));
 
-  const { error: itemsError } = await supabase.from('pos_transaction_items').insert(lineItems);
+  const { error: itemsError } = await supabase.from('pos_transaction_items').insert(itemsWithTxId);
 
   if (itemsError) {
     console.error('[POS Line Items Error]:', itemsError);
     throw new Error('Failed to record transaction items.');
   }
 
+  // 4. Update inventory stock levels
+  for (const item of cart) {
+    const dbProduct = productMap.get(item.id);
+    if (dbProduct) {
+      const newStock = Math.max(0, dbProduct.stock_level - item.quantity);
+      await supabase
+        .from('pos_products')
+        .update({ stock_level: newStock })
+        .eq('id', dbProduct.id);
+    }
+  }
+
   revalidatePath('/cashier');
   revalidatePath('/admin');
-  return { success: true, transactionId: transaction.id };
+  return { success: true, transactionId: transaction.id, total: verifiedTotal };
 }
 
 // ============================================================================

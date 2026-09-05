@@ -28,7 +28,7 @@ export default async function CashierReportsPage() {
   const totalSales = transactions?.reduce((sum, tx) => sum + Number(tx.total_amount), 0) || 0;
   const totalTransactions = transactions?.length || 0;
   
-  const cashSales = transactions?.filter(tx => tx.payment_method === 'Cash').reduce((sum, tx) => sum + Number(tx.total_amount), 0) || 0;
+  const cashSales = transactions?.filter(tx => tx.payment_method?.toLowerCase() === 'cash').reduce((sum, tx) => sum + Number(tx.total_amount), 0) || 0;
   const digitalSales = totalSales - cashSales;
 
   const formatDateTime = (dateStr: string) => 
