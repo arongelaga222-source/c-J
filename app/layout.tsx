@@ -1,24 +1,24 @@
 import type { Metadata } from "next";
-import { Plus_Jakarta_Sans, Outfit } from "next/font/google";
+import { Inter, Bebas_Neue } from "next/font/google";
 import "./globals.css";
 
-const sans = Plus_Jakarta_Sans({
+const inter = Inter({
   variable: "--font-sans",
   subsets: ["latin"],
   display: "swap",
-  weight: ["300", "400", "500", "600", "700", "800"],
+  weight: ["400", "500", "600", "700"],
 });
 
-const outfit = Outfit({
-  variable: "--font-heading",
+const bebasNeue = Bebas_Neue({
+  variable: "--font-display-campaign",
   subsets: ["latin"],
   display: "swap",
-  weight: ["400", "500", "600", "700", "800", "900"],
+  weight: ["400"],
 });
 
 export const metadata: Metadata = {
-  title: "C&J's Courts • Premier Pickleball Club & Arena",
-  description: "Book tournament-grade pickleball courts, pro gear rentals, and play at C&J's Courts - Metro Manila's premier arena.",
+  title: "C&J Pickleball • Championship Indoor Arena & Pro Club",
+  description: "USA Pickleball specification 8mm cushioned indoor courts, pro carbon gear rentals, and instant online court reservation in Metro Manila.",
 };
 
 export default function RootLayout({
@@ -29,9 +29,9 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${sans.variable} ${outfit.variable} h-full antialiased dark`}
+      className={`${inter.variable} ${bebasNeue.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col font-sans bg-[#14161b] text-slate-100 selection:bg-red-600 selection:text-white">
+      <body className="min-h-full flex flex-col font-sans bg-[#ffffff] text-[#111111] selection:bg-[#111111] selection:text-white">
         {children}
       </body>
     </html>

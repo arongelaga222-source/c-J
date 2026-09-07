@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -31,7 +31,7 @@ import {
   Banknote,
   Wallet,
 } from 'lucide-react';
-import { createCashierAccount, voidTransaction } from '@/app/actions';
+import { createCashierAccount } from '@/app/actions';
 import { AdminVoidRefundModal } from '@/components/admin-void-refund-modal';
 
 export interface AdminBookingRecord {
@@ -63,7 +63,7 @@ export interface AdminMetrics {
   ytdRevenue: number;
   totalHoursBooked: number;
   monthlyHoursBooked: number;
-  courtOccupancyRate: number; // in percentage, e.g. 68.5%
+  courtOccupancyRate: number;
   paymongoRevenue: number;
   cashRevenue: number;
   totalTransactionsCount: number;
@@ -81,7 +81,6 @@ export default function AdminDashboardClient({
   const [methodFilter, setMethodFilter] = useState('all');
   const [voidModalBooking, setVoidModalBooking] = useState<AdminBookingRecord | null>(null);
 
-  // Filter bookings
   const filteredBookings = bookings.filter((b) => {
     const query = searchQuery.toLowerCase();
     const matchesSearch =
@@ -99,50 +98,40 @@ export default function AdminDashboardClient({
     return matchesSearch && matchesStatus && matchesMethod;
   });
 
-  // Count pending refunds for top banner alert
   const pendingRefunds = bookings.filter(
-    (b) => b.status === 'cancelled_refund_pending' || b.refund_status === 'pending'
+    (b) => b.status === 'cancelled_refund_pending' || (b.refund_status === 'pending' && b.status !== 'voided')
   );
 
-  // Export Bookings Audit to CSV
   const handleExportCSV = () => {
-    if (filteredBookings.length === 0) return;
-
     const headers = [
       'Booking ID',
-      'Player Name',
-      'Email',
-      'Phone',
       'Court',
       'Start Time',
       'End Time',
-      'Duration (Hours)',
-      'Total Amount (PHP)',
-      'Payment Method',
+      'Hours',
+      'Total Price (PHP)',
       'Status',
-      'Refund Status',
+      'Payment Channel',
+      'Client Name',
+      'Client Email',
       'Refund Wallet',
-      'Refund Account Name',
-      'Refund Account Number',
+      'Refund Account',
       'Refund Reference',
       'Created At',
     ];
 
     const rows = filteredBookings.map((b) => [
-      b.id,
-      `"${b.guest_name || 'Walk-in'}"`,
-      `"${b.guest_email || ''}"`,
-      `"${b.guest_phone || ''}"`,
+      `"${b.id}"`,
       `"${b.court_name}"`,
       `"${b.start_time}"`,
       `"${b.end_time}"`,
       b.duration_hours,
       b.total_price,
-      b.payment_method,
-      b.status,
-      b.refund_status || 'none',
+      `"${b.status}"`,
+      `"${b.payment_method}"`,
+      `"${b.guest_name || 'Walk-in'}"`,
+      `"${b.guest_email || 'N/A'}"`,
       `"${b.refund_wallet_type || ''}"`,
-      `"${b.refund_account_name || ''}"`,
       `"${b.refund_account_number || ''}"`,
       `"${b.refund_reference || ''}"`,
       `"${b.created_at}"`,
@@ -170,24 +159,30 @@ export default function AdminDashboardClient({
       minute: '2-digit',
     }).format(new Date(dateStr));
 
-  // PayMongo vs Cash percentage calculation
   const totalRev = metrics.paymongoRevenue + metrics.cashRevenue || 1;
   const paymongoPercent = Math.round((metrics.paymongoRevenue / totalRev) * 100);
   const cashPercent = 100 - paymongoPercent;
 
   return (
-    <div className="p-4 sm:p-8 max-w-7xl mx-auto space-y-6 sm:space-y-8 text-slate-100 font-sans">
-      {/* Header & Staff Account Provisioning */}
-      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border-b border-slate-800 pb-6">
+    <div className="p-6 sm:p-10 max-w-[1440px] mx-auto space-y-8 text-[#111111] font-sans bg-white">
+      
+      {/* Header & Actions */}
+      <div className="flex flex-col md:flex-row items-start md:items-baseline justify-between gap-4 border-b border-[#cacacb] pb-6">
         <div>
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="px-2.5 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider bg-red-500/20 text-red-400 border border-red-500/30">
-              Executive Owner
+          <div className="flex items-center gap-2 mb-1">
+            <span className="text-xs font-bold uppercase tracking-widest text-[#707072]">
+              Administration
             </span>
-            <h1 className="text-xl sm:text-3xl font-black text-white">C&amp;J Court Financial &amp; Operations Center</h1>
+            <span className="text-xs text-[#cacacb]">•</span>
+            <span className="text-[10px] font-bold uppercase px-2.5 py-0.5 rounded-full bg-[#f5f5f5] text-[#111111] border border-[#cacacb]">
+              Executive Center
+            </span>
           </div>
-          <p className="text-xs text-slate-400 mt-1">
-            Real-time revenue metrics, occupancy utilization, PayMongo channel analytics, and master booking audit.
+          <h1 className="text-3xl sm:text-5xl font-display uppercase tracking-tight text-[#111111]">
+            FINANCIAL &amp; OPERATIONS AUDIT
+          </h1>
+          <p className="text-xs text-[#707072] mt-1">
+            Real-time revenue metrics, occupancy utilization, PayMongo online gateway telemetry, and master booking registry.
           </p>
         </div>
 
@@ -196,27 +191,32 @@ export default function AdminDashboardClient({
             onClick={handleExportCSV}
             variant="outline"
             size="sm"
-            className="border-slate-800 text-slate-200 hover:text-white rounded-xl h-10 px-4 text-xs font-bold flex items-center gap-2"
+            className="border-[#cacacb] text-[#111111] hover:bg-[#f5f5f5] h-10 px-4 text-xs font-medium"
           >
-            <Download className="w-4 h-4 text-amber-400" /> Export CSV Audit
+            <Download className="w-4 h-4 mr-2" /> Export CSV
           </Button>
 
           {/* Add Staff Account Modal */}
           <Dialog>
-            <DialogTrigger className="inline-flex items-center justify-center rounded-xl text-xs font-black transition-all bg-gradient-to-r from-red-600 via-red-500 to-amber-500 hover:from-red-700 hover:to-amber-600 text-white shadow-lg shadow-red-500/25 h-10 px-4 py-2">
-              <UserPlus className="h-4 w-4 mr-2" /> Add Staff Account
+            <DialogTrigger>
+              <Button size="sm" className="bg-[#111111] text-white hover:bg-[#222222] h-10 px-5 text-xs font-medium">
+                <UserPlus className="h-4 w-4 mr-2" /> Add Staff Account
+              </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-md bg-slate-900 border-slate-800 text-slate-100 rounded-3xl">
+            <DialogContent className="sm:max-w-md bg-white border border-[#cacacb] text-[#111111] rounded-none p-6 sm:p-8">
               <form action={createCashierAccount}>
-                <DialogHeader>
-                  <DialogTitle className="text-lg font-black text-white">Provision Staff Account</DialogTitle>
-                  <DialogDescription className="text-xs text-slate-400">
-                    Create a new user account with Cashier or Manager permissions at C&amp;J Court.
+                <DialogHeader className="space-y-1 pb-2">
+                  <DialogTitle className="text-2xl font-bold tracking-tight text-[#111111]">
+                    Provision Staff Account
+                  </DialogTitle>
+                  <DialogDescription className="text-xs text-[#707072]">
+                    Create a new user account with Cashier or Manager permissions at C&amp;J Arena.
                   </DialogDescription>
                 </DialogHeader>
+
                 <div className="space-y-4 py-4">
                   <div className="space-y-1.5">
-                    <Label htmlFor="fullName" className="text-xs font-bold text-slate-300">
+                    <Label htmlFor="fullName" className="text-xs font-bold uppercase tracking-wider text-[#111111]">
                       Staff Full Name
                     </Label>
                     <Input
@@ -224,11 +224,11 @@ export default function AdminDashboardClient({
                       name="fullName"
                       placeholder="Jane Doe"
                       required
-                      className="bg-slate-950 border-slate-800 text-slate-100 rounded-xl"
+                      className="h-10 px-4 rounded-full bg-[#f5f5f5] text-xs text-[#111111]"
                     />
                   </div>
                   <div className="space-y-1.5">
-                    <Label htmlFor="email" className="text-xs font-bold text-slate-300">
+                    <Label htmlFor="email" className="text-xs font-bold uppercase tracking-wider text-[#111111]">
                       Email Address
                     </Label>
                     <Input
@@ -237,24 +237,24 @@ export default function AdminDashboardClient({
                       type="email"
                       placeholder="staff@cjcourt.com"
                       required
-                      className="bg-slate-950 border-slate-800 text-slate-100 rounded-xl"
+                      className="h-10 px-4 rounded-full bg-[#f5f5f5] text-xs text-[#111111]"
                     />
                   </div>
                   <div className="space-y-1.5">
-                    <Label htmlFor="role" className="text-xs font-bold text-slate-300">
-                      Role
+                    <Label htmlFor="role" className="text-xs font-bold uppercase tracking-wider text-[#111111]">
+                      System Role
                     </Label>
                     <select
                       id="role"
                       name="role"
-                      className="w-full h-10 px-3 rounded-xl bg-slate-950 border border-slate-800 text-white text-xs font-bold"
+                      className="w-full h-10 px-4 rounded-full bg-[#f5f5f5] border border-transparent text-[#111111] text-xs font-medium outline-none focus:border-[#111111]"
                     >
                       <option value="cashier">Cashier Staff</option>
                       <option value="owner">Owner / Co-Admin</option>
                     </select>
                   </div>
                   <div className="space-y-1.5">
-                    <Label htmlFor="password" className="text-xs font-bold text-slate-300">
+                    <Label htmlFor="password" className="text-xs font-bold uppercase tracking-wider text-[#111111]">
                       Temporary Password
                     </Label>
                     <Input
@@ -262,14 +262,16 @@ export default function AdminDashboardClient({
                       name="password"
                       type="password"
                       required
-                      className="bg-slate-950 border-slate-800 text-slate-100 rounded-xl"
+                      className="h-10 px-4 rounded-full bg-[#f5f5f5] text-xs text-[#111111]"
                     />
                   </div>
                 </div>
-                <DialogFooter>
+
+                <DialogFooter className="pt-2">
                   <Button
                     type="submit"
-                    className="w-full bg-gradient-to-r from-red-600 to-amber-500 text-white font-black rounded-xl"
+                    size="lg"
+                    className="w-full bg-[#111111] text-white hover:bg-[#222222] font-medium text-sm h-11"
                   >
                     Create Account
                   </Button>
@@ -280,247 +282,224 @@ export default function AdminDashboardClient({
         </div>
       </div>
 
-      {/* Pending Refund Requests Notification Banner */}
+      {/* Pending Refund Banner */}
       {pendingRefunds.length > 0 && (
-        <div className="bg-gradient-to-r from-amber-500/15 via-red-500/15 to-amber-500/10 border border-amber-500/30 rounded-3xl p-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 backdrop-blur-md shadow-xl">
-          <div className="flex items-center gap-3.5">
-            <div className="w-10 h-10 rounded-2xl bg-amber-500 text-slate-950 flex items-center justify-center font-black shrink-0 shadow-lg shadow-amber-500/30">
+        <div className="border border-[#111111] bg-[#f5f5f5] p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <div className="w-10 h-10 rounded-full bg-[#111111] text-white flex items-center justify-center shrink-0">
               <Wallet className="w-5 h-5" />
             </div>
             <div>
-              <h4 className="text-sm font-black text-amber-300 uppercase tracking-wider flex items-center gap-2">
+              <h4 className="text-sm font-bold text-[#111111] uppercase tracking-wide">
                 Pending Refund Requests ({pendingRefunds.length})
               </h4>
-              <p className="text-xs text-slate-300 mt-0.5">
-                Players have submitted cancellation requests with GCash / E-Wallet payout details. Void schedule to release the court slot and issue their refund payout.
+              <p className="text-xs text-[#707072] mt-0.5">
+                Players have submitted cancellation requests. Review details to release court slots and disburse e-wallet payouts.
               </p>
             </div>
           </div>
           <Button
+            size="sm"
             onClick={() => {
               setStatusFilter('cancelled_refund_pending');
               const el = document.getElementById('audit-table');
               if (el) el.scrollIntoView({ behavior: 'smooth' });
             }}
-            className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs px-4 h-9 rounded-xl shadow-lg shadow-amber-500/20 shrink-0"
+            className="bg-[#111111] text-white hover:bg-[#222222] text-xs px-5 h-9 shrink-0"
           >
-            Filter Pending Requests
+            Review Pending Requests
           </Button>
         </div>
       )}
 
-      {/* Overview Metric Cards Grid */}
+      {/* Metrics Grid (4-Up Flat Row with 1px Hairlines) */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         
-        {/* Monthly Gross Revenue Card */}
-        <Card className="border-slate-800 bg-slate-900/80 backdrop-blur-md rounded-3xl relative overflow-hidden shadow-xl">
-          <CardHeader className="pb-2">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-xs font-black uppercase tracking-wider text-slate-400">
-                Monthly Gross Revenue
-              </CardTitle>
-              <div className="w-8 h-8 rounded-xl bg-red-500/15 text-red-400 flex items-center justify-center">
-                <DollarSign className="h-4 w-4" />
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-1">
-            <div className="text-3xl font-black text-white">₱{metrics.thisMonthRevenue.toFixed(2)}</div>
-            <p className="text-xs text-emerald-400 flex items-center gap-1 font-bold">
-              <TrendingUp className="w-3.5 h-3.5" />
-              {metrics.monthOverMonthGrowth >= 0 ? '+' : ''}
-              {metrics.monthOverMonthGrowth.toFixed(1)}% vs. Last Month
-            </p>
-          </CardContent>
-        </Card>
+        {/* Monthly Gross */}
+        <div className="border border-[#cacacb] p-6 bg-white space-y-2">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold uppercase tracking-wider text-[#707072]">
+              Monthly Gross Revenue
+            </span>
+            <DollarSign className="h-4 w-4 text-[#111111]" />
+          </div>
+          <div className="text-3xl sm:text-4xl font-bold tracking-tight text-[#111111]">
+            ₱{metrics.thisMonthRevenue.toFixed(2)}
+          </div>
+          <p className="text-xs text-[#007d48] flex items-center gap-1 font-semibold">
+            <TrendingUp className="w-3.5 h-3.5" />
+            {metrics.monthOverMonthGrowth >= 0 ? '+' : ''}
+            {metrics.monthOverMonthGrowth.toFixed(1)}% vs. Last Month
+          </p>
+        </div>
 
-        {/* Year-to-Date (YTD) Gross Revenue */}
-        <Card className="border-slate-800 bg-slate-900/80 backdrop-blur-md rounded-3xl relative overflow-hidden shadow-xl">
-          <CardHeader className="pb-2">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-xs font-black uppercase tracking-wider text-slate-400">
-                Year-To-Date (YTD) Gross
-              </CardTitle>
-              <div className="w-8 h-8 rounded-xl bg-amber-500/15 text-amber-400 flex items-center justify-center">
-                <Calendar className="h-4 w-4" />
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-1">
-            <div className="text-3xl font-black text-amber-400">₱{metrics.ytdRevenue.toFixed(2)}</div>
-            <p className="text-xs text-slate-400">Total verified bookings &amp; sales</p>
-          </CardContent>
-        </Card>
+        {/* YTD Revenue */}
+        <div className="border border-[#cacacb] p-6 bg-white space-y-2">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold uppercase tracking-wider text-[#707072]">
+              Year-To-Date Gross
+            </span>
+            <Calendar className="h-4 w-4 text-[#111111]" />
+          </div>
+          <div className="text-3xl sm:text-4xl font-bold tracking-tight text-[#111111]">
+            ₱{metrics.ytdRevenue.toFixed(2)}
+          </div>
+          <p className="text-xs text-[#707072]">Total bookings &amp; pro shop sales</p>
+        </div>
 
         {/* Total Hours Booked */}
-        <Card className="border-slate-800 bg-slate-900/80 backdrop-blur-md rounded-3xl relative overflow-hidden shadow-xl">
-          <CardHeader className="pb-2">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-xs font-black uppercase tracking-wider text-slate-400">
-                Total Hours Booked
-              </CardTitle>
-              <div className="w-8 h-8 rounded-xl bg-red-500/15 text-red-400 flex items-center justify-center">
-                <Clock className="h-4 w-4" />
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-1">
-            <div className="text-3xl font-black text-white">{metrics.totalHoursBooked} hrs</div>
-            <p className="text-xs text-slate-400">
-              {metrics.monthlyHoursBooked} hrs booked this month
-            </p>
-          </CardContent>
-        </Card>
+        <div className="border border-[#cacacb] p-6 bg-white space-y-2">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold uppercase tracking-wider text-[#707072]">
+              Total Hours Booked
+            </span>
+            <Clock className="h-4 w-4 text-[#111111]" />
+          </div>
+          <div className="text-3xl sm:text-4xl font-bold tracking-tight text-[#111111]">
+            {metrics.totalHoursBooked} hrs
+          </div>
+          <p className="text-xs text-[#707072]">
+            {metrics.monthlyHoursBooked} hrs booked this month
+          </p>
+        </div>
 
-        {/* Court Utilization / Occupancy Rate */}
-        <Card className="border-slate-800 bg-slate-900/80 backdrop-blur-md rounded-3xl relative overflow-hidden shadow-xl">
-          <CardHeader className="pb-2">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-xs font-black uppercase tracking-wider text-slate-400">
-                Court Utilization Rate
-              </CardTitle>
-              <div className="w-8 h-8 rounded-xl bg-emerald-500/15 text-emerald-400 flex items-center justify-center">
-                <Percent className="h-4 w-4" />
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-1">
-            <div className="text-3xl font-black text-emerald-400">
-              {metrics.courtOccupancyRate.toFixed(1)}%
-            </div>
-            <p className="text-xs text-slate-400">Based on 16 operating hrs/day × 2 courts</p>
-          </CardContent>
-        </Card>
+        {/* Court Occupancy Rate */}
+        <div className="border border-[#cacacb] p-6 bg-white space-y-2">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold uppercase tracking-wider text-[#707072]">
+              Court Utilization Rate
+            </span>
+            <Percent className="h-4 w-4 text-[#111111]" />
+          </div>
+          <div className="text-3xl sm:text-4xl font-bold tracking-tight text-[#007d48]">
+            {metrics.courtOccupancyRate.toFixed(1)}%
+          </div>
+          <p className="text-xs text-[#707072]">16 hrs/day × 2 indoor courts</p>
+        </div>
 
       </div>
 
-      {/* Payment Channel Breakdown Card */}
-      <Card className="border-slate-800 bg-slate-900/80 backdrop-blur-md rounded-3xl p-6 shadow-xl space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+      {/* Revenue Stream Breakdown Card */}
+      <div className="border border-[#cacacb] p-6 sm:p-8 bg-white space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#e5e5e5] pb-4">
           <div>
-            <h3 className="text-base font-black text-white flex items-center gap-2">
-              <ShieldCheck className="w-4 h-4 text-amber-400" /> Revenue Stream Breakdown
+            <h3 className="text-lg font-bold tracking-tight text-[#111111]">
+              Revenue Stream Breakdown
             </h3>
-            <p className="text-xs text-slate-400">
-              PayMongo Online (GCash, Maya, Cards) vs. Counter Walk-In Cash
+            <p className="text-xs text-[#707072]">
+              PayMongo Online Channels vs. Walk-In Cash POS Register
             </p>
           </div>
           <div className="text-right">
-            <span className="text-xs text-slate-400">Total Volume: </span>
-            <span className="font-black text-white">₱{(metrics.paymongoRevenue + metrics.cashRevenue).toFixed(2)}</span>
+            <span className="text-xs text-[#707072]">Total Volume: </span>
+            <span className="font-bold text-[#111111]">₱{(metrics.paymongoRevenue + metrics.cashRevenue).toFixed(2)}</span>
           </div>
         </div>
 
-        {/* Visual Progress Bar */}
-        <div className="space-y-2">
-          <div className="h-4 w-full rounded-full bg-slate-950 overflow-hidden flex border border-slate-800">
+        {/* Progress Bar */}
+        <div className="space-y-3 pt-2">
+          <div className="h-3 w-full rounded-full bg-[#f5f5f5] overflow-hidden flex border border-[#cacacb]">
             <div
               style={{ width: `${paymongoPercent}%` }}
-              className="bg-gradient-to-r from-red-600 to-amber-500 h-full transition-all duration-500"
+              className="bg-[#111111] h-full transition-all duration-500"
               title={`PayMongo: ${paymongoPercent}%`}
             />
             <div
               style={{ width: `${cashPercent}%` }}
-              className="bg-emerald-500 h-full transition-all duration-500"
+              className="bg-[#007d48] h-full transition-all duration-500"
               title={`Cash: ${cashPercent}%`}
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4 pt-1 text-xs">
+          <div className="grid grid-cols-2 gap-4 text-xs">
             <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-amber-400" />
-              <div className="flex items-center gap-1.5">
-                <CreditCard className="w-3.5 h-3.5 text-slate-400" />
-                <span className="font-bold text-slate-300">PayMongo (GCash/Cards):</span>
-                <span className="font-black text-white">
-                  ₱{metrics.paymongoRevenue.toFixed(2)} ({paymongoPercent}%)
-                </span>
-              </div>
+              <div className="w-3 h-3 rounded-full bg-[#111111]" />
+              <span className="text-[#707072]">PayMongo Online:</span>
+              <span className="font-bold text-[#111111]">
+                ₱{metrics.paymongoRevenue.toFixed(2)} ({paymongoPercent}%)
+              </span>
             </div>
             <div className="flex items-center gap-2 justify-end">
-              <div className="w-3 h-3 rounded-full bg-emerald-400" />
-              <div className="flex items-center gap-1.5">
-                <Banknote className="w-3.5 h-3.5 text-slate-400" />
-                <span className="font-bold text-slate-300">Cash / Counter POS:</span>
-                <span className="font-black text-white">
-                  ₱{metrics.cashRevenue.toFixed(2)} ({cashPercent}%)
-                </span>
-              </div>
+              <div className="w-3 h-3 rounded-full bg-[#007d48]" />
+              <span className="text-[#707072]">Cash / Counter POS:</span>
+              <span className="font-bold text-[#111111]">
+                ₱{metrics.cashRevenue.toFixed(2)} ({cashPercent}%)
+              </span>
             </div>
           </div>
         </div>
-      </Card>
+      </div>
 
-      {/* Master Booking & Client Audit Log Table */}
-      <Card id="audit-table" className="border-slate-800 bg-slate-900/70 backdrop-blur-md rounded-3xl overflow-hidden shadow-xl">
-        <CardHeader className="border-b border-slate-800 bg-slate-950/60 p-6 space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div>
-              <CardTitle className="text-lg font-black text-white">Master Court Booking Audit Log</CardTitle>
-              <CardDescription className="text-xs text-slate-400">
-                Complete record of public reservations, walk-in locks, and status transitions.
-              </CardDescription>
-            </div>
-
-            {/* Live Filter & Search Controls */}
-            <div className="flex flex-wrap items-center gap-3">
-              <div className="relative w-full sm:w-64">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                <Input
-                  placeholder="Search player, email, ref..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-9 bg-slate-900 border-slate-800 text-slate-100 placeholder:text-slate-500 rounded-xl text-xs h-9"
-                />
-              </div>
-
-              {/* Status filter */}
-              <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                className="h-9 px-3 rounded-xl bg-slate-900 border border-slate-800 text-xs font-bold text-slate-300"
-              >
-                <option value="all">All Statuses</option>
-                <option value="paid">Paid</option>
-                <option value="checked_in">Checked In</option>
-                <option value="walk_in">Walk-in</option>
-                <option value="cancelled_refund_pending">Refund Pending</option>
-                <option value="cancelled">Cancelled</option>
-              </select>
-
-              {/* Payment Method filter */}
-              <select
-                value={methodFilter}
-                onChange={(e) => setMethodFilter(e.target.value)}
-                className="h-9 px-3 rounded-xl bg-slate-900 border border-slate-800 text-xs font-bold text-slate-300"
-              >
-                <option value="all">All Channels</option>
-                <option value="paymongo">PayMongo</option>
-                <option value="cash">Cash POS</option>
-                <option value="counter_qr">Counter QR</option>
-              </select>
-            </div>
+      {/* Master Booking Audit Log Table */}
+      <div id="audit-table" className="border border-[#cacacb] bg-white overflow-hidden">
+        <div className="p-6 border-b border-[#cacacb] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h3 className="text-xl font-bold tracking-tight text-[#111111]">
+              Master Court Booking Audit Log
+            </h3>
+            <p className="text-xs text-[#707072]">
+              Verified public reservations, walk-in register locks, and transaction statuses.
+            </p>
           </div>
-        </CardHeader>
 
-        <CardContent className="p-0 overflow-x-auto">
+          {/* Live Filter & Search Controls */}
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="relative w-full sm:w-64">
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#707072]" />
+              <Input
+                placeholder="Search player, email, ref..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10 h-9 rounded-full bg-[#f5f5f5] text-xs text-[#111111] placeholder:text-[#707072]"
+              />
+            </div>
+
+            {/* Status Filter */}
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="h-9 px-4 rounded-full bg-[#f5f5f5] border border-transparent text-xs font-medium text-[#111111] outline-none cursor-pointer"
+            >
+              <option value="all">All Statuses</option>
+              <option value="paid">Paid</option>
+              <option value="checked_in">Checked In</option>
+              <option value="walk_in">Walk-in</option>
+              <option value="cancelled_refund_pending">Refund Queued</option>
+              <option value="cancelled">Cancelled</option>
+            </select>
+
+            {/* Payment Method Filter */}
+            <select
+              value={methodFilter}
+              onChange={(e) => setMethodFilter(e.target.value)}
+              className="h-9 px-4 rounded-full bg-[#f5f5f5] border border-transparent text-xs font-medium text-[#111111] outline-none cursor-pointer"
+            >
+              <option value="all">All Channels</option>
+              <option value="paymongo">PayMongo</option>
+              <option value="cash">Cash POS</option>
+              <option value="counter_qr">Counter QR</option>
+            </select>
+          </div>
+        </div>
+
+        <div className="overflow-x-auto">
           <Table>
-            <TableHeader className="bg-slate-950/70 border-b border-slate-800">
-              <TableRow className="border-slate-800">
-                <TableHead className="text-xs font-black text-slate-400">Ref ID</TableHead>
-                <TableHead className="text-xs font-black text-slate-400">Player</TableHead>
-                <TableHead className="text-xs font-black text-slate-400">Court</TableHead>
-                <TableHead className="text-xs font-black text-slate-400">Time Interval</TableHead>
-                <TableHead className="text-xs font-black text-slate-400">Channel</TableHead>
-                <TableHead className="text-xs font-black text-slate-400">Status</TableHead>
-                <TableHead className="text-right text-xs font-black text-slate-400">Amount Paid</TableHead>
-                <TableHead className="text-right text-xs font-black text-slate-400">Action</TableHead>
+            <TableHeader className="bg-[#f5f5f5] border-b border-[#cacacb]">
+              <TableRow className="border-[#cacacb]">
+                <TableHead className="text-xs font-bold uppercase tracking-wider text-[#111111]">Ref ID</TableHead>
+                <TableHead className="text-xs font-bold uppercase tracking-wider text-[#111111]">Player</TableHead>
+                <TableHead className="text-xs font-bold uppercase tracking-wider text-[#111111]">Court</TableHead>
+                <TableHead className="text-xs font-bold uppercase tracking-wider text-[#111111]">Time Interval</TableHead>
+                <TableHead className="text-xs font-bold uppercase tracking-wider text-[#111111]">Channel</TableHead>
+                <TableHead className="text-xs font-bold uppercase tracking-wider text-[#111111]">Status</TableHead>
+                <TableHead className="text-right text-xs font-bold uppercase tracking-wider text-[#111111]">Total</TableHead>
+                <TableHead className="text-right text-xs font-bold uppercase tracking-wider text-[#111111]">Action</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filteredBookings.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={8} className="text-center py-12 text-slate-500 text-xs font-medium">
+                  <TableCell colSpan={8} className="text-center py-12 text-[#707072] text-xs font-medium">
                     No bookings matched your filter criteria.
                   </TableCell>
                 </TableRow>
@@ -532,82 +511,82 @@ export default function AdminDashboardClient({
                   const isCancelled = b.status === 'cancelled';
 
                   return (
-                    <TableRow key={b.id} className="border-slate-800/80 hover:bg-slate-800/40">
-                      <TableCell className="font-mono text-xs text-amber-400 font-bold">
+                    <TableRow key={b.id} className="border-b border-[#e5e5e5] hover:bg-[#f5f5f5] transition-colors">
+                      <TableCell className="font-mono text-xs font-bold text-[#111111]">
                         #{b.id.slice(0, 8).toUpperCase()}
                       </TableCell>
                       <TableCell>
-                        <div className="font-bold text-white text-xs">{b.guest_name || 'Player'}</div>
-                        <div className="text-[11px] text-slate-400">{b.guest_email || 'Walk-in client'}</div>
+                        <div className="font-semibold text-[#111111] text-xs">{b.guest_name || 'Player'}</div>
+                        <div className="text-[11px] text-[#707072]">{b.guest_email || 'Walk-in client'}</div>
                       </TableCell>
-                      <TableCell className="font-bold text-slate-200 text-xs">{b.court_name}</TableCell>
-                      <TableCell className="text-slate-300 text-xs">
+                      <TableCell className="font-medium text-[#111111] text-xs">{b.court_name}</TableCell>
+                      <TableCell className="text-[#707072] text-xs">
                         {formatDateTime(b.start_time)} ({b.duration_hours} hr{b.duration_hours > 1 ? 's' : ''})
                       </TableCell>
                       <TableCell>
-                        <span className="px-2 py-0.5 rounded text-[10px] font-black uppercase bg-slate-950 text-slate-300 border border-slate-800">
+                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase bg-[#f5f5f5] text-[#111111] border border-[#cacacb]">
                           {b.payment_method}
                         </span>
                       </TableCell>
                       <TableCell>
                         {isCheckedIn ? (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-black uppercase bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase bg-[#f5f5f5] text-[#007d48] border border-[#cacacb]">
                             Checked In
                           </span>
                         ) : isPaid ? (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-black uppercase bg-amber-500/15 text-amber-400 border border-amber-500/30">
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase bg-[#f5f5f5] text-[#007d48] border border-[#cacacb]">
                             Paid
                           </span>
                         ) : isRefundPending ? (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-black uppercase bg-red-500/15 text-red-400 border border-red-500/30 animate-pulse">
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase bg-white text-[#d30005] border border-[#d30005]">
                             Refund Queued
                           </span>
                         ) : isCancelled ? (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-black uppercase bg-slate-800 text-slate-400 border border-slate-700">
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase bg-[#f5f5f5] text-[#707072] border border-[#cacacb]">
                             Cancelled
                           </span>
                         ) : (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-black uppercase bg-slate-900 text-slate-300 border border-slate-800">
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase bg-[#f5f5f5] text-[#111111] border border-[#cacacb]">
                             {b.status}
                           </span>
                         )}
                       </TableCell>
-                      <TableCell className="text-right font-black text-sm text-white">
+                      <TableCell className="text-right font-bold text-sm text-[#111111]">
                         ₱{Number(b.total_price).toFixed(2)}
                       </TableCell>
                       <TableCell className="text-right">
                         {isRefundPending ? (
                           <Button
-                            size="sm"
+                            size="xs"
                             onClick={() => setVoidModalBooking(b)}
-                            className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-[11px] h-7 px-2.5 rounded-lg shadow-lg shadow-amber-500/20 inline-flex items-center gap-1.5"
+                            className="bg-[#111111] text-white hover:bg-[#222222] text-[11px] px-3 rounded-full"
                           >
-                            <Wallet className="w-3.5 h-3.5" />
-                            Review Refund
+                            <Wallet className="w-3.5 h-3.5 mr-1" />
+                            Review
                           </Button>
                         ) : isCancelled ? (
                           <div className="text-right">
                             {b.refund_reference ? (
                               <span
-                                className="inline-flex items-center gap-1 text-[10px] font-mono font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20"
+                                className="inline-flex items-center gap-1 text-[10px] font-bold text-[#007d48] bg-[#f5f5f5] px-2 py-0.5 rounded-full border border-[#cacacb]"
                                 title={`Refund Ref: ${b.refund_reference}`}
                               >
                                 <CheckCircle2 className="w-3 h-3" />
                                 Refunded
                               </span>
                             ) : (
-                              <span className="text-[11px] text-slate-500 font-medium">Voided</span>
+                              <span className="text-[11px] text-[#707072]">Voided</span>
                             )}
                           </div>
                         ) : (
                           <Button
-                            size="sm"
+                            size="xs"
                             variant="outline"
                             onClick={() => setVoidModalBooking(b)}
-                            className="border-red-500/30 text-red-400 hover:bg-red-500/15 hover:border-red-500/60 font-bold text-[11px] h-7 px-2.5 rounded-lg inline-flex items-center gap-1.5 transition-all"
+                            className="border-[#cacacb] text-[#d30005] hover:bg-[#f5f5f5] text-[11px] px-3 rounded-full"
                           >
-                            <Ban className="w-3 h-3" />
-                            Void Slot
+                            <Ban className="w-3 h-3 mr-1" />
+                            Void
                           </Button>
                         )}
                       </TableCell>
@@ -617,8 +596,8 @@ export default function AdminDashboardClient({
               )}
             </TableBody>
           </Table>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       {/* Admin Void and Refund Modal */}
       {voidModalBooking && (

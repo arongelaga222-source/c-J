@@ -3,16 +3,9 @@
 import { useState, useTransition } from "react";
 import { 
   AlertCircle, 
-  Banknote, 
-  CheckCircle2, 
-  CreditCard, 
-  HelpCircle, 
   Loader2, 
-  Smartphone, 
-  Wallet, 
   X,
-  Clock,
-  ShieldCheck
+  Clock
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -93,17 +86,17 @@ export function RefundRequestModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       {/* Backdrop */}
       <div 
-        className="fixed inset-0 bg-black/80 backdrop-blur-md transition-opacity animate-in fade-in"
+        className="fixed inset-0 bg-black/60 backdrop-blur-sm transition-opacity"
         onClick={onClose}
       />
 
       {/* Modal Dialog */}
-      <div className="relative w-full max-w-lg max-h-[90vh] overflow-y-auto bg-[#171b24] border border-white/15 rounded-3xl p-5 sm:p-8 shadow-2xl shadow-black/80 z-10 text-slate-100 animate-in zoom-in-95 duration-200">
+      <div className="relative w-full max-w-lg bg-white border border-[#cacacb] rounded-none p-6 sm:p-8 z-10 text-[#111111] animate-in zoom-in-95 duration-150">
         
         {/* Close Button */}
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 p-2 rounded-full text-slate-400 hover:text-white hover:bg-white/10 transition-colors"
+          className="absolute top-4 right-4 p-2 rounded-full text-[#707072] hover:text-[#111111] hover:bg-[#f5f5f5] transition-colors"
           aria-label="Close modal"
           disabled={isPending}
         >
@@ -111,33 +104,32 @@ export function RefundRequestModal({
         </button>
 
         {/* Header */}
-        <div className="space-y-2 pb-4 border-b border-white/10">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-red-500/15 border border-red-500/30 text-red-400 text-xs font-bold">
-            <Wallet className="w-3.5 h-3.5 text-[#d4ff00]" />
-            <span>Cancellation &amp; E-Wallet Refund</span>
-          </div>
-          <h3 className="text-xl sm:text-2xl font-black text-white">
+        <div className="space-y-1 pb-4 border-b border-[#cacacb]">
+          <span className="text-xs font-bold uppercase tracking-widest text-[#707072]">
+            Cancellation Guarantee
+          </span>
+          <h3 className="text-2xl font-bold tracking-tight text-[#111111]">
             Request Court Refund
           </h3>
-          <p className="text-xs text-slate-400">
-            Please provide your GCash or E-Wallet account so management can disburse your refundable amount.
+          <p className="text-xs text-[#707072]">
+            Please enter your receiving account so management can disburse your refundable amount.
           </p>
         </div>
 
         {/* Booking Summary Strip */}
-        <div className="my-4 p-4 rounded-2xl bg-slate-900/90 border border-white/10 flex items-center justify-between">
-          <div className="space-y-1">
-            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
+        <div className="my-4 p-4 border border-[#cacacb] bg-[#f5f5f5] flex items-center justify-between">
+          <div className="space-y-0.5">
+            <span className="text-xs font-bold text-[#111111] block">
               {booking.court_name}
             </span>
-            <div className="flex items-center gap-1.5 text-xs text-slate-200 font-semibold">
-              <Clock className="w-3.5 h-3.5 text-amber-400" />
+            <div className="flex items-center gap-1.5 text-xs text-[#707072]">
+              <Clock className="w-3.5 h-3.5 text-[#707072]" />
               <span>{formatDateTime(booking.start_time)} ({booking.duration_hours} hr)</span>
             </div>
           </div>
           <div className="text-right">
-            <span className="text-[10px] text-slate-400 block font-semibold uppercase">Refund Amount</span>
-            <span className="text-lg font-black text-[#d4ff00]">
+            <span className="text-[10px] text-[#707072] block font-bold uppercase">Refund</span>
+            <span className="text-lg font-bold text-[#111111]">
               ₱{Number(booking.total_price).toFixed(2)}
             </span>
           </div>
@@ -145,7 +137,7 @@ export function RefundRequestModal({
 
         {/* Error Alert */}
         {errorMsg && (
-          <div className="mb-4 bg-red-500/15 border border-red-500/30 text-red-400 text-xs p-3.5 rounded-xl flex items-start gap-2">
+          <div className="mb-4 border border-[#d30005] bg-white text-[#d30005] text-xs p-3 flex items-start gap-2">
             <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
             <p className="leading-relaxed">{errorMsg}</p>
           </div>
@@ -154,21 +146,21 @@ export function RefundRequestModal({
         {/* Refund Form */}
         <form onSubmit={handleSubmit} className="space-y-4">
           
-          {/* E-Wallet Provider Selection */}
+          {/* E-Wallet Selection */}
           <div className="space-y-2">
-            <Label className="text-xs font-bold text-slate-300">
+            <Label className="text-xs font-bold uppercase tracking-wider text-[#111111]">
               Select Receiving E-Wallet
             </Label>
-            <div className="grid grid-cols-3 gap-2">
-              {["GCash", "Maya", "GrabPay", "GoTyme", "Bank / Other"].map((wallet) => (
+            <div className="flex flex-wrap gap-2">
+              {["GCash", "Maya", "GrabPay", "GoTyme", "Bank"].map((wallet) => (
                 <button
                   key={wallet}
                   type="button"
                   onClick={() => setWalletType(wallet)}
-                  className={`py-2 px-3 rounded-xl border text-xs font-bold transition-all ${
+                  className={`h-9 px-4 rounded-full border text-xs font-medium transition-colors cursor-pointer ${
                     walletType === wallet
-                      ? "bg-gradient-to-r from-red-600/30 to-amber-500/30 border-[#d4ff00] text-white shadow-sm"
-                      : "bg-slate-900 border-white/10 text-slate-400 hover:text-white hover:bg-slate-800"
+                      ? "bg-[#111111] text-white border-[#111111]"
+                      : "bg-white border-[#cacacb] text-[#111111] hover:border-[#111111]"
                   }`}
                 >
                   {wallet}
@@ -179,8 +171,8 @@ export function RefundRequestModal({
 
           {/* Account Name */}
           <div className="space-y-1.5">
-            <Label htmlFor="accountName" className="text-xs font-bold text-slate-300">
-              Account Holder Name <span className="text-red-400">*</span>
+            <Label htmlFor="accountName" className="text-xs font-bold uppercase tracking-wider text-[#111111]">
+              Account Holder Name <span className="text-[#d30005]">*</span>
             </Label>
             <Input
               id="accountName"
@@ -188,14 +180,14 @@ export function RefundRequestModal({
               value={accountName}
               onChange={(e) => setAccountName(e.target.value)}
               required
-              className="bg-slate-950 border-white/10 text-slate-100 text-xs h-10 rounded-xl placeholder:text-slate-500 focus-visible:ring-red-500"
+              className="h-10 px-4 rounded-full bg-[#f5f5f5] text-xs text-[#111111]"
             />
           </div>
 
-          {/* Account / Mobile Number */}
+          {/* Account Number */}
           <div className="space-y-1.5">
-            <Label htmlFor="accountNumber" className="text-xs font-bold text-slate-300">
-              {walletType} Account / Mobile Number <span className="text-red-400">*</span>
+            <Label htmlFor="accountNumber" className="text-xs font-bold uppercase tracking-wider text-[#111111]">
+              {walletType} Account / Mobile Number <span className="text-[#d30005]">*</span>
             </Label>
             <Input
               id="accountNumber"
@@ -203,20 +195,20 @@ export function RefundRequestModal({
               value={accountNumber}
               onChange={(e) => setAccountNumber(e.target.value)}
               required
-              className="bg-slate-950 border-white/10 text-slate-100 text-xs h-10 rounded-xl placeholder:text-slate-500 focus-visible:ring-red-500"
+              className="h-10 px-4 rounded-full bg-[#f5f5f5] text-xs text-[#111111]"
             />
           </div>
 
           {/* Cancellation Reason */}
           <div className="space-y-1.5">
-            <Label htmlFor="reason" className="text-xs font-bold text-slate-300">
+            <Label htmlFor="reason" className="text-xs font-bold uppercase tracking-wider text-[#111111]">
               Reason for Cancellation
             </Label>
             <select
               id="reason"
               value={reason}
               onChange={(e) => setReason(e.target.value)}
-              className="w-full bg-slate-950 border border-white/10 text-slate-200 text-xs h-10 px-3 rounded-xl focus:ring-1 focus:ring-red-500 outline-none"
+              className="w-full bg-[#f5f5f5] border border-transparent text-[#111111] text-xs h-10 px-4 rounded-full focus:border-[#111111] outline-none cursor-pointer"
             >
               <option value="Schedule Conflict">Schedule Conflict</option>
               <option value="Emergency / Illness">Emergency / Illness</option>
@@ -232,39 +224,39 @@ export function RefundRequestModal({
                 placeholder="Briefly state your reason..."
                 value={customReason}
                 onChange={(e) => setCustomReason(e.target.value)}
-                className="bg-slate-950 border-white/10 text-slate-100 text-xs h-10 rounded-xl placeholder:text-slate-500"
+                className="h-10 px-4 rounded-full bg-[#f5f5f5] text-xs text-[#111111]"
               />
             </div>
           )}
 
           {/* Policy Note */}
-          <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-300 text-[11px] leading-relaxed">
-            <strong>24-Hour Policy Notice:</strong> Refunds are reviewed by management. Once approved, the funds will be transferred to your specified {walletType} account.
+          <div className="p-3 border border-[#cacacb] bg-[#f5f5f5] text-[11px] text-[#707072] leading-relaxed">
+            <strong className="text-[#111111]">24-Hour Policy:</strong> Cancellations made 24+ hours before start time receive a 100% full refund to your specified {walletType} account within 24–48 hours.
           </div>
 
           {/* Action Buttons */}
           <div className="pt-2 flex items-center gap-3">
             <Button
               type="button"
-              variant="outline"
+              variant="secondary"
               onClick={onClose}
               disabled={isPending}
-              className="w-1/3 h-11 border-white/10 text-slate-300 hover:bg-white/5 rounded-xl font-bold text-xs"
+              className="w-1/3 h-11 text-xs font-medium"
             >
               Keep Slot
             </Button>
             <Button
               type="submit"
               disabled={isPending}
-              className="w-2/3 h-11 bg-gradient-to-r from-red-600 via-red-500 to-amber-500 hover:from-red-700 hover:to-amber-600 text-white font-black rounded-xl shadow-lg shadow-red-600/30 text-xs flex items-center justify-center gap-2"
+              className="w-2/3 h-11 bg-[#111111] text-white hover:bg-[#222222] text-xs font-medium flex items-center justify-center gap-2"
             >
               {isPending ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin text-white" />
-                  <span>Submitting Request...</span>
+                  <span>Submitting...</span>
                 </>
               ) : (
-                <span>Submit Refund Request (₱{Number(booking.total_price).toFixed(2)})</span>
+                <span>Submit Refund (₱{Number(booking.total_price).toFixed(2)})</span>
               )}
             </Button>
           </div>

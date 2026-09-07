@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { 
   ShoppingCart, 
@@ -97,47 +96,48 @@ export default function CashierClient({
   };
 
   return (
-    <div className="p-4 sm:p-6 min-h-screen lg:h-screen flex flex-col bg-slate-950 text-slate-100 font-sans">
+    <div className="p-6 sm:p-8 min-h-screen lg:h-screen flex flex-col bg-white text-[#111111] font-sans">
       
-      {/* Header & Search */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4 sm:mb-6">
+      {/* Header & Search Bar */}
+      <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-4 mb-6 border-b border-[#cacacb] pb-4">
         <div>
-          <div className="flex items-center gap-2">
-            <span className="w-2.5 h-2.5 rounded-full bg-red-500 animate-ping" />
-            <h1 className="text-xl sm:text-3xl font-black text-white">C&amp;J&apos;s POS Terminal</h1>
-          </div>
-          <p className="text-xs text-slate-400 mt-0.5">Pro shop equipment, paddle rentals, cold beverages, and walk-in court fees.</p>
+          <span className="text-xs font-bold uppercase tracking-widest text-[#707072] block mb-1">
+            Point of Sale
+          </span>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-[#111111]">
+            Cashier Register
+          </h1>
         </div>
 
-        {/* Search Bar */}
-        <div className="relative w-full sm:w-72">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+        {/* Search Pill */}
+        <div className="relative w-full sm:w-80">
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#707072]" />
           <Input 
             placeholder="Search items or gear..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-9 bg-slate-900 border-slate-800 text-slate-100 placeholder:text-slate-500 rounded-xl focus-visible:ring-red-500 text-xs"
+            className="pl-10 h-10 rounded-full bg-[#f5f5f5] text-xs text-[#111111] placeholder:text-[#707072] border border-transparent focus-visible:bg-white focus-visible:border-[#111111]"
           />
         </div>
       </div>
 
       {/* Main Terminal Workspace */}
-      <div className="flex-1 flex flex-col lg:flex-row gap-6 min-h-0">
+      <div className="flex-1 flex flex-col lg:flex-row gap-8 min-h-0">
         
         {/* Left Column: Product Catalog */}
-        <div className="flex-1 flex flex-col bg-slate-900/70 border border-slate-800 rounded-3xl p-4 sm:p-5 overflow-hidden backdrop-blur-md">
+        <div className="flex-1 flex flex-col border border-[#cacacb] p-6 overflow-hidden bg-white">
           
           {/* Category Filter Chips */}
-          <div className="flex items-center gap-2 overflow-x-auto pb-3 mb-3 scrollbar-none">
+          <div className="flex items-center gap-2 overflow-x-auto pb-4 mb-4 border-b border-[#cacacb]">
             {categories.map((cat) => (
               <button
                 key={cat}
                 type="button"
                 onClick={() => setSelectedCategory(cat)}
-                className={`px-3.5 py-1.5 rounded-xl text-xs font-black whitespace-nowrap transition-all border ${
+                className={`h-8 px-4 rounded-full text-xs font-medium whitespace-nowrap transition-colors cursor-pointer border ${
                   selectedCategory === cat
-                    ? "bg-gradient-to-r from-red-600 to-amber-500 text-white border-amber-400 shadow-md shadow-red-500/20"
-                    : "bg-slate-900 text-slate-400 border-slate-800 hover:text-white hover:border-slate-700"
+                    ? "bg-[#111111] text-white border-[#111111]"
+                    : "bg-white text-[#111111] border-[#cacacb] hover:border-[#111111]"
                 }`}
               >
                 {cat}
@@ -147,109 +147,102 @@ export default function CashierClient({
 
           {/* Product Cards Grid */}
           <div className="flex-1 overflow-y-auto pr-1">
-            <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-4">
               {filteredProducts.map((product) => {
                 const inCart = cart.find((item) => item.id === product.id);
                 return (
-                  <Card
+                  <div
                     key={product.id}
                     onClick={() => addToCart(product)}
-                    className={`cursor-pointer transition-all duration-200 border rounded-2xl relative group overflow-hidden ${
+                    className={`cursor-pointer transition-all border p-4 flex flex-col justify-between min-h-[140px] ${
                       inCart
-                        ? "border-red-500 bg-red-950/40 shadow-lg shadow-red-500/10"
-                        : "border-slate-800 bg-slate-900/90 hover:border-amber-400/60 hover:bg-slate-800/80"
+                        ? "border-[#111111] bg-[#f5f5f5]"
+                        : "border-[#cacacb] bg-white hover:border-[#111111]"
                     }`}
                   >
-                    <CardContent className="p-3 sm:p-4 flex flex-col justify-between min-h-[140px] space-y-2">
-                      <div className="space-y-1">
-                        <span className="text-[10px] font-black uppercase tracking-wider text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20 inline-block">
-                          {product.category}
-                        </span>
-                        <h3 className="font-bold text-sm text-white line-clamp-2 pt-1 leading-snug">
-                          {product.name}
-                        </h3>
-                      </div>
+                    <div className="space-y-1">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-[#707072]">
+                        {product.category}
+                      </span>
+                      <h3 className="font-semibold text-sm text-[#111111] line-clamp-2 pt-0.5 leading-snug">
+                        {product.name}
+                      </h3>
+                    </div>
 
-                      <div className="flex items-center justify-between pt-2 border-t border-slate-800/80">
-                        <span className="text-base font-black text-amber-400">
-                          ₱{Number(product.price).toFixed(2)}
+                    <div className="flex items-baseline justify-between pt-3 border-t border-[#e5e5e5]">
+                      <span className="text-sm font-bold text-[#111111]">
+                        ₱{Number(product.price).toFixed(2)}
+                      </span>
+                      {inCart && (
+                        <span className="w-5 h-5 rounded-full bg-[#111111] text-white text-[11px] font-bold flex items-center justify-center">
+                          {inCart.quantity}
                         </span>
-                        {inCart ? (
-                          <span className="w-6 h-6 rounded-full bg-red-500 text-white text-xs font-black flex items-center justify-center shadow-md">
-                            {inCart.quantity}
-                          </span>
-                        ) : (
-                          <div className="w-6 h-6 rounded-full bg-slate-800 text-slate-400 flex items-center justify-center group-hover:bg-amber-400 group-hover:text-slate-950 transition-colors">
-                            <Plus className="w-3.5 h-3.5" />
-                          </div>
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
+                      )}
+                    </div>
+                  </div>
                 );
               })}
             </div>
           </div>
         </div>
 
-        {/* Right Column: Checkout Cart Panel */}
-        <div className="w-full lg:w-[420px] flex flex-col bg-slate-900 border border-slate-800 rounded-3xl overflow-hidden shadow-2xl">
+        {/* Right Column: Register Cart Panel */}
+        <div className="w-full lg:w-96 flex flex-col border border-[#cacacb] bg-white">
           
-          {/* Cart Header */}
-          <div className="p-4 bg-slate-950 border-b border-slate-800 flex items-center justify-between">
+          <div className="p-4 border-b border-[#cacacb] flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <ShoppingCart className="w-5 h-5 text-amber-400" />
-              <h2 className="font-black text-white text-base">Current Register</h2>
-              <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/30">
-                {totalItemsCount} items
+              <ShoppingCart className="w-4 h-4 text-[#111111]" />
+              <h2 className="font-bold text-[#111111] text-sm uppercase tracking-tight">Current Order</h2>
+              <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-[#f5f5f5] text-[#111111] border border-[#cacacb]">
+                {totalItemsCount}
               </span>
             </div>
             {cart.length > 0 && (
               <button
                 type="button"
                 onClick={clearCart}
-                className="text-xs text-slate-400 hover:text-red-400 font-bold transition-colors"
+                className="text-xs text-[#707072] hover:text-[#d30005] underline font-medium"
               >
-                Clear Cart
+                Clear
               </button>
             )}
           </div>
 
           {/* Cart Items List */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-2.5 min-h-[220px]">
+          <div className="flex-1 overflow-y-auto p-4 space-y-3 min-h-[220px]">
             {cart.length === 0 ? (
-              <div className="h-full flex flex-col items-center justify-center text-center text-slate-500 space-y-2 py-10">
-                <Package className="w-10 h-10 stroke-1 text-slate-600" />
-                <p className="text-sm font-bold text-slate-400">Cart is empty</p>
-                <p className="text-xs text-slate-600">Select items on the catalog to begin sale</p>
+              <div className="h-full flex flex-col items-center justify-center text-center text-[#707072] space-y-2 py-12">
+                <Package className="w-8 h-8 text-[#cacacb]" />
+                <p className="text-xs font-semibold text-[#111111]">Order is empty</p>
+                <p className="text-[11px] text-[#707072]">Select items on the catalog to begin</p>
               </div>
             ) : (
               cart.map((item) => (
                 <div 
                   key={item.id}
-                  className="flex items-center justify-between p-3 rounded-xl border border-slate-800 bg-slate-950/70"
+                  className="flex items-center justify-between p-3 border border-[#e5e5e5] bg-[#f5f5f5]"
                 >
-                  <div className="space-y-0.5 max-w-[170px]">
-                    <p className="font-bold text-xs text-white truncate">{item.name}</p>
-                    <p className="text-[11px] text-amber-400 font-bold">
+                  <div className="space-y-0.5 max-w-[160px]">
+                    <p className="font-semibold text-xs text-[#111111] truncate">{item.name}</p>
+                    <p className="text-[11px] text-[#707072]">
                       ₱{Number(item.price).toFixed(2)} × {item.quantity}
                     </p>
                   </div>
 
                   <div className="flex items-center gap-2">
-                    <div className="flex items-center rounded-lg border border-slate-800 bg-slate-900 p-0.5">
+                    <div className="flex items-center rounded-full border border-[#cacacb] bg-white">
                       <button
                         type="button"
                         onClick={() => updateQuantity(item.id, -1)}
-                        className="w-6 h-6 flex items-center justify-center text-slate-400 hover:text-white rounded hover:bg-slate-800"
+                        className="w-6 h-6 flex items-center justify-center text-[#707072] hover:text-[#111111]"
                       >
                         <Minus className="w-3 h-3" />
                       </button>
-                      <span className="w-6 text-center text-xs font-black text-white">{item.quantity}</span>
+                      <span className="w-5 text-center text-xs font-bold text-[#111111]">{item.quantity}</span>
                       <button
                         type="button"
                         onClick={() => updateQuantity(item.id, 1)}
-                        className="w-6 h-6 flex items-center justify-center text-slate-400 hover:text-white rounded hover:bg-slate-800"
+                        className="w-6 h-6 flex items-center justify-center text-[#707072] hover:text-[#111111]"
                       >
                         <Plus className="w-3 h-3" />
                       </button>
@@ -258,7 +251,7 @@ export default function CashierClient({
                     <button
                       type="button"
                       onClick={() => removeItem(item.id)}
-                      className="p-1.5 text-slate-500 hover:text-red-400 transition-colors"
+                      className="p-1 text-[#707072] hover:text-[#d30005]"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>
@@ -268,13 +261,12 @@ export default function CashierClient({
             )}
           </div>
 
-          {/* Payment Method Selector & Checkout */}
-          <div className="p-4 bg-slate-950 border-t border-slate-800 space-y-4">
+          {/* Payment Method Selector & Charge */}
+          <div className="p-4 bg-white border-t border-[#cacacb] space-y-4">
             
-            {/* Payment Method Options */}
             <div className="space-y-1.5">
-              <span className="text-[11px] font-black uppercase tracking-wider text-slate-400 block">
-                Select Tender Type
+              <span className="text-[11px] font-bold uppercase tracking-wider text-[#707072] block">
+                Payment Tender
               </span>
               <div className="grid grid-cols-3 gap-2">
                 {[
@@ -289,47 +281,47 @@ export default function CashierClient({
                       key={m.name}
                       type="button"
                       onClick={() => setPaymentMethod(m.name)}
-                      className={`p-2.5 rounded-xl text-xs font-bold flex flex-col items-center justify-center gap-1 transition-all border ${
+                      className={`h-11 rounded-full text-xs font-medium flex items-center justify-center gap-1.5 transition-colors border cursor-pointer ${
                         isSelected
-                          ? "bg-gradient-to-r from-red-600 to-amber-500 text-white border-amber-400 shadow-md shadow-red-500/20"
-                          : "bg-slate-900 text-slate-300 border-slate-800 hover:border-slate-700"
+                          ? "bg-[#111111] text-white border-[#111111]"
+                          : "bg-white text-[#111111] border-[#cacacb] hover:border-[#111111]"
                       }`}
                     >
-                      <Icon className="w-4 h-4" />
-                      <span>{m.name}</span>
+                      <Icon className="w-3.5 h-3.5" />
+                      <span className="truncate">{m.name.split(' ')[0]}</span>
                     </button>
                   );
                 })}
               </div>
             </div>
 
-            {/* Total Amount & Charge Button */}
+            {/* Total Due & Primary Action */}
             <div className="space-y-3 pt-2">
-              <div className="flex items-baseline justify-between border-t border-slate-800 pt-3">
-                <span className="text-sm font-bold text-slate-400">Total Due</span>
-                <span className="text-2xl font-black text-amber-400">₱{cartTotal.toFixed(2)}</span>
+              <div className="flex items-baseline justify-between border-t border-[#cacacb] pt-3">
+                <span className="text-xs font-bold uppercase tracking-wider text-[#707072]">Total Due</span>
+                <span className="text-2xl font-bold text-[#111111]">₱{cartTotal.toFixed(2)}</span>
               </div>
 
               <Button
                 size="lg"
                 disabled={cart.length === 0 || isProcessing}
                 onClick={handleCheckout}
-                className="w-full h-12 font-black bg-gradient-to-r from-red-600 via-red-500 to-amber-500 hover:from-red-700 hover:to-amber-600 text-white shadow-lg shadow-red-500/30 rounded-xl disabled:opacity-50"
+                className="w-full h-12 bg-[#111111] text-white hover:bg-[#222222] font-medium text-sm rounded-full"
               >
-                {isProcessing ? "Processing Sale..." : `Charge ₱${cartTotal.toFixed(2)}`}
+                {isProcessing ? "Processing..." : `Charge ₱${cartTotal.toFixed(2)}`}
               </Button>
             </div>
 
-            {/* Success Receipt Toast */}
+            {/* Receipt Toast */}
             {lastSuccessReceipt && (
-              <div className="p-3 rounded-xl border border-amber-500/40 bg-amber-950/40 flex items-center justify-between text-xs text-amber-300">
+              <div className="p-3 border border-[#007d48] bg-white flex items-center justify-between text-xs text-[#007d48]">
                 <div className="flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-amber-400" />
+                  <CheckCircle2 className="w-4 h-4 text-[#007d48]" />
                   <span>Paid ₱{lastSuccessReceipt.amount.toFixed(2)} via {lastSuccessReceipt.method}</span>
                 </div>
                 <button 
                   onClick={() => setLastSuccessReceipt(null)}
-                  className="text-slate-400 hover:text-white"
+                  className="text-[#707072] hover:text-[#111111]"
                 >
                   ✕
                 </button>

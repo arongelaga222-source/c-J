@@ -5,9 +5,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { MapPin, Plus, Wrench, CheckCircle2 } from "lucide-react";
+import { Plus, Wrench, CheckCircle2, ShieldCheck, MapPin } from "lucide-react";
 import { createCourt, toggleCourtStatus } from "@/app/actions";
 
 export default async function AdminCourtsPage() {
@@ -32,43 +31,65 @@ export default async function AdminCourtsPage() {
     .select('*')
     .order('name', { ascending: true });
 
+  const activeCount = courts?.filter((c) => c.is_active !== false && c.status !== 'maintenance').length || 0;
+  const maintenanceCount = (courts?.length || 0) - activeCount;
+
   return (
-    <div className="p-6 md:p-8 max-w-6xl mx-auto space-y-8 text-slate-100 font-sans">
+    <div className="p-6 sm:p-10 max-w-[1440px] mx-auto space-y-8 text-[#111111] font-sans bg-white">
       
       {/* Header & Add Court Modal */}
-      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border-b border-slate-800 pb-6">
+      <div className="flex flex-col md:flex-row items-start md:items-baseline justify-between gap-4 border-b border-[#cacacb] pb-6">
         <div>
-          <h1 className="text-3xl font-black text-white">Manage Courts</h1>
-          <p className="text-xs text-slate-400 mt-1">Configure venue facilities, rates, and active/maintenance availability.</p>
+          <div className="flex items-center gap-2 mb-1">
+            <span className="text-xs font-bold uppercase tracking-widest text-[#707072]">
+              Administration
+            </span>
+            <span className="text-xs text-[#cacacb]">•</span>
+            <span className="text-[10px] font-bold uppercase px-2.5 py-0.5 rounded-full bg-[#f5f5f5] text-[#111111] border border-[#cacacb]">
+              Facility Management
+            </span>
+          </div>
+          <h1 className="text-3xl sm:text-5xl font-display uppercase tracking-tight text-[#111111]">
+            COURT &amp; ARENA INFRASTRUCTURE
+          </h1>
+          <p className="text-xs text-[#707072] mt-1">
+            Configure championship courts, hourly rate structures, and availability schedules.
+          </p>
         </div>
 
         <Dialog>
           <DialogTrigger>
-            <Button className="bg-red-600 hover:bg-red-500 text-white font-bold rounded-xl shadow-lg shadow-red-600/20">
+            <Button size="sm" className="bg-[#111111] text-white hover:bg-[#222222] h-10 px-5 text-xs font-medium rounded-full">
               <Plus className="h-4 w-4 mr-2" /> Add New Court
             </Button>
           </DialogTrigger>
-          <DialogContent className="sm:max-w-md bg-slate-900 border-slate-800 text-slate-100">
+          <DialogContent className="sm:max-w-md bg-white border border-[#cacacb] text-[#111111] rounded-none p-6 sm:p-8 shadow-2xl">
             <form action={createCourt}>
-              <DialogHeader>
-                <DialogTitle className="text-white font-black text-xl">Add New Court</DialogTitle>
-                <DialogDescription className="text-slate-400 text-xs">
+              <DialogHeader className="space-y-1 pb-2">
+                <DialogTitle className="text-2xl font-bold tracking-tight text-[#111111]">
+                  Commission Court Facility
+                </DialogTitle>
+                <DialogDescription className="text-xs text-[#707072]">
                   Enter the facility details and hourly rate for the new pickleball court.
                 </DialogDescription>
               </DialogHeader>
               <div className="space-y-4 py-4">
-                <div className="space-y-2">
-                  <Label htmlFor="name" className="text-xs font-bold text-slate-300">Court Name</Label>
+                <div className="space-y-1.5">
+                  <Label htmlFor="name" className="text-xs font-bold uppercase tracking-wider text-[#111111]">
+                    Court Name / Identifier
+                  </Label>
                   <Input 
                     id="name" 
                     name="name" 
                     placeholder="e.g. Court 3 - Indoor (Pro Cushion)" 
                     required 
-                    className="bg-slate-950 border-slate-800 text-slate-100 focus-visible:ring-red-500"
+                    className="h-10 px-4 rounded-full bg-[#f5f5f5] text-xs text-[#111111] border-transparent focus:border-[#111111]"
                   />
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="rate" className="text-xs font-bold text-slate-300">Hourly Rate (PHP)</Label>
+                <div className="space-y-1.5">
+                  <Label htmlFor="rate" className="text-xs font-bold uppercase tracking-wider text-[#111111]">
+                    Hourly Rate (PHP)
+                  </Label>
                   <Input 
                     id="rate" 
                     name="rate" 
@@ -77,13 +98,13 @@ export default async function AdminCourtsPage() {
                     min="1" 
                     step="1" 
                     required 
-                    className="bg-slate-950 border-slate-800 text-slate-100 focus-visible:ring-red-500"
+                    className="h-10 px-4 rounded-full bg-[#f5f5f5] text-xs text-[#111111] border-transparent focus:border-[#111111]"
                   />
                 </div>
               </div>
               <DialogFooter>
-                <Button type="submit" className="w-full bg-red-600 hover:bg-red-500 text-white font-bold rounded-xl">
-                  Save Court
+                <Button type="submit" className="w-full h-10 rounded-full bg-[#111111] hover:bg-[#222222] text-white font-semibold text-xs transition-colors">
+                  Save &amp; Activate Court
                 </Button>
               </DialogFooter>
             </form>
@@ -91,29 +112,65 @@ export default async function AdminCourtsPage() {
         </Dialog>
       </div>
 
+      {/* Overview Stat Tiles */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="border border-[#cacacb] p-6 bg-white space-y-1">
+          <p className="text-xs font-bold uppercase tracking-widest text-[#707072]">Total Facilities</p>
+          <div className="text-4xl font-display uppercase tracking-tight text-[#111111]">
+            {courts?.length || 0}
+          </div>
+          <p className="text-[11px] text-[#707072]">Registered championship courts</p>
+        </div>
+
+        <div className="border border-[#cacacb] p-6 bg-white space-y-1">
+          <p className="text-xs font-bold uppercase tracking-widest text-[#007d48]">Active Online</p>
+          <div className="text-4xl font-display uppercase tracking-tight text-[#007d48]">
+            {activeCount}
+          </div>
+          <p className="text-[11px] text-[#707072]">Available on booking engine</p>
+        </div>
+
+        <div className="border border-[#cacacb] p-6 bg-white space-y-1">
+          <p className="text-xs font-bold uppercase tracking-widest text-[#d30005]">Maintenance / Inactive</p>
+          <div className="text-4xl font-display uppercase tracking-tight text-[#d30005]">
+            {maintenanceCount}
+          </div>
+          <p className="text-[11px] text-[#707072]">Offline for servicing</p>
+        </div>
+      </div>
+
       {/* Courts Table */}
-      <Card className="border-slate-800 bg-slate-900/80 backdrop-blur-md rounded-3xl overflow-hidden">
-        <CardHeader className="border-b border-slate-800 bg-slate-950/50 p-6">
-          <CardTitle className="text-lg font-black text-white">Venue Facilities</CardTitle>
-          <CardDescription className="text-xs text-slate-400">
-            Active courts appear on the customer booking calendar and cashier timeline.
-          </CardDescription>
+      <Card className="border border-[#cacacb] bg-white rounded-none overflow-hidden shadow-none">
+        <CardHeader className="border-b border-[#cacacb] bg-[#f5f5f5] p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="text-lg font-bold uppercase tracking-tight text-[#111111]">
+                Arena Court Inventory
+              </CardTitle>
+              <CardDescription className="text-xs text-[#707072] mt-0.5">
+                Active courts automatically publish to the player reservation portal and cashier POS timeline.
+              </CardDescription>
+            </div>
+            <span className="text-xs font-bold uppercase tracking-wider text-[#707072] hidden sm:inline-block">
+              Real-time Status
+            </span>
+          </div>
         </CardHeader>
         <CardContent className="p-0">
           <Table>
-            <TableHeader className="bg-slate-950/70 border-b border-slate-800">
-              <TableRow className="border-slate-800">
-                <TableHead className="text-xs font-black text-slate-400">Facility Name</TableHead>
-                <TableHead className="text-xs font-black text-slate-400">Hourly Rate</TableHead>
-                <TableHead className="text-xs font-black text-slate-400">Current Status</TableHead>
-                <TableHead className="text-right text-xs font-black text-slate-400">Actions</TableHead>
+            <TableHeader className="bg-white border-b border-[#cacacb]">
+              <TableRow className="border-[#cacacb]">
+                <TableHead className="text-xs font-bold uppercase tracking-wider text-[#707072] h-12">Facility Name</TableHead>
+                <TableHead className="text-xs font-bold uppercase tracking-wider text-[#707072] h-12">Hourly Tariff</TableHead>
+                <TableHead className="text-xs font-bold uppercase tracking-wider text-[#707072] h-12">Operational Status</TableHead>
+                <TableHead className="text-right text-xs font-bold uppercase tracking-wider text-[#707072] h-12">Action Control</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {!courts || courts.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={4} className="text-center py-12 text-slate-500 text-xs font-medium">
-                    No courts found. Add your first court above.
+                  <TableCell colSpan={4} className="text-center py-16 text-[#707072] text-xs font-medium">
+                    No courts found. Commission your first court above.
                   </TableCell>
                 </TableRow>
               ) : (
@@ -121,26 +178,35 @@ export default async function AdminCourtsPage() {
                   const isActive = court.is_active !== false && court.status !== 'maintenance';
 
                   return (
-                    <TableRow key={court.id} className="border-slate-800/80 hover:bg-slate-800/40">
-                      <TableCell className="font-bold text-white flex items-center gap-2">
-                        <MapPin className="h-4 w-4 text-red-500" />
-                        {court.name}
+                    <TableRow key={court.id} className="border-b border-[#cacacb] hover:bg-[#f5f5f5]/60 transition-colors">
+                      <TableCell className="font-bold text-[#111111] py-4">
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-8 h-8 rounded-full bg-[#f5f5f5] border border-[#cacacb] flex items-center justify-center shrink-0">
+                            <MapPin className="h-4 w-4 text-[#111111]" />
+                          </div>
+                          <div>
+                            <span className="text-sm font-bold text-[#111111] block">{court.name}</span>
+                            <span className="text-[10px] text-[#707072] font-mono">ID: {court.id.slice(0, 8)}</span>
+                          </div>
+                        </div>
                       </TableCell>
-                      <TableCell className="text-xs font-bold text-slate-300">
-                        ₱{Number(court.hourly_rate || 300).toFixed(2)}/hr
+                      <TableCell className="text-sm font-semibold text-[#111111] py-4">
+                        ₱{Number(court.hourly_rate || 300).toFixed(2)} <span className="text-xs text-[#707072] font-normal">/ hour</span>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="py-4">
                         {!isActive ? (
-                          <Badge variant="outline" className="bg-amber-950/40 text-amber-400 border-amber-500/30 text-[11px] font-bold">
+                          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#f5f5f5] text-[#d30005] border border-[#d30005]/30 text-[11px] font-bold uppercase tracking-wider">
+                            <span className="w-1.5 h-1.5 rounded-full bg-[#d30005]" />
                             Maintenance / Offline
-                          </Badge>
+                          </span>
                         ) : (
-                          <Badge className="bg-[#d4ff00]/15 text-[#d4ff00] border border-[#d4ff00]/30 text-[11px] font-bold">
+                          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#f5f5f5] text-[#007d48] border border-[#007d48]/30 text-[11px] font-bold uppercase tracking-wider">
+                            <span className="w-1.5 h-1.5 rounded-full bg-[#007d48]" />
                             Active Online
-                          </Badge>
+                          </span>
                         )}
                       </TableCell>
-                      <TableCell className="text-right">
+                      <TableCell className="text-right py-4">
                         <form action={async () => {
                           "use server";
                           await toggleCourtStatus(court.id, isActive);
@@ -149,12 +215,14 @@ export default async function AdminCourtsPage() {
                             variant="outline" 
                             size="sm" 
                             type="submit"
-                            className={!isActive ? "border-emerald-500/30 bg-emerald-950/30 text-emerald-400 hover:bg-emerald-900/40 text-xs font-bold rounded-xl" : "border-amber-500/30 bg-amber-950/30 text-amber-400 hover:bg-amber-900/40 text-xs font-bold rounded-xl"}
+                            className={!isActive 
+                              ? "border-[#007d48]/40 bg-white text-[#007d48] hover:bg-[#f5f5f5] text-xs font-semibold rounded-full h-8 px-4" 
+                              : "border-[#d30005]/40 bg-white text-[#d30005] hover:bg-[#f5f5f5] text-xs font-semibold rounded-full h-8 px-4"}
                           >
                             {!isActive ? (
-                              <><CheckCircle2 className="h-3.5 w-3.5 mr-1 text-emerald-400" /> Set Active</>
+                              <><CheckCircle2 className="h-3.5 w-3.5 mr-1.5 text-[#007d48]" /> Bring Online</>
                             ) : (
-                              <><Wrench className="h-3.5 w-3.5 mr-1 text-amber-400" /> Set Maintenance</>
+                              <><Wrench className="h-3.5 w-3.5 mr-1.5 text-[#d30005]" /> Set Maintenance</>
                             )}
                           </Button>
                         </form>

@@ -31,7 +31,7 @@ function Calendar({
     <DayPicker
       showOutsideDays={showOutsideDays}
       className={cn(
-        "group/calendar w-full bg-transparent p-1 select-none",
+        "group/calendar w-full bg-white p-2 select-none",
         String.raw`rtl:**:[.rdp-button\_next>svg]:rotate-180`,
         String.raw`rtl:**:[.rdp-button\_previous>svg]:rotate-180`,
         className
@@ -46,53 +46,53 @@ function Calendar({
       classNames={{
         root: cn("w-full", defaultClassNames.root),
         months: cn(
-          "relative flex flex-col gap-5 w-full",
+          "relative flex flex-col gap-4 w-full",
           defaultClassNames.months
         ),
-        month: cn("flex w-full flex-col gap-4", defaultClassNames.month),
+        month: cn("flex w-full flex-col gap-3", defaultClassNames.month),
         nav: cn(
-          "absolute inset-x-0 top-0 flex w-full items-center justify-between gap-1 z-20 px-2",
+          "absolute inset-x-0 top-0 flex w-full items-center justify-between gap-1 z-20 px-1",
           defaultClassNames.nav
         ),
         button_previous: cn(
           buttonVariants({ variant: buttonVariant }),
-          "h-9 w-9 p-0 text-slate-200 hover:text-white hover:bg-white/10 rounded-2xl transition-all border border-white/15 shadow-md bg-slate-900/80",
+          "h-8 w-8 p-0 text-[#111111] hover:bg-[#f5f5f5] rounded-full transition-colors border border-[#cacacb] bg-white",
           defaultClassNames.button_previous
         ),
         button_next: cn(
           buttonVariants({ variant: buttonVariant }),
-          "h-9 w-9 p-0 text-slate-200 hover:text-white hover:bg-white/10 rounded-2xl transition-all border border-white/15 shadow-md bg-slate-900/80",
+          "h-8 w-8 p-0 text-[#111111] hover:bg-[#f5f5f5] rounded-full transition-colors border border-[#cacacb] bg-white",
           defaultClassNames.button_next
         ),
         month_caption: cn(
-          "flex h-9 w-full items-center justify-center font-black text-base md:text-lg text-white tracking-wide uppercase px-12",
+          "flex h-8 w-full items-center justify-center font-bold text-base md:text-lg text-[#111111] tracking-tight uppercase px-10",
           defaultClassNames.month_caption
         ),
         caption_label: cn(
-          "font-black text-base md:text-lg tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-[#d4ff00] select-none",
+          "font-bold text-base md:text-lg uppercase tracking-wider text-[#111111] select-none",
           defaultClassNames.caption_label
         ),
-        month_grid: cn("w-full border-collapse mt-3", defaultClassNames.month_grid),
-        weekdays: cn("grid grid-cols-7 mb-2 text-center border-b border-white/5 pb-2", defaultClassNames.weekdays),
+        month_grid: cn("w-full border-collapse mt-2", defaultClassNames.month_grid),
+        weekdays: cn("grid grid-cols-7 mb-2 text-center border-b border-[#cacacb] pb-2", defaultClassNames.weekdays),
         weekday: cn(
-          "text-xs md:text-sm font-black uppercase text-slate-400 select-none py-1.5 tracking-wider",
+          "text-xs font-bold uppercase tracking-wider text-[#707072] select-none py-1",
           defaultClassNames.weekday
         ),
-        week: cn("grid grid-cols-7 gap-2 md:gap-2.5 my-1 w-full", defaultClassNames.week),
+        week: cn("grid grid-cols-7 gap-1 sm:gap-2 my-1 w-full", defaultClassNames.week),
         day: cn(
-          "group/day relative aspect-square h-auto w-full p-0 text-center select-none min-h-[48px] md:min-h-[56px]",
+          "group/day relative aspect-square h-auto w-full p-0 text-center select-none flex items-center justify-center min-h-[44px] md:min-h-[50px]",
           defaultClassNames.day
         ),
         today: cn(
-          "text-amber-400 font-extrabold",
+          "font-bold text-[#111111]",
           defaultClassNames.today
         ),
         outside: cn(
-          "text-slate-600 opacity-30 aria-selected:text-slate-500",
+          "text-[#cacacb] opacity-40 aria-selected:text-[#707072]",
           defaultClassNames.outside
         ),
         disabled: cn(
-          "text-slate-600 opacity-25 cursor-not-allowed",
+          "text-[#cacacb] opacity-35 cursor-not-allowed",
           defaultClassNames.disabled
         ),
         hidden: cn("invisible", defaultClassNames.hidden),
@@ -112,18 +112,18 @@ function Calendar({
         Chevron: ({ className, orientation, ...props }) => {
           if (orientation === "left") {
             return (
-              <ChevronLeftIcon className={cn("size-4 text-amber-400", className)} {...props} />
+              <ChevronLeftIcon className={cn("size-4 text-[#111111]", className)} {...props} />
             )
           }
 
           if (orientation === "right") {
             return (
-              <ChevronRightIcon className={cn("size-4 text-amber-400", className)} {...props} />
+              <ChevronRightIcon className={cn("size-4 text-[#111111]", className)} {...props} />
             )
           }
 
           return (
-            <ChevronDownIcon className={cn("size-4", className)} {...props} />
+            <ChevronDownIcon className={cn("size-4 text-[#111111]", className)} {...props} />
           )
         },
         DayButton: ({ ...props }) => (
@@ -148,9 +148,8 @@ function CalendarDayButton({
     if (modifiers.focused) ref.current?.focus()
   }, [modifiers.focused])
 
-  const isAlmostFull = Boolean((modifiers as any).almostFull)
-  const isFullyBooked = Boolean((modifiers as any).fullyBooked)
-  const isAvailable = Boolean((modifiers as any).available)
+  const isAlmostFull = Boolean((modifiers as Record<string, unknown>).almostFull)
+  const isFullyBooked = Boolean((modifiers as Record<string, unknown>).fullyBooked)
   const isSelected = Boolean(modifiers.selected)
   const isDisabled = Boolean(modifiers.disabled)
   const isOutside = Boolean(modifiers.outside)
@@ -164,38 +163,33 @@ function CalendarDayButton({
       data-day={day.date.toLocaleDateString(locale?.code)}
       data-selected-single={isSelected}
       className={cn(
-        "relative isolate z-10 flex aspect-square h-full w-full min-w-0 flex-col items-center justify-center gap-1 border leading-none font-bold text-sm md:text-base transition-all duration-200 rounded-2xl p-1",
-        "hover:scale-[1.08] active:scale-95 cursor-pointer",
+        "relative isolate z-10 flex aspect-square h-10 w-10 sm:h-11 sm:w-11 min-w-0 flex-col items-center justify-center rounded-full leading-none font-semibold text-xs sm:text-sm transition-colors mx-auto p-0",
         // Default unselected state
-        !isSelected && !isDisabled && !isOutside && "border-white/10 bg-[#14161b]/90 hover:bg-slate-800 text-slate-100 hover:border-[#d4ff00]/40 shadow-sm",
-        // Almost Full (Filling Fast) Highlight
-        isAlmostFull && !isSelected && !isDisabled && !isOutside && "bg-gradient-to-b from-amber-500/20 to-amber-950/40 border-amber-500/50 text-amber-200 hover:border-amber-400 hover:bg-amber-500/30 shadow-md shadow-amber-500/10",
-        // Fully Booked Highlight
-        isFullyBooked && !isSelected && !isDisabled && !isOutside && "bg-red-950/40 border-red-500/40 text-red-300 hover:border-red-400 opacity-70",
-        // Today ring
-        isToday && !isSelected && "ring-2 ring-amber-400/80 shadow-[0_0_10px_rgba(251,191,36,0.3)]",
-        // Selected Date
-        isSelected && "bg-gradient-to-br from-red-600 via-red-500 to-amber-500 text-white font-black shadow-xl shadow-red-500/40 border-amber-300 scale-[1.08] z-20 ring-2 ring-amber-400/50",
+        !isSelected && !isDisabled && !isOutside && "bg-transparent text-[#111111] hover:bg-[#f5f5f5]",
+        // Today ring (when not selected)
+        isToday && !isSelected && "ring-1 ring-inset ring-[#111111] font-bold",
+        // Selected Date: Solid Ink Black Pill
+        isSelected && "bg-[#111111] text-white font-bold hover:bg-[#222222] shadow-none",
         // Disabled / Outside Date
-        isDisabled && "opacity-20 cursor-not-allowed hover:scale-100 hover:bg-transparent text-slate-600 border-transparent",
-        isOutside && "opacity-15 pointer-events-none text-slate-700 border-transparent",
+        isDisabled && "opacity-30 cursor-not-allowed text-[#cacacb] hover:bg-transparent pointer-events-none",
+        isOutside && "opacity-20 text-[#cacacb] hover:bg-transparent pointer-events-none",
         className
       )}
       {...props}
     >
-      <span className={cn("text-xs sm:text-sm md:text-base font-black tracking-tight", isSelected ? "text-white font-black" : isAlmostFull ? "text-amber-300" : isFullyBooked ? "text-red-300" : "text-slate-100")}>
+      <span className={cn(
+        "tracking-tight",
+        isSelected ? "text-white font-bold" : "text-[#111111]"
+      )}>
         {day.date.getDate()}
       </span>
-      {!isDisabled && !isOutside && (
-        <span className="flex items-center justify-center h-2 w-full gap-0.5">
+      {!isDisabled && !isOutside && !isSelected && (isAlmostFull || isFullyBooked) && (
+        <span className="absolute bottom-1 flex items-center justify-center">
           {isAlmostFull && (
-            <span className="h-1.5 w-1.5 rounded-full bg-amber-400 shadow-[0_0_8px_#f59e0b] animate-pulse" />
+            <span className="h-1 w-1 rounded-full bg-[#111111]" />
           )}
           {isFullyBooked && (
-            <span className="h-1.5 w-1.5 rounded-full bg-red-500 shadow-[0_0_8px_#ef4444]" />
-          )}
-          {isAvailable && (
-            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_6px_#10b981]" />
+            <span className="h-1 w-1 rounded-full bg-[#d30005]" />
           )}
         </span>
       )}

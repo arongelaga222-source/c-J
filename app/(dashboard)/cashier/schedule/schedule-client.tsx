@@ -537,18 +537,18 @@ export default function ScheduleClient({
   }).format(gridMonthDate);
 
   return (
-    <div className="p-3 sm:p-6 min-h-[calc(100vh)] flex flex-col bg-[#0f1117] text-slate-100 font-sans selection:bg-red-600 selection:text-white space-y-4">
+    <div className="p-6 sm:p-10 max-w-[1440px] mx-auto min-h-screen flex flex-col bg-white text-[#111111] font-sans selection:bg-[#111111] selection:text-white space-y-6">
       
       {/* Success Notification Banner */}
       {successBanner && (
-        <div className="p-3 rounded-2xl bg-emerald-950/80 border border-emerald-400/50 text-emerald-200 text-xs font-bold flex items-center justify-between shadow-lg shadow-emerald-500/10 animate-in fade-in slide-in-from-top-2 duration-200">
+        <div className="p-4 border border-[#007d48]/40 bg-[#f5f5f5] text-[#007d48] text-xs font-semibold flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+            <CheckCircle2 className="w-4 h-4 text-[#007d48] shrink-0" />
             <span>{successBanner}</span>
           </div>
           <button
             onClick={() => setSuccessBanner(null)}
-            className="text-emerald-400 hover:text-white text-xs px-2"
+            className="text-[#707072] hover:text-[#111111] text-xs px-2"
           >
             ✕
           </button>
@@ -556,49 +556,52 @@ export default function ScheduleClient({
       )}
 
       {/* Top Header & View Mode Switcher */}
-      <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 p-4 rounded-3xl bg-[#141622]/90 border border-white/10 backdrop-blur-xl shadow-xl">
+      <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 border-b border-[#cacacb] pb-6">
         
         {/* Left Title & Live Pulse */}
         <div className="space-y-1">
-          <div className="flex items-center gap-2.5 flex-wrap">
-            <Trophy className="w-6 h-6 text-amber-400 shrink-0" />
-            <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight">
-              Cashier Court Scheduling
-            </h1>
-            <span className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
-              <Radio className="w-3 h-3 animate-pulse" /> Live Scheduler
+          <div className="flex items-center gap-2 mb-1">
+            <span className="text-xs font-bold uppercase tracking-widest text-[#707072]">
+              Operations
+            </span>
+            <span className="text-xs text-[#cacacb]">•</span>
+            <span className="text-[10px] font-bold uppercase px-2.5 py-0.5 rounded-full bg-[#f5f5f5] text-[#111111] border border-[#cacacb]">
+              Live Court Scheduler
             </span>
           </div>
-          <p className="text-xs text-slate-400">
-            Real-time calendar showing all booked time slots and client names with instant check-in.
+          <h1 className="text-3xl sm:text-5xl font-display uppercase tracking-tight text-[#111111]">
+            TIMELINE &amp; RESERVATIONS
+          </h1>
+          <p className="text-xs text-[#707072]">
+            Real-time court availability matrix, scheduled player check-ins, and walk-in registry.
           </p>
         </div>
 
         {/* View Mode Toggle & Actions */}
-        <div className="flex flex-wrap items-center gap-2.5 w-full lg:w-auto">
+        <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto">
           
           {/* Primary View Switcher: Calendar Grid vs Day Timeline */}
-          <div className="flex items-center bg-slate-950 p-1 rounded-2xl border border-white/15 shadow-inner">
+          <div className="flex items-center bg-[#f5f5f5] p-1 rounded-full border border-[#cacacb]">
             <button
               type="button"
               onClick={() => setViewMode('month_grid')}
-              className={`px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-black flex items-center gap-1.5 transition-all ${
+              className={`px-4 py-1.5 rounded-full text-xs font-bold flex items-center gap-1.5 transition-all ${
                 viewMode === 'month_grid'
-                  ? 'bg-gradient-to-r from-red-600 via-red-500 to-amber-500 text-white shadow-md'
-                  : 'text-slate-400 hover:text-white'
+                  ? 'bg-[#111111] text-white'
+                  : 'text-[#707072] hover:text-[#111111]'
               }`}
             >
               <LayoutGrid className="w-3.5 h-3.5 shrink-0" />
-              <span className="hidden sm:inline">Calendar Grid (Clients)</span>
+              <span className="hidden sm:inline">Calendar Grid</span>
               <span className="sm:hidden">Grid</span>
             </button>
             <button
               type="button"
               onClick={() => setViewMode('timeline')}
-              className={`px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-black flex items-center gap-1.5 transition-all ${
+              className={`px-4 py-1.5 rounded-full text-xs font-bold flex items-center gap-1.5 transition-all ${
                 viewMode === 'timeline'
-                  ? 'bg-gradient-to-r from-red-600 via-red-500 to-amber-500 text-white shadow-md'
-                  : 'text-slate-400 hover:text-white'
+                  ? 'bg-[#111111] text-white'
+                  : 'text-[#707072] hover:text-[#111111]'
               }`}
             >
               <ListTodo className="w-3.5 h-3.5 shrink-0" />
@@ -608,19 +611,19 @@ export default function ScheduleClient({
           </div>
 
           {/* Client Search Bar */}
-          <div className="relative flex-1 sm:w-44">
-            <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+          <div className="relative flex-1 sm:w-52">
+            <Search className="w-3.5 h-3.5 text-[#707072] absolute left-3.5 top-1/2 -translate-y-1/2" />
             <input
               type="text"
-              placeholder="Search client..."
+              placeholder="Search player name..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full h-9 pl-8 pr-3 bg-slate-950 border border-white/10 text-white rounded-xl text-xs font-medium focus:outline-none focus:border-amber-400 transition-all placeholder:text-slate-500"
+              className="w-full h-10 pl-9 pr-8 bg-[#f5f5f5] border border-transparent text-[#111111] rounded-full text-xs font-medium focus:outline-none focus:border-[#111111] placeholder:text-[#707072]"
             />
             {searchQuery && (
               <button
                 onClick={() => setSearchQuery('')}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white text-xs"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-[#707072] hover:text-[#111111] text-xs"
               >
                 ✕
               </button>
@@ -636,9 +639,9 @@ export default function ScheduleClient({
               fetchMonthAllBookings(currentMonthStr);
             }}
             disabled={isLoading}
-            className="border-white/10 bg-slate-950 text-slate-200 hover:text-white hover:bg-white/10 rounded-xl h-9 px-3 text-xs font-bold"
+            className="border-[#cacacb] text-[#111111] hover:bg-[#f5f5f5] rounded-full h-10 px-4 text-xs font-semibold"
           >
-            <RefreshCw className={`w-3.5 h-3.5 mr-1 ${isLoading ? 'animate-spin text-amber-400' : ''}`} />
+            <RefreshCw className={`w-3.5 h-3.5 mr-1.5 ${isLoading ? 'animate-spin' : ''}`} />
             Sync
           </Button>
 
@@ -650,22 +653,22 @@ export default function ScheduleClient({
               setIsWalkInOpen(open);
             }}
           >
-            <DialogTrigger className="inline-flex items-center justify-center rounded-xl text-xs font-black transition-all bg-gradient-to-r from-red-600 to-amber-500 hover:from-red-700 hover:to-amber-600 text-white shadow-lg shadow-red-500/25 h-9 px-3.5 hover:scale-[1.02] cursor-pointer">
+            <DialogTrigger className="inline-flex items-center justify-center rounded-full text-xs font-semibold bg-[#111111] hover:bg-[#222222] text-white h-10 px-5 cursor-pointer">
               <Plus className="h-4 w-4 mr-1" /> + Walk-in
             </DialogTrigger>
-            <DialogContent className="sm:max-w-md bg-[#161922] border-white/15 text-slate-100 rounded-3xl shadow-2xl">
+            <DialogContent className="sm:max-w-md bg-white border border-[#cacacb] text-[#111111] rounded-none p-6 sm:p-8 shadow-2xl">
               <form onSubmit={handleCreateWalkIn}>
-                <DialogHeader>
-                  <DialogTitle className="text-lg font-black text-white flex items-center gap-2">
-                    <Flame className="w-5 h-5 text-red-500" /> Walk-In Court Booking
+                <DialogHeader className="space-y-1 pb-2">
+                  <DialogTitle className="text-2xl font-bold tracking-tight text-[#111111]">
+                    Walk-In Court Booking
                   </DialogTitle>
-                  <DialogDescription className="text-xs text-slate-400">
-                    Immediately reserve a court slot and record cash or counter QR tender.
+                  <DialogDescription className="text-xs text-[#707072]">
+                    Immediately reserve a court slot and record counter cash or QR tender.
                   </DialogDescription>
                 </DialogHeader>
 
                 {walkInError && (
-                  <div className="p-3 my-2 rounded-xl bg-red-950/60 border border-red-500/40 text-xs text-red-300">
+                  <div className="p-3 my-2 border border-[#d30005]/40 bg-[#f5f5f5] text-xs text-[#d30005] font-medium">
                     {walkInError}
                   </div>
                 )}
@@ -674,15 +677,15 @@ export default function ScheduleClient({
                   {/* Select Date */}
                   <div className="space-y-1.5">
                     <div className="flex items-center justify-between">
-                      <Label className="text-xs font-bold text-slate-300">Reservation Date</Label>
-                      <div className="flex items-center gap-1">
+                      <Label className="text-xs font-bold uppercase tracking-wider text-[#111111]">Reservation Date</Label>
+                      <div className="flex items-center gap-1.5">
                         <button
                           type="button"
                           onClick={() => setWalkInDate(getTodayStr())}
-                          className={`text-[10px] font-bold px-2 py-0.5 rounded ${
+                          className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full border ${
                             walkInDate === getTodayStr()
-                              ? 'bg-amber-500 text-slate-950 font-black'
-                              : 'text-slate-400 hover:text-white bg-slate-950'
+                              ? 'bg-[#111111] text-white border-[#111111]'
+                              : 'text-[#707072] border-[#cacacb] bg-[#f5f5f5]'
                           }`}
                         >
                           Today
@@ -690,10 +693,10 @@ export default function ScheduleClient({
                         <button
                           type="button"
                           onClick={() => setWalkInDate(getTomorrowStr())}
-                          className={`text-[10px] font-bold px-2 py-0.5 rounded ${
+                          className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full border ${
                             walkInDate === getTomorrowStr()
-                              ? 'bg-amber-500 text-slate-950 font-black'
-                              : 'text-slate-400 hover:text-white bg-slate-950'
+                              ? 'bg-[#111111] text-white border-[#111111]'
+                              : 'text-[#707072] border-[#cacacb] bg-[#f5f5f5]'
                           }`}
                         >
                           Tomorrow
@@ -705,17 +708,17 @@ export default function ScheduleClient({
                       value={walkInDate}
                       onChange={(e) => setWalkInDate(e.target.value)}
                       required
-                      className="bg-slate-950 border-white/10 text-white rounded-xl [color-scheme:dark]"
+                      className="h-10 px-4 rounded-full bg-[#f5f5f5] border-transparent text-[#111111] text-xs focus:border-[#111111]"
                     />
                   </div>
 
                   {/* Select Court */}
                   <div className="space-y-1.5">
-                    <Label className="text-xs font-bold text-slate-300">Select Court</Label>
+                    <Label className="text-xs font-bold uppercase tracking-wider text-[#111111]">Select Court</Label>
                     <select
                       value={walkInCourtId}
                       onChange={(e) => setWalkInCourtId(e.target.value)}
-                      className="w-full h-10 px-3 rounded-xl bg-slate-950 border border-white/10 text-white text-xs font-bold focus:outline-none focus:border-red-500"
+                      className="w-full h-10 px-4 rounded-full bg-[#f5f5f5] border border-transparent text-[#111111] text-xs font-medium focus:border-[#111111] outline-none"
                     >
                       {courts.map((c) => (
                         <option key={c.id} value={c.id}>
@@ -728,11 +731,11 @@ export default function ScheduleClient({
                   {/* Start Hour & Duration */}
                   <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-1.5">
-                      <Label className="text-xs font-bold text-slate-300">Start Time</Label>
+                      <Label className="text-xs font-bold uppercase tracking-wider text-[#111111]">Start Time</Label>
                       <select
                         value={walkInHour}
                         onChange={(e) => setWalkInHour(parseInt(e.target.value, 10))}
-                        className="w-full h-10 px-3 rounded-xl bg-slate-950 border border-white/10 text-white text-xs font-bold focus:outline-none focus:border-red-500"
+                        className="w-full h-10 px-4 rounded-full bg-[#f5f5f5] border border-transparent text-[#111111] text-xs font-medium focus:border-[#111111] outline-none"
                       >
                         {OPERATING_SLOTS.map((h) => (
                           <option key={h} value={h}>
@@ -743,11 +746,11 @@ export default function ScheduleClient({
                     </div>
 
                     <div className="space-y-1.5">
-                      <Label className="text-xs font-bold text-slate-300">Duration</Label>
+                      <Label className="text-xs font-bold uppercase tracking-wider text-[#111111]">Duration</Label>
                       <select
                         value={walkInDuration}
                         onChange={(e) => setWalkInDuration(parseInt(e.target.value, 10))}
-                        className="w-full h-10 px-3 rounded-xl bg-slate-950 border border-white/10 text-white text-xs font-bold focus:outline-none focus:border-red-500"
+                        className="w-full h-10 px-4 rounded-full bg-[#f5f5f5] border border-transparent text-[#111111] text-xs font-medium focus:border-[#111111] outline-none"
                       >
                         {Array.from({ length: 12 }, (_, i) => i + 1).map((h) => (
                           <option key={h} value={h}>
@@ -760,48 +763,48 @@ export default function ScheduleClient({
 
                   {/* Client Name & Contact */}
                   <div className="space-y-1.5">
-                    <Label className="text-xs font-bold text-slate-300">Client Full Name</Label>
+                    <Label className="text-xs font-bold uppercase tracking-wider text-[#111111]">Player Full Name</Label>
                     <Input
                       placeholder="e.g. Alex Santos"
                       value={walkInName}
                       onChange={(e) => setWalkInName(e.target.value)}
                       required
-                      className="bg-slate-950 border-white/10 text-white rounded-xl"
+                      className="h-10 px-4 rounded-full bg-[#f5f5f5] border-transparent text-[#111111] text-xs focus:border-[#111111]"
                     />
                   </div>
 
                   <div className="space-y-1.5">
-                    <Label className="text-xs font-bold text-slate-300">Phone Number (Optional)</Label>
+                    <Label className="text-xs font-bold uppercase tracking-wider text-[#111111]">Phone Number (Optional)</Label>
                     <Input
                       placeholder="e.g. 0917 123 4567"
                       value={walkInPhone}
                       onChange={(e) => setWalkInPhone(e.target.value)}
-                      className="bg-slate-950 border-white/10 text-white rounded-xl"
+                      className="h-10 px-4 rounded-full bg-[#f5f5f5] border-transparent text-[#111111] text-xs focus:border-[#111111]"
                     />
                   </div>
 
                   {/* Payment Method */}
                   <div className="space-y-1.5">
-                    <Label className="text-xs font-bold text-slate-300">Tender Collected</Label>
+                    <Label className="text-xs font-bold uppercase tracking-wider text-[#111111]">Tender Collected</Label>
                     <div className="grid grid-cols-2 gap-2">
                       <button
                         type="button"
                         onClick={() => setWalkInPaymentMethod('cash')}
-                        className={`p-2.5 rounded-xl border text-xs font-bold flex items-center justify-center gap-2 ${
+                        className={`p-3 rounded-full border text-xs font-semibold flex items-center justify-center gap-2 transition-colors ${
                           walkInPaymentMethod === 'cash'
-                            ? 'bg-gradient-to-r from-red-600 to-amber-500 text-white border-amber-400 font-black shadow-md'
-                            : 'bg-slate-950 border-white/10 text-slate-300 hover:border-white/20'
+                            ? 'bg-[#111111] text-white border-[#111111]'
+                            : 'bg-[#f5f5f5] border-[#cacacb] text-[#111111]'
                         }`}
                       >
-                        <Banknote className="w-4 h-4" /> Cash (Counter)
+                        <Banknote className="w-4 h-4" /> Cash Counter
                       </button>
                       <button
                         type="button"
                         onClick={() => setWalkInPaymentMethod('counter_qr')}
-                        className={`p-2.5 rounded-xl border text-xs font-bold flex items-center justify-center gap-2 ${
+                        className={`p-3 rounded-full border text-xs font-semibold flex items-center justify-center gap-2 transition-colors ${
                           walkInPaymentMethod === 'counter_qr'
-                            ? 'bg-gradient-to-r from-red-600 to-amber-500 text-white border-amber-400 font-black shadow-md'
-                            : 'bg-slate-950 border-white/10 text-slate-300 hover:border-white/20'
+                            ? 'bg-[#111111] text-white border-[#111111]'
+                            : 'bg-[#f5f5f5] border-[#cacacb] text-[#111111]'
                         }`}
                       >
                         <QrCode className="w-4 h-4" /> Counter QR Ph
@@ -814,7 +817,7 @@ export default function ScheduleClient({
                   <Button
                     type="submit"
                     disabled={walkInLoading}
-                    className="w-full bg-gradient-to-r from-red-600 to-amber-500 text-white font-black rounded-xl h-11 shadow-lg"
+                    className="w-full bg-[#111111] hover:bg-[#222222] text-white font-semibold rounded-full h-11 transition-colors"
                   >
                     {walkInLoading ? (
                       <Loader2 className="w-4 h-4 animate-spin" />
@@ -831,13 +834,13 @@ export default function ScheduleClient({
       </div>
 
       {/* ========================================================================= */}
-      {/* VIEW 1: MONTH CALENDAR GRID (SHOWS CLIENT NAME OF WHO BOOKED THAT TIME) */}
+      {/* VIEW 1: MONTH CALENDAR GRID */}
       {/* ========================================================================= */}
       {viewMode === 'month_grid' && (
         <div className="space-y-4">
           
           {/* Calendar Grid Controls Bar */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-2xl bg-[#141622]/90 border border-white/10 shadow-md">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 border border-[#cacacb] bg-white">
             
             {/* Month Navigation */}
             <div className="flex items-center gap-2">
@@ -845,23 +848,21 @@ export default function ScheduleClient({
                 variant="outline"
                 size="icon"
                 onClick={() => handleOffsetMonth(-1)}
-                className="h-8 w-8 text-slate-300 border-white/15 bg-slate-950 rounded-xl"
+                className="h-8 w-8 text-[#111111] border-[#cacacb] hover:bg-[#f5f5f5] rounded-full"
               >
                 <ChevronLeft className="h-4 w-4" />
               </Button>
 
-              <h2 className="text-base sm:text-lg font-black text-white px-2 tracking-wide flex items-center gap-2">
-                <CalendarIcon className="w-4 h-4 text-amber-400" />
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-[#d4ff00]">
-                  {monthFormattedTitle}
-                </span>
+              <h2 className="text-xl font-display uppercase tracking-tight text-[#111111] px-2 flex items-center gap-2">
+                <CalendarIcon className="w-4 h-4 text-[#111111]" />
+                <span>{monthFormattedTitle}</span>
               </h2>
 
               <Button
                 variant="outline"
                 size="icon"
                 onClick={() => handleOffsetMonth(1)}
-                className="h-8 w-8 text-slate-300 border-white/15 bg-slate-950 rounded-xl"
+                className="h-8 w-8 text-[#111111] border-[#cacacb] hover:bg-[#f5f5f5] rounded-full"
               >
                 <ChevronRight className="h-4 w-4" />
               </Button>
@@ -874,22 +875,22 @@ export default function ScheduleClient({
                   setGridMonthDate(new Date(today.getFullYear(), today.getMonth(), 1));
                   handleDateSelect(getTodayStr());
                 }}
-                className="h-8 px-2.5 text-xs font-bold text-amber-300 hover:bg-amber-500/10 rounded-xl"
+                className="h-8 px-3 text-xs font-semibold text-[#111111] hover:bg-[#f5f5f5] rounded-full"
               >
                 Today
               </Button>
             </div>
 
             {/* Court Filter Pills */}
-            <div className="flex items-center gap-1.5 flex-wrap">
-              <span className="text-xs text-slate-400 font-bold mr-1">Filter Court:</span>
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-xs text-[#707072] font-semibold mr-1">Filter Court:</span>
               <button
                 type="button"
                 onClick={() => setSelectedCourtFilter('all')}
-                className={`px-2.5 py-1 rounded-lg text-xs font-black transition-all ${
+                className={`px-3.5 py-1 rounded-full text-xs font-semibold transition-colors ${
                   selectedCourtFilter === 'all'
-                    ? 'bg-[#d4ff00] text-slate-950 shadow-sm'
-                    : 'bg-slate-950 border border-white/10 text-slate-300 hover:text-white'
+                    ? 'bg-[#111111] text-white'
+                    : 'bg-[#f5f5f5] border border-[#cacacb] text-[#111111] hover:bg-[#e5e5e5]'
                 }`}
               >
                 All Courts
@@ -899,10 +900,10 @@ export default function ScheduleClient({
                   key={court.id}
                   type="button"
                   onClick={() => setSelectedCourtFilter(court.id)}
-                  className={`px-2.5 py-1 rounded-lg text-xs font-black transition-all ${
+                  className={`px-3.5 py-1 rounded-full text-xs font-semibold transition-colors ${
                     selectedCourtFilter === court.id
-                      ? 'bg-amber-400 text-slate-950 shadow-sm'
-                      : 'bg-slate-950 border border-white/10 text-slate-300 hover:text-white'
+                      ? 'bg-[#111111] text-white'
+                      : 'bg-[#f5f5f5] border border-[#cacacb] text-[#111111] hover:bg-[#e5e5e5]'
                   }`}
                 >
                   {court.name.split(' - ')[0]}
@@ -913,16 +914,14 @@ export default function ScheduleClient({
           </div>
 
           {/* 7-Column Calendar Grid Matrix */}
-          <div className="rounded-3xl border border-white/10 bg-[#12141c]/95 backdrop-blur-2xl shadow-2xl overflow-hidden ring-1 ring-white/5">
+          <div className="border border-[#cacacb] bg-white overflow-hidden">
             
             {/* Weekday Header */}
-            <div className="grid grid-cols-7 border-b border-white/10 bg-[#171b26] text-center">
-              {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day, idx) => (
+            <div className="grid grid-cols-7 border-b border-[#cacacb] bg-[#f5f5f5] text-center">
+              {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
                 <div
                   key={day}
-                  className={`py-2.5 text-xs font-black uppercase tracking-wider ${
-                    idx === 0 || idx === 6 ? 'text-amber-400/90' : 'text-slate-300'
-                  }`}
+                  className="py-2.5 text-xs font-bold uppercase tracking-wider text-[#707072]"
                 >
                   {day}
                 </div>
@@ -930,7 +929,7 @@ export default function ScheduleClient({
             </div>
 
             {/* Month Day Cells */}
-            <div className="grid grid-cols-7 divide-x divide-y divide-white/10 bg-[#0f1118]">
+            <div className="grid grid-cols-7 divide-x divide-y divide-[#cacacb] bg-white">
               {calendarGridDays.map((dayObj) => {
                 const rawDayBookings = monthBookings[dayObj.dateStr] || [];
                 const dayBookings = rawDayBookings.filter((b) => {
@@ -954,31 +953,31 @@ export default function ScheduleClient({
                 return (
                   <div
                     key={dayObj.dateStr}
-                    className={`min-h-[150px] sm:min-h-[190px] p-2 flex flex-col justify-between transition-all group relative ${
+                    className={`min-h-[150px] sm:min-h-[190px] p-2.5 flex flex-col justify-between transition-colors group relative ${
                       !dayObj.isCurrentMonth
-                        ? 'bg-slate-950/40 text-slate-600 opacity-45'
+                        ? 'bg-[#f5f5f5]/50 text-[#707072] opacity-50'
                         : dayObj.isToday
-                        ? 'bg-gradient-to-b from-amber-500/10 via-[#141622] to-[#141622] ring-1 ring-amber-400/40'
-                        : 'hover:bg-slate-900/60'
+                        ? 'bg-[#f5f5f5] ring-1 ring-inset ring-[#111111]'
+                        : 'hover:bg-[#f5f5f5]/40'
                     }`}
                   >
                     
-                    {/* Day Cell Header: Date Number & Session Count */}
-                    <div className="flex items-center justify-between pb-1.5 border-b border-white/5">
+                    {/* Day Cell Header */}
+                    <div className="flex items-center justify-between pb-1.5 border-b border-[#e5e5e5]">
                       <div className="flex items-center gap-1.5">
                         <span
-                          className={`text-xs sm:text-sm font-black w-6 h-6 rounded-lg flex items-center justify-center ${
+                          className={`text-xs sm:text-sm font-bold w-6 h-6 rounded-full flex items-center justify-center ${
                             dayObj.isToday
-                              ? 'bg-gradient-to-r from-red-600 to-amber-500 text-white shadow-md ring-1 ring-amber-300'
+                              ? 'bg-[#111111] text-white'
                               : dayObj.isCurrentMonth
-                              ? 'text-slate-200'
-                              : 'text-slate-600'
+                              ? 'text-[#111111]'
+                              : 'text-[#707072]'
                           }`}
                         >
                           {dayObj.dayNumber}
                         </span>
                         {dayObj.isToday && (
-                          <span className="text-[9px] font-black uppercase text-amber-400 hidden sm:inline">
+                          <span className="text-[9px] font-bold uppercase tracking-wider text-[#111111] hidden sm:inline">
                             Today
                           </span>
                         )}
@@ -987,14 +986,14 @@ export default function ScheduleClient({
                       {/* Booking Count Badge or + Add Walkin Button */}
                       <div className="flex items-center gap-1">
                         {dayBookings.length > 0 ? (
-                          <span className="text-[10px] font-black px-1.5 py-0.2 rounded-md bg-[#d4ff00]/15 text-[#d4ff00] border border-[#d4ff00]/30">
-                            {dayBookings.length} Booked
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#f5f5f5] text-[#111111] border border-[#cacacb]">
+                            {dayBookings.length}
                           </span>
                         ) : (
                           <button
                             type="button"
                             onClick={() => openWalkInForSlot(courts[0]?.id || '', 8, dayObj.dateStr)}
-                            className="opacity-0 group-hover:opacity-100 transition-opacity text-[10px] font-bold text-slate-400 hover:text-white bg-slate-900 px-1.5 py-0.5 rounded border border-white/10 cursor-pointer"
+                            className="opacity-0 group-hover:opacity-100 transition-opacity text-[10px] font-semibold text-[#111111] hover:bg-[#111111] hover:text-white bg-[#f5f5f5] px-2 py-0.5 rounded-full border border-[#cacacb] cursor-pointer"
                             title="Add Walk-in for this date"
                           >
                             + Book
@@ -1003,12 +1002,12 @@ export default function ScheduleClient({
                       </div>
                     </div>
 
-                    {/* Booked Sessions Chips inside Calendar Grid with CLIENT NAMES */}
-                    <div className="flex-1 py-1 space-y-1.5 overflow-y-auto max-h-[135px] scrollbar-none">
+                    {/* Booked Sessions Chips */}
+                    <div className="flex-1 py-1.5 space-y-1 overflow-y-auto max-h-[135px] scrollbar-none">
                       {dayBookings.length === 0 ? (
                         <div className="h-full flex items-center justify-center py-4">
-                          <span className="text-[10px] text-slate-600 font-medium italic">
-                            {dayObj.isCurrentMonth ? 'Open Court' : ''}
+                          <span className="text-[10px] text-[#707072] font-medium">
+                            {dayObj.isCurrentMonth ? 'Available' : ''}
                           </span>
                         </div>
                       ) : (
@@ -1016,9 +1015,7 @@ export default function ScheduleClient({
                           const courtName = b.courts?.name || (b.court_id?.includes('80d4') ? 'Court 1' : 'Court 2');
                           const courtLabel = courtName.includes('2') ? 'Court 2' : 'Court 1';
                           const isCheckedIn = b.status === 'checked_in';
-                          const isWalkIn = b.status === 'walk_in';
                           const isCancelled = b.status === 'cancelled';
-                          const isPending = b.status === 'pending_payment';
                           const clientDisplayName = b.guest_name || b.profiles?.full_name || 'Client';
 
                           return (
@@ -1028,48 +1025,31 @@ export default function ScheduleClient({
                                 e.stopPropagation();
                                 setSelectedBooking(b);
                               }}
-                              className={`p-1.5 rounded-xl border text-left cursor-pointer transition-all hover:scale-[1.02] shadow-sm flex flex-col gap-1 ${
+                              className={`p-1.5 rounded-md border text-left cursor-pointer transition-all hover:border-[#111111] flex flex-col gap-0.5 ${
                                 isCancelled
-                                  ? 'bg-slate-900/80 border-slate-700/50 text-slate-400 opacity-60'
+                                  ? 'bg-[#f5f5f5] border-[#cacacb] text-[#707072] line-through opacity-60'
                                   : isCheckedIn
-                                  ? 'bg-blue-950/80 border-blue-500/50 text-blue-200 hover:border-blue-300'
-                                  : isWalkIn
-                                  ? 'bg-purple-950/80 border-purple-500/50 text-purple-200 hover:border-purple-300'
-                                  : isPending
-                                  ? 'bg-amber-950/80 border-amber-500/50 text-amber-200 hover:border-amber-300'
-                                  : 'bg-emerald-950/80 border-emerald-500/50 text-emerald-200 hover:border-emerald-300'
+                                  ? 'bg-[#f5f5f5] border-[#007d48]/50 text-[#007d48]'
+                                  : 'bg-[#f5f5f5] border-[#cacacb] text-[#111111]'
                               }`}
                               title={`Click to check in: ${clientDisplayName} (${formatTimeSlot(b.start_time, b.end_time)})`}
                             >
-                              {/* Top row: Client Full Name in bold + Avatar */}
-                              <div className="flex items-center gap-1.5 truncate">
-                                <div
-                                  className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 text-[9px] font-black ${
-                                    courtLabel === 'Court 1' ? 'bg-amber-400 text-slate-950' : 'bg-red-500 text-white'
-                                  }`}
-                                >
-                                  {clientDisplayName.slice(0, 1).toUpperCase()}
-                                </div>
-                                <span className="text-[11px] font-black text-white truncate drop-shadow-sm">
+                              {/* Client Full Name */}
+                              <div className="flex items-center justify-between gap-1 truncate">
+                                <span className="text-[11px] font-bold text-[#111111] truncate">
                                   {clientDisplayName}
+                                </span>
+                                <span className="text-[8px] font-bold uppercase tracking-wider text-[#707072] shrink-0">
+                                  {courtLabel}
                                 </span>
                               </div>
 
-                              {/* Bottom row: Time Range + Court Name + Status */}
-                              <div className="flex items-center justify-between text-[9px] font-bold text-slate-300">
-                                <span className="font-mono text-slate-300 flex items-center gap-0.5">
-                                  <Clock className="w-2.5 h-2.5 text-amber-400" />
-                                  {formatTimeSlot(b.start_time, b.end_time)}
-                                </span>
-                                <span
-                                  className={`px-1 py-0.2 rounded font-black text-[8px] uppercase ${
-                                    courtLabel === 'Court 1'
-                                      ? 'bg-amber-500/20 text-amber-300'
-                                      : 'bg-red-500/20 text-red-300'
-                                  }`}
-                                >
-                                  {courtLabel}
-                                </span>
+                              {/* Time Range */}
+                              <div className="flex items-center justify-between text-[9px] text-[#707072] font-mono">
+                                <span>{formatTimeSlot(b.start_time, b.end_time)}</span>
+                                {isCheckedIn && (
+                                  <span className="text-[8px] font-bold text-[#007d48]">ARRIVED</span>
+                                )}
                               </div>
                             </div>
                           );
@@ -1083,24 +1063,24 @@ export default function ScheduleClient({
                             handleDateSelect(dayObj.dateStr);
                             setViewMode('timeline');
                           }}
-                          className="w-full text-center text-[9px] font-black text-amber-400 hover:underline bg-amber-500/10 py-0.5 rounded border border-amber-500/20 block"
+                          className="w-full text-center text-[9px] font-bold text-[#111111] hover:underline bg-[#f5f5f5] py-1 rounded border border-[#cacacb] block"
                         >
-                          +{dayBookings.length - 4} more • Open Day Timeline →
+                          +{dayBookings.length - 4} more • Timeline →
                         </button>
                       )}
                     </div>
 
                     {/* Footer link to switch to single day timeline */}
-                    <div className="pt-1 border-t border-white/5 flex items-center justify-between">
+                    <div className="pt-1 border-t border-[#e5e5e5] flex items-center justify-between">
                       <button
                         type="button"
                         onClick={() => {
                           handleDateSelect(dayObj.dateStr);
                           setViewMode('timeline');
                         }}
-                        className="text-[9px] text-slate-400 hover:text-white font-bold flex items-center gap-0.5 cursor-pointer"
+                        className="text-[9px] text-[#707072] hover:text-[#111111] font-semibold flex items-center gap-1 cursor-pointer"
                       >
-                        <Eye className="w-2.5 h-2.5 text-amber-400" /> Day Timeline
+                        <Eye className="w-3 h-3" /> Day Timeline
                       </button>
                     </div>
 
@@ -1121,85 +1101,71 @@ export default function ScheduleClient({
         <div className="space-y-4 flex-1 flex flex-col min-h-0">
           
           {/* Day Selector & Occupancy Ribbon */}
-          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-3 p-3.5 rounded-2xl bg-gradient-to-r from-slate-900 via-slate-900 to-[#141824] border border-white/10 shadow-sm">
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 p-4 border border-[#cacacb] bg-white">
             <div className="flex flex-wrap items-center gap-3">
               <div className="flex items-center gap-2">
                 <Button
-                  variant="ghost"
+                  variant="outline"
                   size="icon"
                   onClick={() => handleOffsetDay(-1)}
-                  className="h-7 w-7 text-slate-400 hover:text-white rounded-lg"
+                  className="h-8 w-8 text-[#111111] border-[#cacacb] hover:bg-[#f5f5f5] rounded-full"
                 >
                   <ChevronLeft className="h-4 w-4" />
                 </Button>
-                <span className="font-extrabold text-sm text-white">{displayFormattedDate}</span>
+                <span className="font-bold text-sm uppercase text-[#111111] tracking-wide">{displayFormattedDate}</span>
                 <Button
-                  variant="ghost"
+                  variant="outline"
                   size="icon"
                   onClick={() => handleOffsetDay(1)}
-                  className="h-7 w-7 text-slate-400 hover:text-white rounded-lg"
+                  className="h-8 w-8 text-[#111111] border-[#cacacb] hover:bg-[#f5f5f5] rounded-full"
                 >
                   <ChevronRight className="h-4 w-4" />
                 </Button>
                 {isTodayActive && (
-                  <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-md bg-amber-500/20 text-amber-300 border border-amber-500/40">
+                  <span className="text-[10px] font-bold uppercase px-2.5 py-0.5 rounded-full bg-[#111111] text-white">
                     Today
                   </span>
                 )}
               </div>
 
               {/* Facility Occupancy Meter */}
-              <div className="flex items-center gap-2 px-3 py-1 rounded-xl bg-slate-950/80 border border-white/10 text-xs">
-                <Activity className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-                <span className="text-slate-400 font-medium">Facility Occupancy:</span>
-                <span
-                  className={`font-black ${
-                    occupancyPercent >= 80
-                      ? 'text-red-400'
-                      : occupancyPercent >= 50
-                      ? 'text-amber-400'
-                      : 'text-emerald-400'
-                  }`}
-                >
-                  {occupancyPercent}% ({totalHoursBooked}/{totalCapacityHours} hrs booked)
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#f5f5f5] border border-[#cacacb] text-xs">
+                <Activity className="w-3.5 h-3.5 text-[#111111] shrink-0" />
+                <span className="text-[#707072] font-medium">Occupancy:</span>
+                <span className="font-bold text-[#111111]">
+                  {occupancyPercent}% ({totalHoursBooked}/{totalCapacityHours} hrs)
                 </span>
-                <div className="w-16 h-2 bg-slate-800 rounded-full overflow-hidden ml-1">
+                <div className="w-16 h-1.5 bg-[#cacacb] rounded-full overflow-hidden ml-1">
                   <div
-                    className={`h-full rounded-full transition-all duration-300 ${
-                      occupancyPercent >= 80
-                        ? 'bg-red-500'
-                        : occupancyPercent >= 50
-                        ? 'bg-amber-400'
-                        : 'bg-emerald-400'
-                    }`}
+                    className="h-full bg-[#111111] rounded-full transition-all duration-300"
                     style={{ width: `${Math.min(100, occupancyPercent)}%` }}
                   />
                 </div>
               </div>
             </div>
 
-            <div className="flex items-center gap-4 text-xs font-bold">
-              <div className="flex items-center gap-1.5 text-slate-300">
-                <span className="text-slate-500">Active Bookings:</span>
-                <span className="font-black text-amber-400">{bookings.length} sessions</span>
+            <div className="flex items-center gap-4 text-xs font-semibold">
+              <div className="flex items-center gap-1.5 text-[#707072]">
+                <span>Active Bookings:</span>
+                <span className="font-bold text-[#111111]">{bookings.length}</span>
               </div>
-              <div className="flex items-center gap-1.5 text-slate-300">
-                <span className="text-slate-500">Checked In:</span>
-                <span className="font-black text-emerald-400">{checkedInCount} / {bookings.length}</span>
+              <div className="flex items-center gap-1.5 text-[#707072]">
+                <span>Checked In:</span>
+                <span className="font-bold text-[#007d48]">{checkedInCount} / {bookings.length}</span>
               </div>
             </div>
           </div>
 
           {/* TIMELINE GRID CONTAINER */}
-          <div className="flex-1 bg-[#14161f]/90 border border-white/10 rounded-3xl shadow-2xl overflow-hidden flex flex-col min-h-0 backdrop-blur-xl">
+          <div className="flex-1 bg-white border border-[#cacacb] overflow-hidden flex flex-col min-h-0">
             <ScrollArea className="flex-1">
               <div className="min-w-[2000px]">
                 
                 {/* Timeline Header: Fixed Court Column + 16 Hourly Slot Columns */}
-                <div className="flex border-b border-white/10 sticky top-0 z-30 bg-[#0f1118]/95 backdrop-blur-md relative">
-                  <div className="w-[260px] min-w-[260px] p-4 font-black text-xs uppercase tracking-wider text-amber-400 border-r border-white/10 bg-[#0f1118]/95 shadow-[4px_0_8px_-2px_rgba(0,0,0,0.6)] flex items-center gap-2 sticky left-0 z-40">
-                    <Trophy className="w-4 h-4 text-amber-400" />
-                    <span>Courts (Indoor)</span>
+                <div className="flex border-b border-[#cacacb] sticky top-0 z-30 bg-[#f5f5f5]">
+                  <div className="w-[260px] min-w-[260px] p-4 font-bold text-xs uppercase tracking-wider text-[#707072] border-r border-[#cacacb] bg-[#f5f5f5] flex items-center gap-2 sticky left-0 z-40">
+                    <Trophy className="w-4 h-4 text-[#111111]" />
+                    <span>Arena Courts</span>
                   </div>
 
                   <div
@@ -1212,21 +1178,20 @@ export default function ScheduleClient({
                       <div
                         key={hour}
                         style={{ gridColumn: idx + 1 }}
-                        className="p-4 text-center text-xs font-black text-slate-300 border-r border-white/10 bg-slate-950/60 flex items-center justify-center"
+                        className="p-3 text-center text-xs font-bold text-[#707072] border-r border-[#cacacb] bg-[#f5f5f5] flex items-center justify-center font-mono"
                       >
                         {formatHour(hour)}
                       </div>
                     ))}
 
-                    {/* Live Current Time Laser Marker */}
+                    {/* Live Current Time Marker */}
                     {isTodayActive && isLiveOperating && (
                       <div
                         style={{ left: `${liveOffsetPercent}%` }}
-                        className="absolute top-0 bottom-0 w-[2px] bg-red-500 z-50 pointer-events-none shadow-[0_0_12px_2px_rgba(239,68,68,0.9)]"
+                        className="absolute top-0 bottom-0 w-[2px] bg-[#d30005] z-50 pointer-events-none"
                       >
-                        <span className="absolute -bottom-2 -translate-x-1/2 bg-gradient-to-r from-red-600 to-amber-500 text-white text-[9px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider whitespace-nowrap shadow-xl flex items-center gap-1 border border-white/20">
-                          <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping" />
-                          LIVE NOW {formatHour(currentPhtHour)}:{String(currentPhtMinute).padStart(2, '0')}
+                        <span className="absolute -bottom-2 -translate-x-1/2 bg-[#d30005] text-white text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider whitespace-nowrap">
+                          LIVE {formatHour(currentPhtHour)}:{String(currentPhtMinute).padStart(2, '0')}
                         </span>
                       </div>
                     )}
@@ -1234,7 +1199,7 @@ export default function ScheduleClient({
                 </div>
 
                 {/* Timeline Rows per Court */}
-                <div className="relative divide-y divide-white/10">
+                <div className="relative divide-y divide-[#cacacb]">
                   {courts.map((court) => {
                     const courtBookings = bookings.filter((b) => {
                       const bCourtId = b.courts?.id || b.court_id;
@@ -1244,26 +1209,26 @@ export default function ScheduleClient({
                     return (
                       <div
                         key={court.id}
-                        className="flex border-b border-white/10 min-h-[115px] relative group hover:bg-white/[0.01] transition-colors"
+                        className="flex border-b border-[#cacacb] min-h-[115px] relative group hover:bg-[#f5f5f5]/30 transition-colors"
                       >
                         {/* Court Info */}
-                        <div className="w-[260px] min-w-[260px] p-4 text-xs font-bold text-white border-r border-white/10 bg-[#12141c]/95 group-hover:bg-[#161924] sticky left-0 z-20 flex flex-col justify-between shadow-[4px_0_8px_-2px_rgba(0,0,0,0.6)]">
+                        <div className="w-[260px] min-w-[260px] p-4 text-xs font-bold text-[#111111] border-r border-[#cacacb] bg-white sticky left-0 z-20 flex flex-col justify-between">
                           <div>
                             <div className="flex items-center gap-2">
-                              <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 shadow-md shadow-emerald-500/50" />
-                              <span className="font-black text-sm text-white tracking-tight">{court.name}</span>
+                              <span className="w-2.5 h-2.5 rounded-full bg-[#007d48]" />
+                              <span className="font-bold text-sm text-[#111111] tracking-tight">{court.name}</span>
                             </div>
-                            <div className="flex items-center gap-2 mt-1 ml-4.5 text-[11px] font-bold text-amber-400">
-                              <span>₱{Number(court.hourly_rate ?? 300).toFixed(2)}/hr</span>
-                              <span className="text-slate-500">•</span>
-                              <span className="text-slate-400">Indoor Cushion</span>
+                            <div className="flex items-center gap-2 mt-1 ml-4.5 text-[11px] font-medium text-[#707072]">
+                              <span>₱{Number(court.hourly_rate ?? 300).toFixed(2)} / hr</span>
+                              <span>•</span>
+                              <span>Pro Cushion</span>
                             </div>
                           </div>
                         </div>
 
                         {/* 16 Hourly Slots Track */}
                         <div
-                          className="flex-1 grid relative bg-[#12141c]/40"
+                          className="flex-1 grid relative bg-white"
                           style={{
                             gridTemplateColumns: `repeat(${OPERATING_SLOTS.length}, minmax(110px, 1fr))`,
                           }}
@@ -1272,40 +1237,34 @@ export default function ScheduleClient({
                             <div
                               key={hour}
                               style={{ gridColumn: idx + 1, gridRow: 1 }}
-                              className="border-r border-white/5 h-full relative group/slot flex items-center justify-center p-2"
+                              className="border-r border-[#e5e5e5] h-full relative group/slot flex items-center justify-center p-2"
                             >
                               <button
                                 type="button"
                                 onClick={() => openWalkInForSlot(court.id, hour)}
-                                className="opacity-0 group-hover/slot:opacity-100 transition-all text-[10px] font-black bg-slate-900/90 text-amber-400 hover:text-white border border-amber-500/40 hover:bg-amber-500/20 px-2 py-1 rounded-xl shadow-lg flex items-center gap-1 z-10 cursor-pointer"
+                                className="opacity-0 group-hover/slot:opacity-100 transition-all text-[10px] font-semibold bg-[#111111] text-white hover:bg-[#222222] px-2.5 py-1 rounded-full flex items-center gap-1 z-10 cursor-pointer"
                               >
                                 <Plus className="w-3 h-3" /> Book
                               </button>
                             </div>
                           ))}
 
-                          {/* Render Scheduled Booking Cards on Timeline with CLIENT NAME */}
+                          {/* Scheduled Booking Cards on Timeline */}
                           {courtBookings.map((booking) => {
                             const isCheckedIn = booking.status === 'checked_in';
-                            const isWalkIn = booking.status === 'walk_in';
                             const isCancelled = booking.status === 'cancelled';
-                            const isPending = booking.status === 'pending_payment';
                             const clientDisplayName = booking.guest_name || booking.profiles?.full_name || 'Client';
 
                             return (
                               <div
                                 key={booking.id}
                                 onClick={() => setSelectedBooking(booking)}
-                                className={`absolute inset-y-2 rounded-2xl p-2.5 flex flex-col justify-between cursor-pointer transition-all duration-200 z-10 shadow-lg border hover:scale-[1.01] ${
+                                className={`absolute inset-y-2 rounded-none p-2.5 flex flex-col justify-between cursor-pointer transition-all duration-200 z-10 border ${
                                   isCancelled
-                                    ? 'bg-slate-900/80 border-slate-700/50 text-slate-400 opacity-60'
+                                    ? 'bg-[#f5f5f5] border-[#cacacb] text-[#707072] opacity-60 line-through'
                                     : isCheckedIn
-                                    ? 'bg-gradient-to-r from-blue-900/90 to-blue-950/90 border-blue-400/60 shadow-blue-500/20'
-                                    : isWalkIn
-                                    ? 'bg-gradient-to-r from-purple-900/90 to-purple-950/90 border-purple-400/60 shadow-purple-500/20'
-                                    : isPending
-                                    ? 'bg-gradient-to-r from-amber-900/90 to-amber-950/90 border-amber-400/60 shadow-amber-500/20'
-                                    : 'bg-gradient-to-r from-emerald-900/90 to-emerald-950/90 border-emerald-400/60 shadow-emerald-500/20'
+                                    ? 'bg-[#007d48] border-[#007d48] text-white'
+                                    : 'bg-[#111111] border-[#111111] text-white'
                                 }`}
                                 style={{
                                   gridColumn: getGridColumn(booking.start_time, booking.end_time),
@@ -1313,25 +1272,17 @@ export default function ScheduleClient({
                                 }}
                               >
                                 <div className="flex items-center justify-between gap-1.5">
-                                  <div className="flex items-center gap-1.5 truncate">
-                                    <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 text-[10px] font-black bg-amber-400 text-slate-950">
-                                      {clientDisplayName.slice(0, 1).toUpperCase()}
-                                    </div>
-                                    <span className="font-black text-xs text-white truncate drop-shadow-sm">
-                                      {clientDisplayName}
-                                    </span>
-                                  </div>
-                                  <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-full bg-white/10 text-white">
+                                  <span className="font-bold text-xs truncate">
+                                    {clientDisplayName}
+                                  </span>
+                                  <span className="text-[9px] font-bold uppercase px-2 py-0.5 rounded-full bg-white/20 text-white">
                                     {booking.status}
                                   </span>
                                 </div>
 
-                                <div className="flex items-center justify-between text-[10px] font-bold text-slate-300 pt-1 border-t border-white/10 mt-1">
-                                  <span className="flex items-center gap-1">
-                                    <Clock className="w-3 h-3 text-amber-400 shrink-0" />
-                                    {formatTimeSlot(booking.start_time, booking.end_time)}
-                                  </span>
-                                  <span className="font-mono text-amber-400">#{booking.id.slice(0, 5)}</span>
+                                <div className="flex items-center justify-between text-[10px] pt-1 border-t border-white/20 font-mono">
+                                  <span>{formatTimeSlot(booking.start_time, booking.end_time)}</span>
+                                  <span>#{booking.id.slice(0, 6)}</span>
                                 </div>
                               </div>
                             );
@@ -1353,58 +1304,56 @@ export default function ScheduleClient({
       {/* DETAILED BOOKING MODAL WITH CLIENT DETAILS & 1-CLICK CHECK-IN */}
       {/* ========================================================================= */}
       <Dialog open={!!selectedBooking} onOpenChange={(open) => !open && setSelectedBooking(null)}>
-        <DialogContent className="sm:max-w-lg bg-[#161922] border-white/15 text-slate-100 rounded-3xl shadow-2xl">
+        <DialogContent className="sm:max-w-lg bg-white border border-[#cacacb] text-[#111111] rounded-none p-6 sm:p-8 shadow-2xl">
           <DialogHeader>
             <div className="flex items-center justify-between pb-2">
-              <DialogTitle className="text-xl font-black text-white flex items-center gap-2">
-                <Sparkles className="w-5 h-5 text-amber-400" /> Court Reservation Details
+              <DialogTitle className="text-2xl font-bold tracking-tight text-[#111111]">
+                Reservation Details
               </DialogTitle>
               <span
-                className={`text-[10px] font-black uppercase px-2.5 py-1 rounded-full ${
+                className={`text-[10px] font-bold uppercase px-2.5 py-1 rounded-full border ${
                   selectedBooking?.status === 'checked_in'
-                    ? 'bg-blue-500/20 text-blue-300 border border-blue-500/40'
-                    : selectedBooking?.status === 'walk_in'
-                    ? 'bg-purple-500/20 text-purple-300 border border-purple-500/40'
-                    : selectedBooking?.status === 'pending_payment'
-                    ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
-                    : 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
+                    ? 'bg-[#f5f5f5] text-[#007d48] border-[#007d48]/40'
+                    : selectedBooking?.status === 'cancelled'
+                    ? 'bg-[#f5f5f5] text-[#d30005] border-[#d30005]/40'
+                    : 'bg-[#f5f5f5] text-[#111111] border-[#cacacb]'
                 }`}
               >
                 {selectedBooking?.status?.toUpperCase()}
               </span>
             </div>
-            <DialogDescription className="text-xs text-slate-400">
-              Booking Ref: <strong className="font-mono text-amber-400">#{selectedBooking?.id}</strong>
+            <DialogDescription className="text-xs text-[#707072]">
+              Booking Identifier: <strong className="font-mono text-[#111111]">#{selectedBooking?.id}</strong>
             </DialogDescription>
           </DialogHeader>
 
           {selectedBooking && (
-            <div className="space-y-4 py-2">
+            <div className="space-y-4 py-4">
               
               {/* Client Identity Card */}
-              <div className="p-4 rounded-2xl bg-[#0f1117] border border-white/10 space-y-2">
+              <div className="p-4 border border-[#cacacb] bg-[#f5f5f5] space-y-2">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <User className="w-4 h-4 text-amber-400" />
-                    <span className="font-black text-base text-white">
+                    <User className="w-4 h-4 text-[#111111]" />
+                    <span className="font-bold text-sm text-[#111111]">
                       {selectedBooking.guest_name || 'Walk-in Client'}
                     </span>
                   </div>
-                  <span className="text-xs font-black text-amber-400 bg-amber-500/10 px-2.5 py-0.5 rounded-full border border-amber-500/20">
+                  <span className="text-xs font-bold text-[#111111] bg-white px-2.5 py-0.5 rounded-full border border-[#cacacb]">
                     ₱{Number(selectedBooking.total_price || 300).toFixed(2)}
                   </span>
                 </div>
 
-                <div className="grid grid-cols-2 gap-2 pt-2 border-t border-white/5 text-xs text-slate-300">
+                <div className="grid grid-cols-2 gap-2 pt-2 border-t border-[#cacacb] text-xs text-[#707072]">
                   {selectedBooking.guest_phone && (
                     <div className="flex items-center gap-1.5">
-                      <Phone className="w-3.5 h-3.5 text-slate-500" />
+                      <Phone className="w-3.5 h-3.5" />
                       <span>{selectedBooking.guest_phone}</span>
                     </div>
                   )}
                   {selectedBooking.guest_email && (
                     <div className="flex items-center gap-1.5 truncate">
-                      <Mail className="w-3.5 h-3.5 text-slate-500" />
+                      <Mail className="w-3.5 h-3.5" />
                       <span className="truncate">{selectedBooking.guest_email}</span>
                     </div>
                   )}
@@ -1412,48 +1361,40 @@ export default function ScheduleClient({
               </div>
 
               {/* Session Details Grid */}
-              <div className="grid grid-cols-2 gap-3 text-xs bg-[#0f1117] p-4 rounded-2xl border border-white/10">
+              <div className="grid grid-cols-2 gap-3 text-xs border border-[#cacacb] bg-white p-4">
                 <div>
-                  <p className="text-slate-500 font-bold mb-0.5 flex items-center gap-1">
-                    <MapPin className="w-3 h-3 text-red-400" /> Assigned Court
-                  </p>
-                  <p className="font-black text-white">
+                  <p className="text-[#707072] font-semibold mb-0.5">Assigned Court</p>
+                  <p className="font-bold text-[#111111]">
                     {selectedBooking.courts?.name || 'Court 1 - Indoor'}
                   </p>
                 </div>
 
                 <div>
-                  <p className="text-slate-500 font-bold mb-0.5 flex items-center gap-1">
-                    <CreditCard className="w-3 h-3 text-emerald-400" /> Payment Tender
-                  </p>
-                  <p className="font-black text-amber-400 capitalize">
+                  <p className="text-[#707072] font-semibold mb-0.5">Payment Tender</p>
+                  <p className="font-bold text-[#111111] capitalize">
                     {selectedBooking.payment_method === 'counter_qr'
                       ? 'Counter QR Ph'
-                      : selectedBooking.payment_method || 'Online PayMongo'}
+                      : selectedBooking.payment_method || 'Online Gateway'}
                   </p>
                 </div>
 
                 <div>
-                  <p className="text-slate-500 font-bold mb-0.5 flex items-center gap-1">
-                    <Clock className="w-3 h-3 text-amber-400" /> Session Time
-                  </p>
-                  <p className="font-black text-white">
+                  <p className="text-[#707072] font-semibold mb-0.5">Session Time</p>
+                  <p className="font-bold text-[#111111]">
                     {formatTimeSlot(selectedBooking.start_time, selectedBooking.end_time)}
                   </p>
                 </div>
 
                 <div>
-                  <p className="text-slate-500 font-bold mb-0.5 flex items-center gap-1">
-                    <ShieldCheck className="w-3 h-3 text-blue-400" /> Duration
-                  </p>
-                  <p className="font-black text-white">
-                    {selectedBooking.duration_hours || 1} Hour{selectedBooking.duration_hours && selectedBooking.duration_hours > 1 ? 's' : ''} Session
+                  <p className="text-[#707072] font-semibold mb-0.5">Duration</p>
+                  <p className="font-bold text-[#111111]">
+                    {selectedBooking.duration_hours || 1} Hour Session
                   </p>
                 </div>
               </div>
 
               {selectedBooking.notes && (
-                <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-xs text-amber-200">
+                <div className="p-3 border border-[#cacacb] bg-[#f5f5f5] text-xs text-[#111111]">
                   <strong>Special Note:</strong> {selectedBooking.notes}
                 </div>
               )}
@@ -1464,7 +1405,7 @@ export default function ScheduleClient({
             <Button
               variant="outline"
               onClick={() => setSelectedBooking(null)}
-              className="border-white/15 text-slate-300 hover:text-white rounded-xl"
+              className="border-[#cacacb] text-[#111111] hover:bg-[#f5f5f5] rounded-full"
             >
               Close
             </Button>
@@ -1472,14 +1413,14 @@ export default function ScheduleClient({
               <Button
                 onClick={handleCheckIn}
                 disabled={isPending}
-                className="bg-gradient-to-r from-red-600 via-red-500 to-amber-500 hover:from-red-700 hover:to-amber-600 text-white font-black rounded-xl shadow-lg shadow-red-500/30"
+                className="bg-[#111111] hover:bg-[#222222] text-white font-semibold rounded-full px-6"
               >
                 {isPending ? (
                   <Loader2 className="w-4 h-4 animate-spin mr-1.5" />
                 ) : (
                   <CheckCircle2 className="w-4 h-4 mr-1.5" />
                 )}
-                Confirm Player Check-in
+                Confirm Player Arrival
               </Button>
             )}
           </DialogFooter>

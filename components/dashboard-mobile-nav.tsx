@@ -29,19 +29,19 @@ export function DashboardMobileNav({
   const [isOpen, setIsOpen] = useState(false);
 
   return (
-    <div className="md:hidden sticky top-0 z-50 bg-[#16181e] border-b border-white/10 px-4 py-3 flex items-center justify-between shadow-md">
+    <div className="md:hidden sticky top-0 z-50 bg-white border-b border-[#cacacb] px-4 py-3 flex items-center justify-between">
       <Link href="/" className="flex items-center">
         <BrandLogo size="sm" />
       </Link>
 
       <div className="flex items-center gap-3">
-        <span className="text-[10px] font-black uppercase tracking-wider text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-md">
+        <span className="text-[10px] font-bold uppercase tracking-wider text-[#111111] bg-[#f5f5f5] border border-[#cacacb] px-2.5 py-0.5 rounded-full">
           {userRole}
         </span>
         <button
           type="button"
           onClick={() => setIsOpen(!isOpen)}
-          className="p-2 rounded-xl text-slate-300 hover:text-white bg-slate-900 border border-white/10"
+          className="p-2 rounded-full text-[#111111] hover:bg-[#f5f5f5] border border-[#cacacb]"
           aria-label="Toggle navigation menu"
         >
           {isOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
@@ -50,93 +50,111 @@ export function DashboardMobileNav({
 
       {/* Slide-over Drawer */}
       {isOpen && (
-        <div className="fixed inset-0 top-[57px] z-50 bg-[#14161b]/95 backdrop-blur-xl border-t border-white/10 flex flex-col justify-between p-5 overflow-y-auto animate-in slide-in-from-top duration-200">
-          <div className="space-y-5">
+        <div className="fixed inset-0 top-[57px] z-50 bg-white border-t border-[#cacacb] flex flex-col justify-between p-6 overflow-y-auto animate-in slide-in-from-top duration-200">
+          <div className="space-y-6">
             {/* User Profile Info */}
-            <div className="p-3 rounded-2xl bg-slate-950 border border-slate-800 flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-red-600 to-amber-400 text-white flex items-center justify-center font-black text-xs shrink-0">
+            <div className="p-4 border border-[#cacacb] bg-[#f5f5f5] flex items-center gap-3">
+              <div className="w-9 h-9 rounded-full bg-[#111111] text-white flex items-center justify-center font-bold text-xs shrink-0">
                 {userName.charAt(0).toUpperCase()}
               </div>
               <div className="truncate">
-                <p className="text-xs font-bold text-white truncate">{userName}</p>
-                <span className="text-[10px] font-black uppercase text-amber-400">
+                <p className="text-xs font-bold text-[#111111] truncate">{userName}</p>
+                <span className="text-[10px] uppercase font-bold tracking-wider text-[#707072]">
                   {userRole} Terminal
                 </span>
               </div>
             </div>
 
-            {/* Nav Links */}
             <nav className="space-y-2">
-              <div className="text-[10px] font-black text-amber-400/80 uppercase tracking-widest px-2">
+              <div className="text-[10px] font-bold text-[#707072] uppercase tracking-widest px-2 mb-2">
                 Operations
               </div>
 
               <Link
                 href="/cashier"
                 onClick={() => setIsOpen(false)}
-                className="flex items-center gap-3 px-3.5 py-3 rounded-xl bg-slate-900 border border-white/5 text-sm font-bold text-slate-200 hover:text-white"
+                className="flex items-center gap-3 px-4 py-3 rounded-full bg-[#f5f5f5] text-xs font-semibold text-[#111111]"
               >
-                <ShoppingCart className="h-4 w-4 text-red-400" />
+                <ShoppingCart className="w-4 h-4" />
                 POS Register
               </Link>
 
               <Link
                 href="/cashier/schedule"
                 onClick={() => setIsOpen(false)}
-                className="flex items-center gap-3 px-3.5 py-3 rounded-xl bg-slate-900 border border-white/5 text-sm font-bold text-slate-200 hover:text-white"
+                className="flex items-center gap-3 px-4 py-3 rounded-full border border-[#cacacb] text-xs font-semibold text-[#111111]"
               >
-                <Calendar className="h-4 w-4 text-amber-400" />
+                <Calendar className="w-4 h-4" />
                 Daily Court Schedule
+              </Link>
+
+              <Link
+                href="/cashier/reports"
+                onClick={() => setIsOpen(false)}
+                className="flex items-center gap-3 px-4 py-3 rounded-full border border-[#cacacb] text-xs font-semibold text-[#111111]"
+              >
+                <ShoppingCart className="w-4 h-4" />
+                Shift Reports
               </Link>
 
               {isOwnerOrAdmin && (
                 <>
-                  <div className="text-[10px] font-black text-red-400/80 uppercase tracking-widest px-2 pt-3">
-                    Executive Admin
+                  <div className="text-[10px] font-bold text-[#707072] uppercase tracking-widest px-2 mb-2 mt-4">
+                    Administration
                   </div>
+
                   <Link
                     href="/admin"
                     onClick={() => setIsOpen(false)}
-                    className="flex items-center gap-3 px-3.5 py-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-300 font-bold text-sm"
+                    className="flex items-center gap-3 px-4 py-3 rounded-full border border-[#111111] bg-[#111111] text-white text-xs font-semibold"
                   >
-                    <ShieldAlert className="h-4 w-4 text-red-400" />
-                    Admin Center
+                    <ShieldAlert className="w-4 h-4" />
+                    Financial Audit
+                  </Link>
+
+                  <Link
+                    href="/admin/courts"
+                    onClick={() => setIsOpen(false)}
+                    className="flex items-center gap-3 px-4 py-3 rounded-full border border-[#cacacb] text-xs font-semibold text-[#111111]"
+                  >
+                    <Calendar className="w-4 h-4" />
+                    Manage Courts
                   </Link>
                 </>
               )}
 
-              <div className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-2 pt-3">
-                Quick Shortcuts
+              <div className="text-[10px] font-bold text-[#707072] uppercase tracking-widest px-2 mb-2 mt-4">
+                Shortcuts
               </div>
 
               <Link
                 href="/book"
                 onClick={() => setIsOpen(false)}
-                className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold text-slate-400 hover:text-white"
+                className="flex items-center gap-3 px-4 py-2.5 rounded-full text-xs font-medium text-[#707072] hover:text-[#111111]"
               >
-                <Calendar className="h-4 w-4 text-slate-500" />
+                <Calendar className="w-4 h-4" />
                 Public Booking Page
               </Link>
 
               <Link
                 href="/"
                 onClick={() => setIsOpen(false)}
-                className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold text-slate-400 hover:text-white"
+                className="flex items-center gap-3 px-4 py-2.5 rounded-full text-xs font-medium text-[#707072] hover:text-[#111111]"
               >
-                <Home className="h-4 w-4 text-slate-500" />
-                Public Homepage
+                <Home className="w-4 h-4" />
+                Arena Homepage
               </Link>
             </nav>
           </div>
 
-          <div className="pt-4 border-t border-slate-800 mt-6">
+          <div className="pt-6 border-t border-[#cacacb]">
             <form action={logout}>
               <Button
-                variant="ghost"
+                variant="outline"
                 type="submit"
-                className="w-full justify-start text-slate-400 hover:text-red-400 hover:bg-red-950/30 rounded-xl font-bold text-xs"
+                className="w-full text-xs font-semibold text-[#d30005] border-[#cacacb] hover:bg-[#f5f5f5]"
               >
-                <LogOut className="h-4 w-4 mr-2" />
+                <LogOut className="w-4 h-4 mr-2" />
                 Sign Out
               </Button>
             </form>

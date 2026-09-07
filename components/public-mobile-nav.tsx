@@ -2,9 +2,10 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { Menu, X, Home, Calendar, Tag, UserCheck, ShieldCheck } from 'lucide-react';
+import { Menu, X, Calendar, ArrowRight, User, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { logout } from '@/app/actions';
+import { BrandLogo } from '@/components/brand-logo';
 
 interface PublicMobileNavProps {
   userRole?: string;
@@ -19,39 +20,41 @@ export function PublicMobileNav({ userRole, isLoggedIn }: PublicMobileNavProps) 
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="p-2 rounded-xl text-slate-300 hover:text-white bg-slate-900 border border-white/10"
+        className="p-2 rounded-full text-[#111111] hover:bg-[#f5f5f5] transition-colors"
         aria-label="Toggle navigation menu"
       >
-        {isOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+        {isOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
       </button>
 
       {isOpen && (
-        <div className="fixed inset-0 top-[57px] z-50 bg-[#171b24]/95 backdrop-blur-2xl border-t border-white/10 flex flex-col justify-between p-5 overflow-y-auto animate-in slide-in-from-top duration-200">
+        <div className="fixed inset-0 top-[60px] z-50 bg-white border-t border-[#cacacb] flex flex-col justify-between p-6 overflow-y-auto animate-in slide-in-from-top-2 duration-200">
           <div className="space-y-6">
-            <div className="text-xs font-black uppercase tracking-widest text-[#d4ff00]">
-              C&amp;J Navigation
+            <div className="flex items-center justify-between pb-4 border-b border-[#cacacb]">
+              <BrandLogo size="sm" withSubtitle />
+              <button
+                onClick={() => setIsOpen(false)}
+                className="p-1 rounded-full hover:bg-[#f5f5f5]"
+              >
+                <X className="w-5 h-5 text-[#111111]" />
+              </button>
             </div>
 
-            <nav className="space-y-2">
+            <nav className="space-y-4">
               <Link
                 href="/"
                 onClick={() => setIsOpen(false)}
-                className="flex items-center gap-3 px-4 py-3 rounded-2xl bg-slate-900 border border-white/5 text-sm font-bold text-slate-200 hover:text-white"
+                className="block text-2xl font-bold tracking-tight text-[#111111] hover:text-[#707072]"
               >
-                <Home className="w-4 h-4 text-red-400" />
                 Arena Home
               </Link>
 
               <Link
                 href="/book"
                 onClick={() => setIsOpen(false)}
-                className="flex items-center justify-between px-4 py-3 rounded-2xl bg-gradient-to-r from-red-600/20 to-amber-500/20 border border-red-500/30 text-sm font-bold text-white"
+                className="flex items-center justify-between py-2 text-2xl font-bold tracking-tight text-[#111111] hover:text-[#707072]"
               >
-                <div className="flex items-center gap-3">
-                  <Calendar className="w-4 h-4 text-amber-400" />
-                  <span>Book Court Slot</span>
-                </div>
-                <span className="px-2 py-0.5 text-[10px] font-black bg-[#d4ff00] text-slate-950 rounded-md">
+                <span>Book a Court</span>
+                <span className="text-xs font-semibold px-3 py-1 bg-[#111111] text-white rounded-full">
                   ₱300/HR
                 </span>
               </Link>
@@ -59,50 +62,80 @@ export function PublicMobileNav({ userRole, isLoggedIn }: PublicMobileNavProps) 
               <Link
                 href="/pricing"
                 onClick={() => setIsOpen(false)}
-                className="flex items-center gap-3 px-4 py-3 rounded-2xl bg-slate-900 border border-white/5 text-sm font-bold text-slate-200 hover:text-white"
+                className="block text-2xl font-bold tracking-tight text-[#111111] hover:text-[#707072]"
               >
-                <Tag className="w-4 h-4 text-[#d4ff00]" />
-                Rates &amp; Gear Rentals
+                Rates &amp; Gear
               </Link>
 
-              {isLoggedIn && (
-                <Link
-                  href={userRole === 'admin' || userRole === 'owner' ? '/admin' : userRole === 'cashier' ? '/cashier' : '/dashboard'}
-                  onClick={() => setIsOpen(false)}
-                  className="flex items-center gap-3 px-4 py-3 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-sm font-bold text-amber-300"
-                >
-                  <ShieldCheck className="w-4 h-4 text-amber-400" />
-                  {userRole === 'admin' || userRole === 'owner' ? 'Admin Center' : userRole === 'cashier' ? 'POS Terminal' : 'My Bookings Dashboard'}
-                </Link>
+              {isLoggedIn ? (
+                <>
+                  <div className="pt-4 border-t border-[#cacacb]">
+                    <div className="text-xs uppercase tracking-widest text-[#707072] font-semibold mb-3">
+                      My Account
+                    </div>
+                    {userRole === 'admin' || userRole === 'owner' ? (
+                      <Link
+                        href="/admin"
+                        onClick={() => setIsOpen(false)}
+                        className="block text-lg font-semibold text-[#111111] mb-2"
+                      >
+                        Admin Center
+                      </Link>
+                    ) : userRole === 'cashier' ? (
+                      <Link
+                        href="/cashier"
+                        onClick={() => setIsOpen(false)}
+                        className="block text-lg font-semibold text-[#111111] mb-2"
+                      >
+                        Cashier POS
+                      </Link>
+                    ) : (
+                      <Link
+                        href="/dashboard"
+                        onClick={() => setIsOpen(false)}
+                        className="block text-lg font-semibold text-[#111111] mb-2"
+                      >
+                        Player Pass &amp; Bookings
+                      </Link>
+                    )}
+                    <form action={logout}>
+                      <button
+                        type="submit"
+                        className="text-sm font-semibold text-[#d30005] hover:underline pt-2 inline-flex items-center gap-1.5"
+                      >
+                        <LogOut className="w-4 h-4" /> Sign Out
+                      </button>
+                    </form>
+                  </div>
+                </>
+              ) : (
+                <div className="pt-6 border-t border-[#cacacb] space-y-3">
+                  <Link
+                    href="/login"
+                    onClick={() => setIsOpen(false)}
+                    className="block w-full"
+                  >
+                    <Button variant="secondary" size="lg" className="w-full">
+                      Sign In
+                    </Button>
+                  </Link>
+                  <Link
+                    href="/signup"
+                    onClick={() => setIsOpen(false)}
+                    className="block w-full"
+                  >
+                    <Button variant="default" size="lg" className="w-full">
+                      Join C&amp;J Club
+                    </Button>
+                  </Link>
+                </div>
               )}
             </nav>
           </div>
 
-          <div className="pt-6 border-t border-white/10 space-y-3">
-            {isLoggedIn ? (
-              <form action={logout}>
-                <Button
-                  type="submit"
-                  variant="outline"
-                  className="w-full h-11 border-red-500/40 text-red-400 hover:bg-red-950/40 font-bold rounded-xl text-xs"
-                >
-                  Sign Out
-                </Button>
-              </form>
-            ) : (
-              <div className="grid grid-cols-2 gap-2">
-                <Link href="/login" onClick={() => setIsOpen(false)}>
-                  <Button variant="outline" className="w-full h-11 border-white/15 text-slate-200 font-bold rounded-xl text-xs">
-                    Sign In
-                  </Button>
-                </Link>
-                <Link href="/signup" onClick={() => setIsOpen(false)}>
-                  <Button className="w-full h-11 bg-gradient-to-r from-red-600 to-amber-500 text-white font-black rounded-xl text-xs">
-                    Sign Up
-                  </Button>
-                </Link>
-              </div>
-            )}
+          <div className="pt-6 border-t border-[#cacacb] text-xs text-[#707072]">
+            <p className="font-semibold text-[#111111]">C&amp;J Pickleball Arena QC</p>
+            <p>Tomas Morato, Quezon City • Daily 6 AM – 10 PM</p>
           </div>
         </div>
       )}

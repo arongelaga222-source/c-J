@@ -1,7 +1,6 @@
 import Link from "next/link";
-import { Check, Sparkles, Trophy, Zap, Shield, HelpCircle, ArrowRight } from "lucide-react";
+import { Check, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { createClient } from "@/utils/supabase/server";
 import { ReserveCourtModal } from "@/components/reserve-court-modal";
 
@@ -11,21 +10,20 @@ export default async function PricingPage() {
 
   const tiers = [
     {
-      name: "Hourly Court Rental",
+      name: "Hourly Court Reservation",
       badge: "Fixed Flat Rate",
       price: "₱300",
       period: "/ hour",
-      description: "Fixed flat rate per hour for Court 1 - Indoor or Court 2 - Indoor.",
-      icon: Zap,
+      description: "Standard hourly slot on Court 1 - Indoor or Court 2 - Indoor. Zero surge fees.",
       features: [
-        "Official tournament-grade 8mm cushioned court",
-        "Air-conditioned indoor arena",
-        "Book single or multi-hour contiguous slots",
-        "Access to player lounge & locker facilities",
-        "PayMongo instant lock (GCash, Maya, Cards)",
-        "Strict 24-hour refundable cancellation"
+        "USA Pickleball certified 20' × 44' court",
+        "8mm cushioned polyurethane shock pad",
+        "850-lux glare-free tournament LED lighting",
+        "Air-conditioned lounge & locker access",
+        "Instant PayMongo checkout (GCash, Maya, Cards)",
+        "Strict 24-hour refundable cancellation guarantee"
       ],
-      cta: "Book Court (₱300/hr)",
+      cta: "Book Court — ₱300/hr",
       href: "/book",
       highlighted: true,
     },
@@ -34,32 +32,30 @@ export default async function PricingPage() {
       badge: "Pro Equipment",
       price: "₱150",
       period: "/ session",
-      description: "Rental gear bundle for casual players and tournament match play.",
-      icon: Trophy,
+      description: "Tournament-spec gear bundle for casual players and competitive drills.",
       features: [
         "2 × 16mm Raw Carbon Fiber Paddles",
         "3 × Franklin X-40 Tournament Balls",
-        "Free paddle grip wipe & towel service",
-        "Selectable during online booking checkout",
-        "Pick up directly at Pro Shop counter"
+        "Free paddle grip wipe & court towel service",
+        "Selectable during online booking flow",
+        "Instant pickup at the Pro Shop counter"
       ],
-      cta: "Add with Court Booking",
+      cta: "Add at Booking",
       href: "/book",
       highlighted: false,
     },
     {
-      name: "Squad / League Block",
+      name: "League & Squad Block",
       badge: "Multi-Hour",
       price: "₱300",
       period: "/ hr / court",
-      description: "Book 3+ contiguous hours for team training, round-robin, and leagues.",
-      icon: Shield,
+      description: "Contiguous 3+ hour block reservation for leagues, clubs, and team training.",
       features: [
         "Continuous slot locking without interruption",
-        "Courts 1 & 2 side-by-side availability",
-        "High-lux 850 LED tournament lighting",
-        "Digital PDF / Printable receipts for teams",
-        "Fast counter QR check-in"
+        "Side-by-side Courts 1 & 2 available",
+        "Official tournament scoreboards & clipboards",
+        "Digital PDF printable receipts for clubs",
+        "Dedicated check-in lane at the front desk"
       ],
       cta: "Reserve League Block",
       href: "/book",
@@ -70,124 +66,129 @@ export default async function PricingPage() {
   const faqs = [
     {
       q: "What is your cancellation and refund policy?",
-      a: "Bookings cancelled at least 24 hours prior to your scheduled start time receive a full refund processed back to your original payment method. Cancellations within 24 hours are non-refundable."
+      a: "Reservations cancelled at least 24 hours prior to the scheduled start time receive a 100% full refund processed back to your original payment method. Cancellations made within 24 hours of play are strictly non-refundable."
     },
     {
       q: "What footwear is required on court?",
-      a: "Non-marking athletic or court shoes are strictly required to preserve the 8mm cushioned polyurethane floor surface."
+      a: "Clean, non-marking athletic or court shoes are strictly required to preserve the tournament 8mm polyurethane cushioned surface."
     },
     {
       q: "Do I need to bring my own paddles and balls?",
-      a: "You can bring your own gear or rent our Pro Carbon Fiber bundle (2x 16mm raw carbon paddles + 3x tournament balls) for only ₱150 during checkout or at the Pro Shop counter."
+      a: "You may bring your own USAP-compliant equipment or rent our Pro Carbon Fiber bundle (2x 16mm paddles + 3x balls) for ₱150 during online booking or at the front counter."
     },
     {
-      q: "Can I book multiple consecutive hours?",
-      a: "Yes! Our live booking system allows you to select 1, 2, 3, or 4 contiguous hour blocks to ensure your game continues uninterrupted."
+      q: "Can I book contiguous multi-hour slots?",
+      a: "Yes. Our real-time calendar allows booking up to 12 contiguous hours for tournaments, clinics, and squad match play."
     }
   ];
 
   return (
-    <div className="max-w-6xl mx-auto w-full px-4 py-14 md:py-20 font-sans">
+    <div className="max-w-[1440px] mx-auto w-full px-4 sm:px-8 py-12 font-sans bg-white text-[#111111]">
       {/* Header */}
-      <div className="text-center mb-16 space-y-4">
-        <div className="inline-flex items-center gap-2 rounded-full border border-[#d4ff00]/30 bg-[#d4ff00]/10 px-4 py-1 text-xs font-black text-[#d4ff00]">
-          <Sparkles className="w-3.5 h-3.5" /> Simple &amp; Transparent • Fixed ₱300/hr Flat Rate
-        </div>
-        <h1 className="text-4xl md:text-6xl font-black tracking-tight text-white">
-          Court Rates &amp; Gear Rentals
+      <div className="border-b border-[#cacacb] pb-8 mb-12">
+        <span className="text-xs font-bold uppercase tracking-widest text-[#707072] block mb-2">
+          Pricing &amp; Equipment
+        </span>
+        <h1 className="text-4xl sm:text-6xl md:text-7xl font-display uppercase tracking-tight text-[#111111]">
+          TRANSPARENT VALUE. <br />
+          TOURNAMENT STANDARDS.
         </h1>
-        <p className="text-base md:text-lg text-slate-400 max-w-2xl mx-auto">
-          No hidden fees or surge pricing. Enjoy tournament-grade indoor cushioned courts at C&amp;J Court for a fixed ₱300/hr rate.
+        <p className="text-sm sm:text-base text-[#707072] max-w-2xl mt-4 leading-relaxed font-normal">
+          Zero surge pricing. Zero hidden fees. Enjoy Metro Manila&apos;s premier indoor cushioned courts for a fixed flat rate of ₱300 per hour.
         </p>
       </div>
 
-      {/* Pricing Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8 items-stretch mb-20">
-        {tiers.map((tier) => {
-          const Icon = tier.icon;
-          return (
-            <Card
-              key={tier.name}
-              className={`flex flex-col relative rounded-3xl transition-all duration-300 ${
-                tier.highlighted
-                  ? "border-red-500 bg-gradient-to-b from-[#1a1f2c] via-[#171b24] to-red-950/40 shadow-2xl shadow-red-500/20 scale-[1.03] z-10"
-                  : "border-white/10 bg-[#171b24]/80 backdrop-blur-md hover:border-white/20"
-              }`}
-            >
-              {tier.highlighted && (
-                <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
-                  <span className="bg-gradient-to-r from-red-600 to-amber-500 text-white text-xs font-black uppercase tracking-wider py-1.5 px-4 rounded-full shadow-lg shadow-red-500/30">
-                    {tier.badge}
+      {/* 3-Up Pricing Tiers (Catalog Cards with 1px Hairlines) */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
+        {tiers.map((tier, idx) => (
+          <div
+            key={idx}
+            className={`flex flex-col justify-between border p-8 bg-white ${
+              tier.highlighted ? "border-[#111111]" : "border-[#cacacb]"
+            }`}
+          >
+            <div>
+              <div className="flex items-center justify-between pb-4 border-b border-[#cacacb] mb-6">
+                <span className="text-xs font-bold uppercase tracking-widest text-[#707072]">
+                  {tier.badge}
+                </span>
+                {tier.highlighted && (
+                  <span className="text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-[#111111] text-white">
+                    Primary Rate
                   </span>
-                </div>
-              )}
+                )}
+              </div>
 
-              <CardHeader className="p-8 pb-4">
-                <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-4 ${
-                  tier.highlighted ? "bg-red-500/20 text-[#d4ff00] border border-red-500/40" : "bg-slate-800 text-slate-300 border border-white/5"
-                }`}>
-                  <Icon className="w-5 h-5" />
-                </div>
-                <CardTitle className="text-2xl font-black text-white">{tier.name}</CardTitle>
-                <CardDescription className="text-xs text-slate-400 min-h-[40px] pt-1">
-                  {tier.description}
-                </CardDescription>
+              <h3 className="text-2xl font-bold tracking-tight text-[#111111] mb-2">
+                {tier.name}
+              </h3>
 
-                <div className="mt-6 flex items-baseline">
-                  <span className="text-4xl md:text-5xl font-black text-white">{tier.price}</span>
-                  <span className="ml-2 text-sm font-bold text-slate-400">{tier.period}</span>
-                </div>
-              </CardHeader>
+              <div className="flex items-baseline gap-1.5 pt-2 pb-4">
+                <span className="text-4xl sm:text-5xl font-bold tracking-tight text-[#111111]">
+                  {tier.price}
+                </span>
+                <span className="text-sm text-[#707072]">
+                  {tier.period}
+                </span>
+              </div>
 
-              <CardContent className="p-8 pt-4 flex-1">
-                <div className="border-t border-white/10 pt-6 space-y-3.5">
-                  {tier.features.map((feature, idx) => (
-                    <div key={idx} className="flex items-start gap-3 text-xs font-semibold text-slate-300">
-                      <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${
-                        tier.highlighted ? "bg-red-500/20 text-[#d4ff00]" : "bg-slate-800 text-slate-400"
-                      }`}>
-                        <Check className="w-3.5 h-3.5" />
-                      </div>
-                      <span>{feature}</span>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
+              <p className="text-sm text-[#707072] pb-6 border-b border-[#e5e5e5]">
+                {tier.description}
+              </p>
 
-              <CardFooter className="p-8 pt-0">
+              {/* Features List */}
+              <ul className="space-y-3.5 pt-6 text-sm text-[#111111]">
+                {tier.features.map((feature, fIdx) => (
+                  <li key={fIdx} className="flex items-start gap-3">
+                    <Check className="w-4 h-4 text-[#007d48] shrink-0 mt-0.5" />
+                    <span className="text-[#39393b]">{feature}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            <div className="pt-8 mt-8 border-t border-[#e5e5e5]">
+              {tier.highlighted ? (
                 <ReserveCourtModal
                   isLoggedIn={!!user}
                   buttonText={tier.cta}
                   triggerSize="lg"
-                  showIcon={false}
-                  triggerClassName={`w-full h-12 font-black rounded-xl ${
-                    tier.highlighted
-                      ? "bg-gradient-to-r from-red-600 via-red-500 to-amber-500 hover:from-red-700 hover:to-amber-600 text-white shadow-lg shadow-red-500/30"
-                      : "bg-slate-800 hover:bg-slate-700 text-white border border-white/10"
-                  }`}
+                  triggerClassName="w-full bg-[#111111] text-white hover:bg-[#222222] text-sm font-medium h-12"
                 />
-              </CardFooter>
-            </Card>
-          );
-        })}
+              ) : (
+                <Link href={tier.href} className="w-full block">
+                  <Button
+                    size="lg"
+                    variant="secondary"
+                    className="w-full bg-[#f5f5f5] text-[#111111] hover:bg-[#e5e5e5] text-sm font-medium h-12"
+                  >
+                    {tier.cta}
+                  </Button>
+                </Link>
+              )}
+            </div>
+          </div>
+        ))}
       </div>
 
-      {/* Frequently Asked Questions */}
-      <div className="max-w-4xl mx-auto space-y-8 pt-6">
-        <div className="text-center space-y-2">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 text-amber-400 text-xs font-black border border-amber-500/30">
-            <HelpCircle className="w-3.5 h-3.5" /> Player FAQs
-          </div>
-          <h2 className="text-2xl md:text-4xl font-black text-white">Got Questions About Booking?</h2>
+      {/* PDP-Style FAQ Disclosure Rows */}
+      <div className="border-t border-[#cacacb] pt-12">
+        <div className="border-b border-[#cacacb] pb-4 mb-8">
+          <span className="text-xs font-bold uppercase tracking-widest text-[#707072] block mb-1">
+            Support &amp; Policies
+          </span>
+          <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-[#111111] uppercase">
+            Rental Questions &amp; Arena Policies
+          </h2>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="divide-y divide-[#cacacb] border-t border-b border-[#cacacb]">
           {faqs.map((faq, idx) => (
-            <div key={idx} className="p-6 rounded-2xl bg-[#171b24]/90 border border-white/10 space-y-2">
-              <h3 className="text-sm font-bold text-[#d4ff00] flex items-center gap-2">
-                <span>•</span> {faq.q}
+            <div key={idx} className="py-6 flex flex-col md:flex-row md:items-start justify-between gap-4">
+              <h3 className="text-base font-semibold text-[#111111] md:w-1/3 shrink-0">
+                {faq.q}
               </h3>
-              <p className="text-xs text-slate-300 leading-relaxed pl-3.5">
+              <p className="text-sm text-[#707072] leading-relaxed md:w-2/3">
                 {faq.a}
               </p>
             </div>

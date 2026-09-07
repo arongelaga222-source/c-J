@@ -9,16 +9,11 @@ import {
   MapPin,
   Clock,
   Phone,
-  Globe,
-  Share2,
-  Flame,
-  Sparkles,
-  Trophy,
+  Search,
+  CheckCircle2,
   Calendar,
-  Activity,
-  ShieldCheck,
-  Zap,
-  ArrowRight
+  LogOut,
+  ChevronRight
 } from "lucide-react";
 
 export default async function PublicLayout({ children }: { children: React.ReactNode }) {
@@ -36,134 +31,140 @@ export default async function PublicLayout({ children }: { children: React.React
   }
 
   return (
-    <div className="min-h-screen bg-[#0f1218] text-slate-100 flex flex-col font-sans selection:bg-red-600 selection:text-white">
-      {/* Background Stadium Court Atmosphere */}
-      <div className="fixed inset-0 pointer-events-none -z-10 overflow-hidden">
-        <div
-          className="absolute inset-0 bg-cover bg-center bg-no-repeat scale-105 transform-gpu opacity-15 filter contrast-125 saturate-125 brightness-90"
-          style={{ backgroundImage: "url('/cj-court-bg.jpg')" }}
-        />
-        {/* Dark Stadium Vignette & Glows */}
-        <div className="absolute inset-0 bg-gradient-to-b from-[#0f1218]/90 via-[#0f1218]/80 to-[#0f1218]/98" />
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-7xl h-[650px] bg-gradient-to-b from-red-600/15 via-[#d4ff00]/5 to-transparent blur-3xl pointer-events-none" />
-        <div className="absolute top-1/4 right-[-100px] w-[500px] h-[500px] bg-red-600/10 blur-[150px] rounded-full pointer-events-none" />
-        <div className="absolute bottom-1/4 left-[-100px] w-[500px] h-[500px] bg-[#d4ff00]/10 blur-[150px] rounded-full pointer-events-none" />
-      </div>
-
-      {/* Top Athletic Pickleball Marquee Ticker */}
-      <div className="bg-gradient-to-r from-red-600 via-amber-500 to-[#d4ff00] text-slate-950 text-xs font-black py-1.5 px-4 text-center tracking-wide flex items-center justify-center gap-3 shadow-lg shadow-black/20 overflow-x-auto">
-        <div className="flex items-center gap-2 shrink-0">
-          <span className="flex h-2 w-2 relative">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-slate-950 opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-2 w-2 bg-slate-950"></span>
+    <div className="min-h-screen bg-white text-[#111111] flex flex-col font-sans selection:bg-[#111111] selection:text-white">
+      {/* 1. Nike Utility Bar (36px Soft-Cloud Strip) */}
+      <div className="bg-[#f5f5f5] text-[#111111] text-xs h-9 px-4 sm:px-8 flex items-center justify-between border-b border-[#e5e5e5]">
+        <div className="flex items-center gap-3">
+          <span className="font-semibold tracking-tight text-[#111111]">
+            C&amp;J Pickleball Arena QC
           </span>
-          <span className="uppercase tracking-wider">C&amp;J Pickleball Arena QC</span>
+          <span className="text-[#cacacb]">•</span>
+          <span className="hidden sm:inline text-[#707072]">
+            Tomas Morato, Quezon City • Daily 6:00 AM – 10:00 PM
+          </span>
         </div>
-        <span className="text-slate-950/40 hidden sm:inline">•</span>
-        <span className="hidden sm:inline font-bold">2 Cushioned Indoor Courts Open Daily 6:00 AM – 10:00 PM</span>
-        <span className="text-slate-950/40 hidden md:inline">•</span>
-        <span className="hidden md:inline font-black text-red-950 bg-white/40 px-2 py-0.5 rounded-full text-[11px]">
-          Fixed ₱300 / hr Flat Rate
-        </span>
-        <Link
-          href="/book"
-          className="ml-auto sm:ml-0 underline font-black hover:text-white transition-colors flex items-center gap-1 shrink-0"
-        >
-          Book Live Slots &rarr;
-        </Link>
+
+        <div className="flex items-center gap-4 text-[#111111] font-medium text-[11px] sm:text-xs">
+          <span className="hidden md:inline text-[#707072]">
+            Fixed ₱300 / hr Flat Rate
+          </span>
+          <span className="hidden md:inline text-[#cacacb]">•</span>
+          <Link href="/pricing" className="hover:text-[#707072] transition-colors">
+            Court Specs
+          </Link>
+          <span className="text-[#cacacb]">•</span>
+          <Link href="/book" className="hover:text-[#707072] transition-colors font-semibold">
+            Live Booking
+          </Link>
+          <span className="text-[#cacacb]">•</span>
+          {user ? (
+            <Link
+              href={userRole === "admin" || userRole === "owner" ? "/admin" : userRole === "cashier" ? "/cashier" : "/dashboard"}
+              className="hover:text-[#707072] transition-colors font-semibold"
+            >
+              My Account
+            </Link>
+          ) : (
+            <Link href="/login" className="hover:text-[#707072] transition-colors font-semibold">
+              Sign In
+            </Link>
+          )}
+        </div>
       </div>
 
-      {/* Glassmorphism Header */}
-      <header className="border-b border-white/10 bg-[#171b24]/85 backdrop-blur-xl px-4 sm:px-8 py-3 flex items-center justify-between sticky top-0 z-50 shadow-md shadow-black/20">
+      {/* 2. Nike Primary Nav Bar (64px, White Canvas, Inset Hairline) */}
+      <header className="sticky top-0 z-40 bg-white hairline-inset px-4 sm:px-8 h-16 flex items-center justify-between">
+        {/* Left: Brand Logo */}
         <div className="flex items-center space-x-8">
-          {/* Logo unchanged */}
-          <Link href="/" className="flex items-center group">
-            <BrandLogo size="sm" className="group-hover:scale-105 transition-transform duration-300 drop-shadow-md" />
+          <Link href="/" className="flex items-center">
+            <BrandLogo size="md" withSubtitle />
           </Link>
 
-          <nav className="hidden lg:flex items-center space-x-1">
+          {/* Center Links (Desktop) */}
+          <nav className="hidden lg:flex items-center space-x-8 text-sm font-medium text-[#111111]">
             <Link
               href="/"
-              className="px-3.5 py-2 rounded-xl text-xs font-bold uppercase tracking-wider text-slate-300 hover:text-white hover:bg-white/5 transition-all"
+              className="py-1 hover:text-[#707072] transition-colors relative"
             >
               Arena Home
             </Link>
             <Link
               href="/book"
-              className="px-3.5 py-2 rounded-xl text-xs font-bold uppercase tracking-wider text-white bg-gradient-to-r from-red-600/20 to-amber-500/20 border border-red-500/30 hover:border-red-500/60 transition-all flex items-center gap-2 shadow-sm"
+              className="py-1 hover:text-[#707072] transition-colors flex items-center gap-1.5"
             >
               <span>Book Court</span>
-              <span className="px-1.5 py-0.5 text-[9px] font-black bg-[#d4ff00] text-slate-950 rounded-md">
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#f5f5f5] text-[#111111] border border-[#cacacb]">
                 ₱300/HR
               </span>
             </Link>
             <Link
               href="/pricing"
-              className="px-3.5 py-2 rounded-xl text-xs font-bold uppercase tracking-wider text-slate-300 hover:text-white hover:bg-white/5 transition-all"
+              className="py-1 hover:text-[#707072] transition-colors"
             >
               Rates &amp; Gear
             </Link>
           </nav>
         </div>
 
-        {/* Header Right Actions */}
-        <div className="flex items-center space-x-2 sm:space-x-3">
-          {/* Quick Court Status Badge */}
-          <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-900/80 border border-white/10 text-xs text-slate-300">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-            <span className="font-bold text-[11px] text-white">Courts 1 &amp; 2 Active</span>
+        {/* Right Actions */}
+        <div className="flex items-center space-x-3">
+          {/* Active Courts Live Signal */}
+          <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#f5f5f5] text-xs font-medium text-[#111111]">
+            <span className="w-2 h-2 rounded-full bg-[#007d48]" />
+            <span className="text-[11px] font-medium">Courts 1 &amp; 2 Open</span>
           </div>
 
           {user ? (
-            <div className="flex items-center gap-1.5 sm:gap-2">
+            <div className="flex items-center gap-2">
               {userRole === "admin" || userRole === "owner" ? (
                 <Link href="/admin">
-                  <Button size="sm" className="bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 font-black shadow-md rounded-xl text-[11px] sm:text-xs px-2.5 sm:px-3">
+                  <Button size="sm" variant="secondary" className="text-xs px-3.5">
                     Admin
                   </Button>
                 </Link>
               ) : userRole === "cashier" ? (
                 <Link href="/cashier">
-                  <Button size="sm" className="bg-gradient-to-r from-red-600 to-amber-500 text-white font-black shadow-md rounded-xl text-[11px] sm:text-xs px-2.5 sm:px-3">
+                  <Button size="sm" variant="secondary" className="text-xs px-3.5">
                     POS
                   </Button>
                 </Link>
               ) : (
                 <Link href="/dashboard">
-                  <Button size="sm" variant="outline" className="border-red-500/40 text-red-400 hover:bg-red-950/50 rounded-xl font-bold text-[11px] sm:text-xs px-2.5 sm:px-3">
-                    My Bookings
+                  <Button size="sm" variant="secondary" className="text-xs px-3.5">
+                    Pass &amp; Bookings
                   </Button>
                 </Link>
               )}
+
+              <Link href="/book">
+                <Button size="sm" className="bg-[#111111] text-white hover:bg-[#222222] text-xs px-4">
+                  Book Slot
+                </Button>
+              </Link>
 
               <form action={logout} className="hidden sm:block">
                 <Button
                   variant="ghost"
                   size="sm"
                   type="submit"
-                  className="text-slate-400 hover:text-red-400 hover:bg-red-950/30 rounded-xl text-xs font-semibold"
+                  className="text-[#707072] hover:text-[#111111] text-xs"
                 >
                   Sign Out
                 </Button>
               </form>
             </div>
           ) : (
-            <div className="flex items-center gap-1.5 sm:gap-2">
+            <div className="flex items-center gap-2">
               <Link href="/login" className="hidden sm:inline-block">
-                <Button variant="ghost" size="sm" className="text-slate-300 hover:text-white hover:bg-white/5 rounded-xl font-bold text-xs">
+                <Button variant="ghost" size="sm" className="text-[#111111] text-xs font-medium">
                   Sign In
-                </Button>
-              </Link>
-              <Link href="/signup" className="hidden md:inline-block">
-                <Button size="sm" variant="outline" className="border-[#d4ff00]/40 text-[#d4ff00] hover:bg-[#d4ff00]/10 hover:border-[#d4ff00] rounded-xl font-bold text-xs transition-colors">
-                  Sign Up
                 </Button>
               </Link>
               <ReserveCourtModal
                 isLoggedIn={!!user}
                 buttonText="Book Court"
                 triggerSize="sm"
-                triggerClassName="bg-gradient-to-r from-red-600 via-red-500 to-amber-500 hover:from-red-700 hover:to-amber-600 text-white font-black shadow-lg shadow-red-600/30 rounded-xl px-2.5 sm:px-4 text-[11px] sm:text-xs"
+                triggerClassName="bg-[#111111] text-white hover:bg-[#222222] text-xs px-5"
               />
             </div>
           )}
@@ -176,74 +177,109 @@ export default async function PublicLayout({ children }: { children: React.React
       {/* Main Content Area */}
       <main className="flex-1 flex flex-col">{children}</main>
 
-      {/* Modern Stadium Footer */}
-      <footer className="border-t border-white/10 bg-[#12151d] pt-14 pb-10 px-6 mt-20 relative overflow-hidden">
-        <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-10 mb-12">
-          <div className="space-y-4 md:col-span-1">
-            <BrandLogo size="sm" withSubtitle />
-            <p className="text-xs text-slate-400 leading-relaxed pt-2">
-              Quezon City&apos;s premier indoor pickleball destination. USA Pickleball spec 8mm cushioned courts, 850-lux lighting, carbon paddle rentals, and seamless PayMongo booking.
+      {/* 3. Nike Editorial Footer */}
+      <footer className="border-t border-[#cacacb] bg-white pt-16 pb-12 px-6 sm:px-12 mt-20">
+        <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-12 mb-16">
+          {/* Col 1: Brand & Identity */}
+          <div className="space-y-4">
+            <BrandLogo size="md" withSubtitle />
+            <p className="text-sm text-[#707072] leading-relaxed pt-2 max-w-sm">
+              Metro Manila&apos;s tournament-grade indoor pickleball arena. 
+              Featuring USA Pickleball certified 8mm polyurethane cushioned courts, 
+              850-lux lighting, pro carbon paddle rentals, and instant PayMongo checkout.
             </p>
-            <div className="flex items-center space-x-3 text-slate-400 pt-1">
-              <a href="#" aria-label="Location" className="hover:text-amber-400 transition-colors p-2 rounded-xl bg-slate-800/60 border border-white/5">
-                <MapPin className="w-4 h-4" />
-              </a>
-              <a href="#" aria-label="Social" className="hover:text-red-400 transition-colors p-2 rounded-xl bg-slate-800/60 border border-white/5">
-                <Share2 className="w-4 h-4" />
-              </a>
-            </div>
           </div>
 
+          {/* Col 2: Fast Navigation */}
           <div>
-            <h4 className="text-xs font-black uppercase tracking-widest text-[#d4ff00] mb-4 flex items-center gap-1.5">
-              <Trophy className="w-3.5 h-3.5" /> Fast Booking
+            <h4 className="text-sm font-semibold tracking-tight text-[#111111] mb-5 uppercase">
+              Court Reservations
             </h4>
-            <ul className="space-y-2.5 text-xs text-slate-400 font-semibold">
-              <li><Link href="/book" className="hover:text-white transition-colors">Book Court 1 (Indoor Pro)</Link></li>
-              <li><Link href="/book" className="hover:text-white transition-colors">Book Court 2 (Indoor Standard)</Link></li>
-              <li><Link href="/pricing" className="hover:text-white transition-colors">Rates &amp; Gear Rental (₱150)</Link></li>
-              <li><Link href="/dashboard" className="hover:text-white transition-colors">Player Pass &amp; Check-In</Link></li>
+            <ul className="space-y-3 text-sm text-[#707072]">
+              <li>
+                <Link href="/book" className="hover:text-[#111111] transition-colors">
+                  Court 1 — Indoor (Pro Cushion)
+                </Link>
+              </li>
+              <li>
+                <Link href="/book" className="hover:text-[#111111] transition-colors">
+                  Court 2 — Indoor (Tournament Spec)
+                </Link>
+              </li>
+              <li>
+                <Link href="/pricing" className="hover:text-[#111111] transition-colors">
+                  Hourly Rates &amp; Multi-Hour Blocks
+                </Link>
+              </li>
+              <li>
+                <Link href="/pricing" className="hover:text-[#111111] transition-colors">
+                  Pro Carbon Paddle Rentals (₱150)
+                </Link>
+              </li>
+              <li>
+                <Link href="/dashboard" className="hover:text-[#111111] transition-colors">
+                  Digital QR Pass &amp; Check-In
+                </Link>
+              </li>
             </ul>
           </div>
 
+          {/* Col 3: Specifications */}
           <div>
-            <h4 className="text-xs font-black uppercase tracking-widest text-[#d4ff00] mb-4 flex items-center gap-1.5">
-              <Activity className="w-3.5 h-3.5" /> Court Specs
+            <h4 className="text-sm font-semibold tracking-tight text-[#111111] mb-5 uppercase">
+              Arena Specifications
             </h4>
-            <ul className="space-y-2.5 text-xs text-slate-400 font-semibold">
-              <li>• Official 20&apos; × 44&apos; USAP Dimensions</li>
-              <li>• 8mm Multi-Layer Polyurethane Cushion</li>
-              <li>• 7-Foot Non-Volley Zone (The Kitchen)</li>
-              <li>• 36&quot; Post / 34&quot; Center Championship Nets</li>
+            <ul className="space-y-3 text-sm text-[#707072]">
+              <li>Official 20&apos; × 44&apos; USAP Dimensions</li>
+              <li>8mm Multi-Layer Polyurethane Cushion</li>
+              <li>7-Foot Non-Volley Zone (The Kitchen)</li>
+              <li>36&quot; Post / 34&quot; Center Tension Nets</li>
+              <li>Air-Conditioned Indoor Lounge &amp; Lockers</li>
             </ul>
           </div>
 
+          {/* Col 4: Location & Operating Hours */}
           <div>
-            <h4 className="text-xs font-black uppercase tracking-widest text-[#d4ff00] mb-4 flex items-center gap-1.5">
-              <MapPin className="w-3.5 h-3.5" /> Arena Location
+            <h4 className="text-sm font-semibold tracking-tight text-[#111111] mb-5 uppercase">
+              Arena Contact
             </h4>
-            <div className="space-y-2.5 text-xs text-slate-400 font-semibold">
-              <div className="flex items-start gap-2">
-                <MapPin className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
-                <span>C&amp;J&apos;s Courts Arena, Tomas Morato, Quezon City</span>
+            <div className="space-y-3 text-sm text-[#707072]">
+              <div className="flex items-start gap-2.5">
+                <MapPin className="w-4 h-4 text-[#111111] shrink-0 mt-0.5" />
+                <span>Tomas Morato Avenue, Quezon City, Metro Manila</span>
               </div>
-              <div className="flex items-center gap-2">
-                <Clock className="w-4 h-4 text-amber-400 shrink-0" />
-                <span>Daily: 6:00 AM – 10:00 PM</span>
+              <div className="flex items-center gap-2.5">
+                <Clock className="w-4 h-4 text-[#111111] shrink-0" />
+                <span>Open Daily: 6:00 AM – 10:00 PM</span>
               </div>
-              <div className="flex items-center gap-2">
-                <Phone className="w-4 h-4 text-red-400 shrink-0" />
+              <div className="flex items-center gap-2.5">
+                <Phone className="w-4 h-4 text-[#111111] shrink-0" />
                 <span>+63 (917) 555-CJCOURT</span>
               </div>
             </div>
           </div>
         </div>
 
-        <div className="max-w-7xl mx-auto border-t border-white/10 pt-6 flex flex-col md:flex-row items-center justify-between text-xs text-slate-500 gap-4">
-          <p>&copy; {new Date().getFullYear()} C&amp;J&apos;s Courts. Built for the Pickleball Community.</p>
-          <div className="flex space-x-6">
-            <span className="text-slate-400">Strict 24-Hour Refundable Cancellation Policy</span>
-            <Link href="/pricing" className="hover:text-slate-300">Rules of the Kitchen</Link>
+        {/* 1px Hairline Divider */}
+        <div className="border-t border-[#cacacb] pt-8 max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between text-xs text-[#707072] gap-4">
+          <div className="flex items-center gap-2">
+            <span className="text-[#111111] font-semibold">Philippines</span>
+            <span>&copy; {new Date().getFullYear()} C&amp;J Pickleball Arena Inc. All Rights Reserved.</span>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-6 text-[11px] text-[#707072]">
+            <span className="text-[#007d48] font-medium">
+              Strict 24-Hour Refundable Cancellation Guarantee
+            </span>
+            <Link href="/pricing" className="hover:text-[#111111] transition-colors">
+              Rules of the Kitchen
+            </Link>
+            <Link href="/pricing" className="hover:text-[#111111] transition-colors">
+              Terms of Service
+            </Link>
+            <Link href="/pricing" className="hover:text-[#111111] transition-colors">
+              Privacy Policy
+            </Link>
           </div>
         </div>
       </footer>

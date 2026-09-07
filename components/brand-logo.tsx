@@ -1,209 +1,126 @@
 import React from "react";
-import Image from "next/image";
 
 interface BrandLogoProps {
   className?: string;
   size?: "sm" | "md" | "lg" | "xl";
   withSubtitle?: boolean;
-  useImage?: boolean;
+  inverted?: boolean;
 }
 
-export function BrandLogo({ 
-  className = "", 
-  size = "md", 
+export function BrandLogo({
+  className = "",
+  size = "md",
   withSubtitle = false,
-  useImage = false 
+  inverted = false,
 }: BrandLogoProps) {
   const sizeMap = {
-    sm: { width: 130, height: 52, imgWidth: 120, imgHeight: 48 },
-    md: { width: 180, height: 72, imgWidth: 170, imgHeight: 68 },
-    lg: { width: 240, height: 96, imgWidth: 230, imgHeight: 92 },
-    xl: { width: 320, height: 128, imgWidth: 300, imgHeight: 120 },
+    sm: { scale: 0.75, height: 28, textClass: "text-lg", subClass: "text-[8px]" },
+    md: { scale: 1, height: 36, textClass: "text-2xl", subClass: "text-[9px]" },
+    lg: { scale: 1.25, height: 48, textClass: "text-3xl", subClass: "text-[11px]" },
+    xl: { scale: 1.6, height: 60, textClass: "text-4xl", subClass: "text-xs" },
   };
 
   const current = sizeMap[size];
+  const primaryColor = inverted ? "#ffffff" : "#111111";
+  const secondaryColor = inverted ? "#cacacb" : "#707072";
 
-  if (useImage) {
-    return (
-      <div className={`inline-flex flex-col items-center justify-center select-none ${className}`}>
-        <Image
-          src="/cj-courts-logo.png"
-          alt="C&J's Courts Logo"
-          width={current.imgWidth}
-          height={current.imgHeight}
-          className="object-contain drop-shadow-md rounded-xl"
-          priority
-        />
+  return (
+    <div
+      className={`inline-flex items-center gap-2.5 select-none font-sans group ${className}`}
+      role="img"
+      aria-label="C&J Pickleball Logo"
+    >
+      {/* Athletic Geometric Monogram Badge */}
+      <div className="relative shrink-0 flex items-center justify-center">
+        <svg
+          width={current.height}
+          height={current.height}
+          viewBox="0 0 44 44"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+          className="transition-transform duration-200 group-hover:scale-105"
+        >
+          {/* Outer Court Boundary */}
+          <rect
+            x="2"
+            y="2"
+            width="40"
+            height="40"
+            stroke={primaryColor}
+            strokeWidth="3.5"
+            fill="none"
+          />
+          {/* Net Line */}
+          <line
+            x1="2"
+            y1="22"
+            x2="42"
+            y2="22"
+            stroke={primaryColor}
+            strokeWidth="2.5"
+          />
+          {/* Kitchen / Non-Volley Boundary Lines */}
+          <line
+            x1="2"
+            y1="15"
+            x2="42"
+            y2="15"
+            stroke={primaryColor}
+            strokeWidth="1.5"
+            strokeDasharray="2 2"
+          />
+          <line
+            x1="2"
+            y1="29"
+            x2="42"
+            y2="29"
+            stroke={primaryColor}
+            strokeWidth="1.5"
+            strokeDasharray="2 2"
+          />
+          {/* Dynamic Strike Slash / Ball Contact Vector */}
+          <path
+            d="M 12 34 L 32 10"
+            stroke={inverted ? "#ffffff" : "#111111"}
+            strokeWidth="4"
+            strokeLinecap="square"
+          />
+          {/* Center Sweetspot Dot */}
+          <circle
+            cx="22"
+            cy="22"
+            r="3.5"
+            fill={inverted ? "#ffffff" : "#111111"}
+          />
+        </svg>
+      </div>
+
+      {/* Modern High-Impact Athletic Typography */}
+      <div className="flex flex-col leading-none">
+        <div className="flex items-baseline gap-1">
+          <span
+            className={`font-black tracking-tighter uppercase font-display ${current.textClass}`}
+            style={{ color: primaryColor, letterSpacing: "-0.03em" }}
+          >
+            C&amp;J
+          </span>
+          <span
+            className={`font-black tracking-tight uppercase ${current.textClass}`}
+            style={{ color: primaryColor, letterSpacing: "0.02em" }}
+          >
+            COURTS
+          </span>
+        </div>
+
         {withSubtitle && (
-          <span className="text-[10px] uppercase font-black tracking-widest text-amber-400 mt-1">
-            Pickleball Arena &amp; Pro Club
+          <span
+            className={`font-bold tracking-[0.25em] uppercase mt-0.5 ${current.subClass}`}
+            style={{ color: secondaryColor }}
+          >
+            PICKLEBALL ARENA
           </span>
         )}
       </div>
-    );
-  }
-
-  return (
-    <div className={`inline-flex flex-col items-center justify-center select-none ${className}`}>
-      <svg
-        viewBox="0 0 340 140"
-        width={current.width}
-        height={current.height}
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
-        className="overflow-visible"
-      >
-        <defs>
-          {/* Yellow swoosh drop shadow */}
-          <filter id="cj-swoosh-glow" x="-20%" y="-20%" width="140%" height="140%">
-            <feDropShadow dx="0" dy="1" stdDeviation="2" floodColor="#000000" floodOpacity="0.6" />
-          </filter>
-        </defs>
-
-        {/* --- 1. TOP YELLOW DYNAMIC SWOOSH (tapers to sharp right tip) --- */}
-        <path
-          d="M 28 54 C 40 22, 110 8, 205 10 C 275 12, 320 28, 332 50 C 335 56, 328 62, 318 64 C 304 42, 258 24, 195 22 C 118 20, 56 34, 40 56 C 34 64, 25 64, 28 54 Z"
-          fill="#FFDD00"
-          filter="url(#cj-swoosh-glow)"
-        />
-
-        {/* --- 2. BOTTOM YELLOW DYNAMIC SWOOSH (tapers to sharp left tip) --- */}
-        <path
-          d="M 312 86 C 300 118, 230 132, 135 130 C 65 128, 20 112, 8 90 C 5 84, 12 78, 22 76 C 36 98, 82 116, 145 118 C 222 120, 284 106, 300 84 C 306 76, 315 76, 312 86 Z"
-          fill="#FFDD00"
-          filter="url(#cj-swoosh-glow)"
-        />
-
-        {/* --- 3. "C&J" MAIN RED LETTERS WITH THICK WHITE OUTLINE --- */}
-        <g>
-          {/* Outer White Contour / Outline */}
-          <text
-            x="146"
-            y="70"
-            textAnchor="middle"
-            dominantBaseline="central"
-            fill="#FFFFFF"
-            stroke="#FFFFFF"
-            strokeWidth="14"
-            strokeLinejoin="round"
-            strokeLinecap="round"
-            style={{
-              fontFamily: "var(--font-heading), Impact, 'Arial Black', sans-serif",
-              fontSize: "76px",
-              fontWeight: 900,
-              fontStyle: "italic",
-              letterSpacing: "-2px",
-            }}
-          >
-            C&amp;J
-          </text>
-
-          {/* Primary Bold Red Fill */}
-          <text
-            x="146"
-            y="70"
-            textAnchor="middle"
-            dominantBaseline="central"
-            fill="#E52521"
-            style={{
-              fontFamily: "var(--font-heading), Impact, 'Arial Black', sans-serif",
-              fontSize: "76px",
-              fontWeight: 900,
-              fontStyle: "italic",
-              letterSpacing: "-2px",
-            }}
-          >
-            C&amp;J
-          </text>
-        </g>
-
-        {/* --- 4. "'s" SUPERSCRIPT ACCENT WITH WHITE OUTLINE --- */}
-        <g>
-          {/* White outline for 's */}
-          <text
-            x="248"
-            y="45"
-            textAnchor="middle"
-            dominantBaseline="central"
-            fill="#FFFFFF"
-            stroke="#FFFFFF"
-            strokeWidth="8"
-            strokeLinejoin="round"
-            strokeLinecap="round"
-            style={{
-              fontFamily: "var(--font-heading), Impact, 'Arial Black', sans-serif",
-              fontSize: "36px",
-              fontWeight: 900,
-              fontStyle: "italic",
-            }}
-          >
-            &apos;s
-          </text>
-
-          {/* Red fill for 's */}
-          <text
-            x="248"
-            y="45"
-            textAnchor="middle"
-            dominantBaseline="central"
-            fill="#E52521"
-            style={{
-              fontFamily: "var(--font-heading), Impact, 'Arial Black', sans-serif",
-              fontSize: "36px",
-              fontWeight: 900,
-              fontStyle: "italic",
-            }}
-          >
-            &apos;s
-          </text>
-        </g>
-
-        {/* --- 5. "COURTS" BOTTOM WHITE TEXT WITH DARK BORDER --- */}
-        <g>
-          {/* Dark Navy / Charcoal Outline */}
-          <text
-            x="160"
-            y="108"
-            textAnchor="middle"
-            dominantBaseline="central"
-            fill="#121620"
-            stroke="#121620"
-            strokeWidth="7"
-            strokeLinejoin="round"
-            style={{
-              fontFamily: "var(--font-heading), var(--font-sans), sans-serif",
-              fontSize: "33px",
-              fontWeight: 900,
-              letterSpacing: "4px",
-            }}
-          >
-            COURTS
-          </text>
-
-          {/* Solid White Fill */}
-          <text
-            x="160"
-            y="108"
-            textAnchor="middle"
-            dominantBaseline="central"
-            fill="#FFFFFF"
-            style={{
-              fontFamily: "var(--font-heading), var(--font-sans), sans-serif",
-              fontSize: "33px",
-              fontWeight: 900,
-              letterSpacing: "4px",
-            }}
-          >
-            COURTS
-          </text>
-        </g>
-      </svg>
-
-      {withSubtitle && (
-        <span className="text-[10px] uppercase font-black tracking-widest text-amber-400 mt-1">
-          Pickleball Arena &amp; Pro Club
-        </span>
-      )}
     </div>
   );
 }

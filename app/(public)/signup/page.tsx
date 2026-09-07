@@ -3,7 +3,6 @@ import { User, Mail, Lock, ArrowRight, CheckCircle2, Inbox } from "lucide-react"
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { BrandLogo } from "@/components/brand-logo";
 import { AuthSubmitButton } from "@/components/auth-submit-button";
 import { signup } from "@/app/actions";
@@ -16,71 +15,70 @@ export default async function SignUpPage({
   const { message, verification_sent, email, next } = await searchParams;
 
   return (
-    <div className="flex-1 flex items-center justify-center px-4 py-16 sm:px-6 lg:px-8 relative overflow-hidden font-sans bg-[#0f1218]">
-      {/* Stadium Glows */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[550px] h-[320px] bg-red-600/15 blur-[130px] rounded-full pointer-events-none" />
-      <div className="absolute top-1/3 left-1/3 w-[300px] h-[300px] bg-[#d4ff00]/10 blur-[110px] rounded-full pointer-events-none" />
-
-      <Card className="w-full max-w-md border-white/10 bg-[#171b24]/90 backdrop-blur-2xl shadow-2xl relative z-10 rounded-3xl">
+    <div className="flex-1 flex items-center justify-center px-4 py-16 sm:px-6 lg:px-8 font-sans bg-white text-[#111111]">
+      <div className="w-full max-w-md border border-[#cacacb] p-8 sm:p-10 bg-white space-y-6">
         {verification_sent === "true" ? (
-          <div className="p-6 sm:p-8 text-center space-y-5">
+          <div className="text-center space-y-6">
             <div className="flex justify-center pb-2">
-              <BrandLogo size="md" />
+              <BrandLogo size="md" withSubtitle />
             </div>
 
-            <div className="inline-flex p-4 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400">
-              <Inbox className="w-8 h-8 text-[#d4ff00]" />
+            <div className="inline-flex p-4 rounded-full bg-[#f5f5f5] text-[#111111] border border-[#cacacb]">
+              <Inbox className="w-8 h-8 text-[#111111]" />
             </div>
 
             <div className="space-y-2">
-              <h2 className="text-2xl font-black text-white">Check Your Email</h2>
-              <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
-                We sent a confirmation link to:
+              <h2 className="text-2xl font-bold tracking-tight text-[#111111]">Check Your Email</h2>
+              <p className="text-xs sm:text-sm text-[#707072] leading-relaxed">
+                We sent a verification link to:
               </p>
-              <p className="text-sm font-bold text-[#d4ff00] bg-black/40 px-3 py-1.5 rounded-lg border border-white/5 inline-block break-all">
+              <p className="text-sm font-semibold text-[#111111] bg-[#f5f5f5] px-4 py-2 rounded-full border border-[#cacacb] inline-block break-all">
                 {email || "your email address"}
               </p>
-              <p className="text-xs text-slate-400 pt-2 leading-relaxed">
-                Please click the <strong className="text-white">Confirm Email Address</strong> button in the email to activate your account and start booking courts.
+              <p className="text-xs text-[#707072] pt-2 leading-relaxed">
+                Click the confirmation link in the email to activate your account and book courts.
               </p>
             </div>
 
-            <div className="pt-4 space-y-2.5">
+            <div className="pt-4 space-y-3">
               <Link href="/login" className="block w-full">
-                <Button className="w-full h-12 font-black bg-gradient-to-r from-red-600 via-red-500 to-amber-500 hover:from-red-700 hover:to-amber-600 text-white rounded-xl shadow-lg shadow-red-500/20">
+                <Button size="lg" className="w-full bg-[#111111] text-white hover:bg-[#222222] text-sm font-medium">
                   Proceed to Sign In <ArrowRight className="w-4 h-4 ml-1.5" />
                 </Button>
               </Link>
               <Link href="/" className="block w-full">
-                <Button variant="ghost" className="w-full text-xs text-slate-400 hover:text-white hover:bg-white/5 rounded-xl">
+                <Button variant="ghost" size="sm" className="w-full text-xs text-[#707072] hover:text-[#111111]">
                   Back to Arena Home
                 </Button>
               </Link>
             </div>
           </div>
         ) : (
-          <form action={signup}>
+          <form action={signup} className="space-y-6">
             {next && <input type="hidden" name="next" value={next} />}
-            <CardHeader className="space-y-2 text-center pb-6">
+            
+            <div className="text-center space-y-2">
               <div className="flex justify-center pb-2">
-                <BrandLogo size="md" />
+                <BrandLogo size="md" withSubtitle />
               </div>
-              <CardTitle className="text-2xl font-black text-white">Join C&amp;J Pickleball</CardTitle>
-              <CardDescription className="text-xs text-slate-400">
-                Create your player account to reserve courts, track matches, and access leagues.
-              </CardDescription>
-            </CardHeader>
+              <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-[#111111] uppercase">
+                Join C&amp;J Pickleball
+              </h1>
+              <p className="text-xs text-[#707072]">
+                Create a member account to reserve courts, access passes, and track match history.
+              </p>
+            </div>
 
-            <CardContent className="space-y-4">
-              {message && (
-                <div className="bg-red-500/15 text-red-400 border border-red-500/30 text-xs p-3 rounded-xl flex items-center gap-2">
-                  <p>{message}</p>
-                </div>
-              )}
+            {message && (
+              <div className="p-3 border border-[#d30005] bg-white text-[#d30005] text-xs flex items-center gap-2">
+                <p>{message}</p>
+              </div>
+            )}
 
+            <div className="space-y-4">
               <div className="space-y-1.5">
-                <Label htmlFor="fullName" className="text-xs font-bold text-slate-300 flex items-center gap-1.5">
-                  <User className="w-3.5 h-3.5 text-[#d4ff00]" /> Full Name
+                <Label htmlFor="fullName" className="text-xs font-bold uppercase tracking-wider text-[#111111]">
+                  Full Name
                 </Label>
                 <Input 
                   id="fullName" 
@@ -88,13 +86,13 @@ export default async function SignUpPage({
                   type="text" 
                   placeholder="Juan Dela Cruz" 
                   required 
-                  className="bg-slate-950 border-white/10 text-slate-100 placeholder:text-slate-500 rounded-xl focus-visible:ring-red-500"
+                  className="h-11 px-4 rounded-full bg-[#f5f5f5] text-sm text-[#111111] placeholder:text-[#707072]"
                 />
               </div>
 
               <div className="space-y-1.5">
-                <Label htmlFor="email" className="text-xs font-bold text-slate-300 flex items-center gap-1.5">
-                  <Mail className="w-3.5 h-3.5 text-[#d4ff00]" /> Email Address
+                <Label htmlFor="email" className="text-xs font-bold uppercase tracking-wider text-[#111111]">
+                  Email Address
                 </Label>
                 <Input 
                   id="email" 
@@ -102,41 +100,42 @@ export default async function SignUpPage({
                   type="email" 
                   placeholder="juan@example.com" 
                   required 
-                  className="bg-slate-950 border-white/10 text-slate-100 placeholder:text-slate-500 rounded-xl focus-visible:ring-red-500"
+                  className="h-11 px-4 rounded-full bg-[#f5f5f5] text-sm text-[#111111] placeholder:text-[#707072]"
                 />
               </div>
 
               <div className="space-y-1.5">
-                <Label htmlFor="password" className="text-xs font-bold text-slate-300 flex items-center gap-1.5">
-                  <Lock className="w-3.5 h-3.5 text-[#d4ff00]" /> Choose Password
+                <Label htmlFor="password" className="text-xs font-bold uppercase tracking-wider text-[#111111]">
+                  Password
                 </Label>
                 <Input 
                   id="password" 
                   name="password" 
                   type="password" 
                   required 
-                  className="bg-slate-950 border-white/10 text-slate-100 rounded-xl focus-visible:ring-red-500"
+                  placeholder="Minimum 6 characters"
+                  className="h-11 px-4 rounded-full bg-[#f5f5f5] text-sm text-[#111111]"
                 />
               </div>
-            </CardContent>
+            </div>
 
-            <CardFooter className="flex flex-col space-y-4 pt-7 pb-6 border-t-0 bg-transparent">
+            <div className="pt-2 space-y-4">
               <AuthSubmitButton 
-                label="Create Free Player Account"
-                loadingLabel="Creating Account..."
-                className="w-full h-12 font-black bg-gradient-to-r from-red-600 via-red-500 to-amber-500 hover:from-red-700 hover:to-amber-600 text-white shadow-lg shadow-red-500/30 rounded-xl transition-all"
+                label="Create Account"
+                loadingLabel="Creating account..."
+                className="w-full h-12 bg-[#111111] text-white hover:bg-[#222222] font-medium text-sm rounded-full"
               />
-
-              <div className="text-xs text-center text-slate-400">
-                Already a player?{" "}
-                <Link href={next ? `/login?next=${encodeURIComponent(next)}` : "/login"} className="font-black text-[#d4ff00] hover:underline">
-                  Sign in here
+              
+              <div className="text-xs text-center text-[#707072]">
+                Already have an account?{" "}
+                <Link href="/login" className="font-semibold text-[#111111] underline">
+                  Sign in
                 </Link>
               </div>
-            </CardFooter>
+            </div>
           </form>
         )}
-      </Card>
+      </div>
     </div>
   );
 }
