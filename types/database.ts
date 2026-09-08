@@ -51,6 +51,27 @@ export interface Booking {
   updated_at: string;
   courts?: Court | Court[] | null;
   profiles?: Profile | Profile[] | null;
+  booking_refunds?: BookingRefund | null;
+}
+
+export type RefundStatus = 'pending' | 'approved' | 'rejected' | 'completed' | 'voided_no_refund';
+export type WalletType = 'gcash' | 'maya' | 'bank_transfer' | 'counter_cash';
+
+export interface BookingRefund {
+  id: string;
+  booking_id: string;
+  amount: number;
+  wallet_type: WalletType | string;
+  account_name: string | null;
+  account_number: string | null;
+  reason: string | null;
+  status: RefundStatus | string;
+  reference: string | null;
+  processed_by: string | null;
+  processed_at: string | null;
+  admin_notes?: string | null;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface PosProduct {

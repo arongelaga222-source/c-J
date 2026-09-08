@@ -127,6 +127,7 @@ export default async function LandingPage() {
             src="/hero-action.jpg"
             alt="C&J Pickleball Arena Athlete Action"
             fill
+            sizes="(max-width: 1440px) 100vw, 1440px"
             className="object-cover object-center"
             priority
           />
@@ -202,6 +203,7 @@ export default async function LandingPage() {
                   src={court.image}
                   alt={court.name}
                   fill
+                  sizes="(max-width: 768px) 100vw, (max-width: 1440px) 33vw, 480px"
                   className="object-cover object-center transition-transform duration-500 group-hover:scale-105"
                 />
 
@@ -291,6 +293,7 @@ export default async function LandingPage() {
                   src={item.image}
                   alt={item.name}
                   fill
+                  sizes="(max-width: 768px) 50vw, (max-width: 1440px) 25vw, 360px"
                   className="object-cover object-center p-4 transition-transform duration-300 group-hover:scale-105"
                 />
                 <div className="absolute top-2.5 left-2.5 z-10">
@@ -329,6 +332,7 @@ export default async function LandingPage() {
             src="/cj-court-bg.jpg"
             alt="C&J Arena Indoor Pickleball Tournament Court"
             fill
+            sizes="(max-width: 1440px) 100vw, 1440px"
             className="object-cover object-center filter contrast-110 brightness-75"
           />
           <div className="absolute inset-0 bg-black/40" />

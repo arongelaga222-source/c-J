@@ -142,14 +142,15 @@ export default async function PublicLayout({ children }: { children: React.React
                 </Button>
               </Link>
 
-              <form action={logout} className="hidden sm:block">
+              <form action={logout}>
                 <Button
                   variant="ghost"
                   size="sm"
                   type="submit"
-                  className="text-[#707072] hover:text-[#111111] text-xs"
+                  className="text-[#707072] hover:text-[#d30005] hover:bg-[#fff5f5] text-xs h-8 px-2.5 sm:px-3 flex items-center gap-1.5 cursor-pointer transition-colors"
                 >
-                  Sign Out
+                  <LogOut className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Sign Out</span>
                 </Button>
               </form>
             </div>

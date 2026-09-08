@@ -17,8 +17,9 @@ import {
   XCircle,
   Activity,
   Award,
+  Lock,
 } from 'lucide-react';
-import { cancelBooking } from '@/app/actions';
+import { cancelBooking, updateUserPassword } from '@/app/actions';
 import { RefundRequestModal } from '@/components/refund-request-modal';
 
 export interface UserBookingItem {
@@ -52,7 +53,22 @@ export default function UserDashboardClient({
   const [cancellingId, setCancellingId] = useState<string | null>(null);
   const [refundModalBooking, setRefundModalBooking] = useState<UserBookingItem | null>(null);
   const [feedbackMessage, setFeedbackMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [passwordState, setPasswordState] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
   const [isPending, startTransition] = useTransition();
+
+  const handleUpdatePassword = async (formData: FormData) => {
+    setIsUpdatingPassword(true);
+    setPasswordState(null);
+    const result = await updateUserPassword(formData);
+    if (result.error) {
+      setPasswordState({ type: 'error', text: result.error });
+    } else {
+      setPasswordState({ type: 'success', text: 'Password updated successfully!' });
+      (document.getElementById('password-form') as HTMLFormElement).reset();
+    }
+    setIsUpdatingPassword(false);
+  };
 
   const now = new Date();
   const upcomingBookings = activeBookings.filter(
@@ -229,6 +245,12 @@ export default function UserDashboardClient({
           >
             Booking History ({pastBookings.length})
           </TabsTrigger>
+          <TabsTrigger
+            value="settings"
+            className="h-9 px-5 rounded-full text-xs font-medium cursor-pointer border border-[#cacacb] data-[state=active]:bg-[#111111] data-[state=active]:text-white data-[state=active]:border-[#111111]"
+          >
+            Settings
+          </TabsTrigger>
         </TabsList>
 
         {/* Tab Content: Upcoming Bookings */}
@@ -338,6 +360,56 @@ export default function UserDashboardClient({
               </div>
             ))
           )}
+        </TabsContent>
+
+        {/* Tab Content: Settings */}
+        <TabsContent value="settings" className="space-y-4">
+          <div className="border border-[#cacacb] p-6 sm:p-8 bg-white max-w-2xl">
+            <h3 className="text-lg font-bold tracking-tight text-[#111111] flex items-center gap-2 mb-6">
+              <Lock className="w-5 h-5 text-[#707072]" /> Password Management
+            </h3>
+            
+            {passwordState && (
+              <div
+                className={`p-4 mb-6 border text-xs font-medium flex items-center justify-between ${
+                  passwordState.type === 'success'
+                    ? 'border-[#007d48] bg-white text-[#007d48]'
+                    : 'border-[#d30005] bg-white text-[#d30005]'
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  {passwordState.type === 'success' ? (
+                    <CheckCircle2 className="w-4 h-4 text-[#007d48]" />
+                  ) : (
+                    <XCircle className="w-4 h-4 text-[#d30005]" />
+                  )}
+                  <span>{passwordState.text}</span>
+                </div>
+              </div>
+            )}
+
+            <form id="password-form" action={handleUpdatePassword} className="space-y-4">
+              <div className="space-y-1.5">
+                <label htmlFor="password" className="text-xs font-bold uppercase tracking-wider text-[#111111]">
+                  New Password
+                </label>
+                <input 
+                  id="password" 
+                  name="password" 
+                  type="password" 
+                  required 
+                  minLength={6}
+                  placeholder="Enter new password"
+                  className="h-11 w-full px-4 rounded-full border border-[#cacacb] bg-[#f5f5f5] text-sm text-[#111111] focus:outline-none focus:border-[#111111]"
+                />
+                <p className="text-[10px] text-[#707072] mt-1">Must be at least 6 characters long.</p>
+              </div>
+              <Button type="submit" disabled={isUpdatingPassword} className="bg-[#111111] text-white hover:bg-[#222222] h-11 px-6 rounded-full text-xs font-medium mt-2">
+                {isUpdatingPassword ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                Update Password
+              </Button>
+            </form>
+          </div>
         </TabsContent>
       </Tabs>
 

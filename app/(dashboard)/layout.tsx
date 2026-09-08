@@ -40,7 +40,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
       />
 
       {/* Clean Light Editorial Sidebar */}
-      <aside className="hidden md:flex w-64 bg-white border-r border-[#cacacb] flex-col justify-between shrink-0">
+      <aside className="hidden md:flex w-64 bg-white border-r border-[#cacacb] flex-col shrink-0">
         <div>
           {/* Brand Logo Header */}
           <div className="p-6 border-b border-[#cacacb] space-y-4">
@@ -137,26 +137,52 @@ export default async function DashboardLayout({ children }: { children: React.Re
             </Link>
           </nav>
         </div>
-
-        {/* Logout Action */}
-        <div className="p-4 border-t border-[#cacacb]">
-          <form action={logout}>
-            <Button
-              variant="ghost"
-              type="submit"
-              className="w-full justify-start text-[#707072] hover:text-[#d30005] hover:bg-[#f5f5f5] font-medium text-xs"
-            >
-              <LogOut className="h-4 w-4 mr-2" />
-              Sign Out
-            </Button>
-          </form>
-        </div>
       </aside>
 
-      {/* Main Terminal Content */}
-      <main className="flex-1 overflow-auto bg-[#ffffff]">
-        {children}
-      </main>
+      {/* Main Terminal Area with Persistent Header */}
+      <div className="flex-1 flex flex-col min-w-0 min-h-screen bg-white">
+        {/* Desktop Top Header Bar */}
+        <header className="hidden md:flex h-16 border-b border-[#cacacb] px-6 sm:px-8 items-center justify-between bg-white/95 backdrop-blur-xs sticky top-0 z-30">
+          <div className="flex items-center gap-3">
+            <span className="text-xs font-bold uppercase tracking-widest text-[#707072]">
+              C&amp;J Arena
+            </span>
+            <span className="text-[#cacacb]">•</span>
+            <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#f5f5f5] text-[11px] font-semibold text-[#111111] border border-[#cacacb]">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#007d48]" />
+              <span className="capitalize">{userRole} Console</span>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-4">
+            <div className="text-right hidden lg:block">
+              <p className="text-xs font-bold text-[#111111] leading-tight">
+                {profile?.full_name || user.email}
+              </p>
+              <p className="text-[10px] text-[#707072] leading-tight">
+                {user.email}
+              </p>
+            </div>
+
+            <form action={logout}>
+              <Button
+                variant="outline"
+                size="sm"
+                type="submit"
+                className="border-[#cacacb] text-[#111111] hover:text-[#d30005] hover:border-[#d30005]/40 hover:bg-[#fff5f5] text-xs font-semibold h-9 px-4 gap-1.5 transition-colors cursor-pointer"
+              >
+                <LogOut className="h-3.5 w-3.5" />
+                Sign Out
+              </Button>
+            </form>
+          </div>
+        </header>
+
+        {/* Main Terminal Content */}
+        <main className="flex-1 overflow-auto bg-[#ffffff]">
+          {children}
+        </main>
+      </div>
     </div>
   );
 }

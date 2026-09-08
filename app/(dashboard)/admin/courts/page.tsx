@@ -58,11 +58,13 @@ export default async function AdminCourtsPage() {
         </div>
 
         <Dialog>
-          <DialogTrigger>
-            <Button size="sm" className="bg-[#111111] text-white hover:bg-[#222222] h-10 px-5 text-xs font-medium rounded-full">
-              <Plus className="h-4 w-4 mr-2" /> Add New Court
-            </Button>
-          </DialogTrigger>
+          <DialogTrigger
+            render={
+              <Button size="sm" className="bg-[#111111] text-white hover:bg-[#222222] h-10 px-5 text-xs font-medium rounded-full">
+                <Plus className="h-4 w-4 mr-2" /> Add New Court
+              </Button>
+            }
+          />
           <DialogContent className="sm:max-w-md bg-white border border-[#cacacb] text-[#111111] rounded-none p-6 sm:p-8 shadow-2xl">
             <form action={createCourt}>
               <DialogHeader className="space-y-1 pb-2">

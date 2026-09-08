@@ -34,14 +34,25 @@ export function DashboardMobileNav({
         <BrandLogo size="sm" />
       </Link>
 
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2">
         <span className="text-[10px] font-bold uppercase tracking-wider text-[#111111] bg-[#f5f5f5] border border-[#cacacb] px-2.5 py-0.5 rounded-full">
           {userRole}
         </span>
+        <form action={logout}>
+          <Button
+            variant="outline"
+            size="sm"
+            type="submit"
+            className="h-8 px-2.5 text-xs text-[#707072] hover:text-[#d30005] hover:bg-[#fff5f5] border-[#cacacb] gap-1 font-medium cursor-pointer"
+          >
+            <LogOut className="w-3.5 h-3.5" />
+            <span className="hidden xs:inline">Sign Out</span>
+          </Button>
+        </form>
         <button
           type="button"
           onClick={() => setIsOpen(!isOpen)}
-          className="p-2 rounded-full text-[#111111] hover:bg-[#f5f5f5] border border-[#cacacb]"
+          className="p-1.5 rounded-full text-[#111111] hover:bg-[#f5f5f5] border border-[#cacacb] cursor-pointer"
           aria-label="Toggle navigation menu"
         >
           {isOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
@@ -145,19 +156,6 @@ export function DashboardMobileNav({
                 Arena Homepage
               </Link>
             </nav>
-          </div>
-
-          <div className="pt-6 border-t border-[#cacacb]">
-            <form action={logout}>
-              <Button
-                variant="outline"
-                type="submit"
-                className="w-full text-xs font-semibold text-[#d30005] border-[#cacacb] hover:bg-[#f5f5f5]"
-              >
-                <LogOut className="w-4 h-4 mr-2" />
-                Sign Out
-              </Button>
-            </form>
           </div>
         </div>
       )}

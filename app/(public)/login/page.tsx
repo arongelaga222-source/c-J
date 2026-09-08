@@ -58,7 +58,7 @@ export default async function LoginPage({
                 <Label htmlFor="password" className="text-xs font-bold uppercase tracking-wider text-[#111111]">
                   Password
                 </Label>
-                <Link href="#" className="text-xs text-[#707072] hover:text-[#111111] underline">
+                <Link href="/forgot-password" className="text-xs text-[#707072] hover:text-[#111111] underline">
                   Forgot?
                 </Link>
               </div>

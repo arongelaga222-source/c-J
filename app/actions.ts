@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation';
 import { headers } from 'next/headers';
 import { createClient } from '@/utils/supabase/server';
 import { createClient as createServiceClient } from '@supabase/supabase-js';
+import nodemailer from 'nodemailer';
 
 /**
  * ============================================================================
@@ -103,20 +104,10 @@ export async function signup(formData: FormData) {
   const fullName = (formData.get('fullName') as string)?.trim();
   const next = formData.get('next') as string | null;
 
-  // Resolve current site origin dynamically for redirect
-  const headersList = await headers();
-  const host = headersList.get('x-forwarded-host') || headersList.get('host');
-  const proto = headersList.get('x-forwarded-proto') || 'https';
-  let origin = headersList.get('origin');
-  if (!origin && host) {
-    origin = `${proto}://${host}`;
-  }
-  if (!origin) {
-    origin = process.env.NEXT_PUBLIC_APP_URL || 'https://c-j-pickleball.vercel.app';
-  }
-
+  // Never route confirmation emails to localhost; always use the public production app URL
+  const appUrl = (process.env.NEXT_PUBLIC_APP_URL || 'https://c-j-pickleball.vercel.app').replace(/\/$/, '');
   const destination = next && next.startsWith('/') ? next : '/dashboard';
-  const emailRedirectTo = `${origin}/auth/callback?next=${encodeURIComponent(destination)}`;
+  const emailRedirectTo = `${appUrl}/auth/callback?next=${encodeURIComponent(destination)}`;
 
   const { data, error } = await supabase.auth.signUp({
     email,
@@ -807,7 +798,6 @@ export async function createCourt(formData: FormData): Promise<void> {
 
   const name = formData.get('name') as string;
   const rate = parseFloat((formData.get('rate') as string) || '300');
-
   const { error } = await supabase.from('courts').insert({
     name,
     type: 'indoor',
@@ -862,4 +852,121 @@ export async function toggleCourtStatus(
 
   revalidatePath('/admin/courts');
   revalidatePath('/book');
+}
+
+// ============================================================================
+// 5. PASSWORD MANAGEMENT
+// ============================================================================
+
+/**
+ * Generate a temporary password (matching strict regex: 1 uppercase, 1 lowercase, 1 number, 1 special char, 8-12 length)
+ */
+function generateTempPassword(): string {
+  const chars = 'abcdefghijklmnopqrstuvwxyz';
+  const upper = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  const nums = '0123456789';
+  const specials = '!@#$%^&*';
+  
+  const getRandom = (str: string) => str[Math.floor(Math.random() * str.length)];
+  
+  let pwd = getRandom(upper) + getRandom(chars) + getRandom(nums) + getRandom(specials);
+  
+  const all = chars + upper + nums + specials;
+  for(let i = 0; i < 4; i++) {
+    pwd += getRandom(all);
+  }
+  
+  // Shuffle string
+  return pwd.split('').sort(() => 0.5 - Math.random()).join('');
+}
+
+/**
+ * Handle Forgot Password by generating a temp password and emailing it via SMTP
+ */
+export async function resetPasswordWithTempPassword(formData: FormData) {
+  const email = (formData.get('email') as string)?.trim();
+  if (!email) return { error: 'Email is required' };
+
+  const { createClient: createServiceClient } = await import('@supabase/supabase-js');
+  const adminSupabase = createServiceClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  );
+
+  // Fetch user by email via Admin API
+  const { data: { users }, error: listError } = await adminSupabase.auth.admin.listUsers();
+  const user = users?.find(u => u.email === email);
+
+  if (listError || !user) {
+    // For security, don't reveal if user exists, just return success
+    return { success: true };
+  }
+
+  // Generate Temp Password
+  const tempPassword = generateTempPassword();
+
+  // Update User Password via Admin API
+  const { error: updateError } = await adminSupabase.auth.admin.updateUserById(user.id, {
+    password: tempPassword,
+  });
+
+  if (updateError) {
+    console.error('[Forgot Password Error]:', updateError);
+    return { error: 'Failed to reset password.' };
+  }
+
+  // Send Email via Nodemailer
+  try {
+    const nodemailer = await import('nodemailer');
+    const transporter = nodemailer.createTransport({
+      service: 'gmail', 
+      auth: {
+        user: process.env.SMTP_USER || 'aarongelaga222@gmail.com',
+        pass: process.env.SMTP_PASS, 
+      },
+    });
+
+    await transporter.sendMail({
+      from: process.env.SMTP_USER || 'aarongelaga222@gmail.com',
+      to: email,
+      subject: 'Your Temporary Password for C&J Pickleball',
+      html: `
+        <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <h2>Password Reset Request</h2>
+          <p>A request was made to reset your password. Here is your temporary password:</p>
+          <div style="background:#f5f5f5; padding:15px; text-align:center; font-size: 24px; letter-spacing: 2px; font-weight: bold; border-radius: 8px; margin: 20px 0;">
+            ${tempPassword}
+          </div>
+          <p>Please log in and navigate to the <b>Settings</b> tab in your dashboard to change this password immediately.</p>
+          <p style="color: #707072; font-size: 12px; margin-top: 30px;">If you did not request this, please contact support immediately.</p>
+        </div>
+      `,
+    });
+  } catch (emailError) {
+    console.error('[Email Dispatch Error]:', emailError);
+  }
+
+  return { success: true };
+}
+
+/**
+ * Handle Dashboard Settings Password Update
+ */
+export async function updateUserPassword(formData: FormData): Promise<{ success?: boolean; error?: string }> {
+  const { createClient } = await import('@/utils/supabase/server');
+  const supabase = await createClient();
+  const password = formData.get('password') as string;
+
+  if (!password || password.length < 6) {
+    return { error: 'Password must be at least 6 characters.' };
+  }
+
+  const { error } = await supabase.auth.updateUser({ password });
+
+  if (error) {
+    console.error('[Update Password Error]:', error);
+    return { error: error.message };
+  }
+
+  return { success: true };
 }

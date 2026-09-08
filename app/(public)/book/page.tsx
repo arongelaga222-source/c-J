@@ -622,6 +622,7 @@ export default function BookPage() {
                       src="/gear-paddle.jpg"
                       alt="Pro Carbon Paddle"
                       fill
+                      sizes="48px"
                       className="object-cover p-1"
                     />
                   </div>
