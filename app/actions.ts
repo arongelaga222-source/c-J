@@ -883,9 +883,11 @@ function generateTempPassword(): string {
 /**
  * Handle Forgot Password by generating a temp password and emailing it via SMTP
  */
-export async function resetPasswordWithTempPassword(formData: FormData) {
+export async function resetPasswordWithTempPassword(formData: FormData): Promise<void> {
   const email = (formData.get('email') as string)?.trim();
-  if (!email) return { error: 'Email is required' };
+  if (!email) {
+    redirect('/forgot-password?message=' + encodeURIComponent('Email is required'));
+  }
 
   const { createClient: createServiceClient } = await import('@supabase/supabase-js');
   const adminSupabase = createServiceClient(
@@ -899,7 +901,7 @@ export async function resetPasswordWithTempPassword(formData: FormData) {
 
   if (listError || !user) {
     // For security, don't reveal if user exists, just return success
-    return { success: true };
+    redirect('/forgot-password?success=' + encodeURIComponent('If an account exists with this email, a temporary password has been sent. Please check your inbox.'));
   }
 
   // Generate Temp Password
@@ -912,7 +914,7 @@ export async function resetPasswordWithTempPassword(formData: FormData) {
 
   if (updateError) {
     console.error('[Forgot Password Error]:', updateError);
-    return { error: 'Failed to reset password.' };
+    redirect('/forgot-password?message=' + encodeURIComponent('Failed to reset password. Please try again.'));
   }
 
   // Send Email via Nodemailer
@@ -946,7 +948,7 @@ export async function resetPasswordWithTempPassword(formData: FormData) {
     console.error('[Email Dispatch Error]:', emailError);
   }
 
-  return { success: true };
+  redirect('/forgot-password?success=' + encodeURIComponent('A temporary password has been sent to your email address. Please check your inbox and log in.'));
 }
 
 /**
